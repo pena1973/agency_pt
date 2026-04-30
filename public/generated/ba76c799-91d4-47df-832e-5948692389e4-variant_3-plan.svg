@@ -1,0 +1,516 @@
+<svg width="1100" height="820" viewBox="0 0 1100 820" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1100" height="820" fill="#f8fafc"/>
+
+  <rect x="24" y="20" width="1052" height="780" rx="28" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+
+  <text
+    x="60"
+    y="62"
+    font-family="Arial, sans-serif"
+    font-size="16"
+    font-weight="700"
+    fill="#059669"
+  >
+    ПЛАН РАССТАНОВКИ
+  </text>
+
+  <text
+    x="60"
+    y="98"
+    font-family="Arial, sans-serif"
+    font-size="30"
+    font-weight="700"
+    fill="#0f172a"
+  >
+    Спальня-студия: кровать вдоль короткой стены и эргономи…
+  </text>
+
+  <text
+    x="1040"
+    y="60"
+    text-anchor="end"
+    font-family="Arial, sans-serif"
+    font-size="15"
+    fill="#475569"
+  >
+    Спальня
+  </text>
+
+  <text
+    x="1040"
+    y="84"
+    text-anchor="end"
+    font-family="Arial, sans-serif"
+    font-size="15"
+    fill="#475569"
+  >
+    Размер: 3.5 × 4 м
+  </text>
+
+  <text
+    x="1040"
+    y="108"
+    text-anchor="end"
+    font-family="Arial, sans-serif"
+    font-size="13"
+    fill="#64748b"
+  >
+    Точность: low
+  </text>
+
+  <g>
+    <rect
+      x="289.25"
+      y="128"
+      width="521.5"
+      height="596"
+      fill="#fefefe"
+      stroke="#1e293b"
+      stroke-width="4"
+      rx="8"
+    />
+
+    
+      <line
+        x1="438.25"
+        y1="128"
+        x2="438.25"
+        y2="724"
+        stroke="#e2e8f0"
+        stroke-width="1"
+        stroke-dasharray="5 7"
+      />
+    
+      <line
+        x1="587.25"
+        y1="128"
+        x2="587.25"
+        y2="724"
+        stroke="#e2e8f0"
+        stroke-width="1"
+        stroke-dasharray="5 7"
+      />
+    
+      <line
+        x1="289.25"
+        y1="277"
+        x2="810.75"
+        y2="277"
+        stroke="#e2e8f0"
+        stroke-width="1"
+        stroke-dasharray="5 7"
+      />
+    
+      <line
+        x1="289.25"
+        y1="426"
+        x2="810.75"
+        y2="426"
+        stroke="#e2e8f0"
+        stroke-width="1"
+        stroke-dasharray="5 7"
+      />
+    
+      <line
+        x1="289.25"
+        y1="575"
+        x2="810.75"
+        y2="575"
+        stroke="#e2e8f0"
+        stroke-width="1"
+        stroke-dasharray="5 7"
+      />
+    
+    
+        <g>
+          <rect
+            x="304.15"
+            y="291.9"
+            width="208.6"
+            height="298"
+            rx="10"
+            fill="#F9F6EF"
+            stroke="#b3b1ac"
+            stroke-width="2.2"
+          />
+
+          <text
+            x="408.45"
+            y="427.9"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            Кровать 140×200
+          </text>
+
+          
+          <text
+            x="408.45"
+            y="449.9"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            вдоль короткой стены
+          </text>
+          
+
+          
+          <text
+            x="408.45"
+            y="471.9"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="14"
+            fill="#334155"
+          >
+            1.4 × 2 м
+          </text>
+          
+        </g>
+      
+        <g>
+          <rect
+            x="518.71"
+            y="232.3"
+            width="67.05"
+            height="67.05"
+            rx="10"
+            fill="#E8E3D9"
+            stroke="#a7a39c"
+            stroke-width="2.2"
+          />
+
+          <text
+            x="552.24"
+            y="268.83"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="10"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            Тумба у
+          </text>
+
+          
+
+          
+        </g>
+      
+        <g>
+          <rect
+            x="518.71"
+            y="426"
+            width="67.05"
+            height="67.05"
+            rx="10"
+            fill="#E8E3D9"
+            stroke="#a7a39c"
+            stroke-width="2.2"
+          />
+
+          <text
+            x="552.24"
+            y="462.53"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="10"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            Тумба у
+          </text>
+
+          
+
+          
+        </g>
+      
+        <g>
+          <rect
+            x="631.95"
+            y="142.9"
+            width="163.9"
+            height="89.4"
+            rx="10"
+            fill="#D8D1C5"
+            stroke="#9c968e"
+            stroke-width="2.2"
+          />
+
+          <text
+            x="713.9"
+            y="185.6"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            Шкаф + пенал
+          </text>
+
+          
+
+          
+          <text
+            x="713.9"
+            y="207.6"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="14"
+            fill="#334155"
+          >
+            1.1 × 0.6 м
+          </text>
+          
+        </g>
+      
+        <g>
+          <rect
+            x="438.25"
+            y="142.9"
+            width="163.9"
+            height="67.05"
+            rx="10"
+            fill="#EEE7DD"
+            stroke="#aba69f"
+            stroke-width="2.2"
+          />
+
+          <text
+            x="520.2"
+            y="183.43"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            Комод низкий
+          </text>
+
+          
+
+          
+        </g>
+      
+        <g>
+          <rect
+            x="512.75"
+            y="530.3"
+            width="238.4"
+            height="89.4"
+            rx="10"
+            fill="#F6F3EB"
+            stroke="#b1afa9"
+            stroke-width="2.2"
+          />
+
+          <text
+            x="631.95"
+            y="562"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            Широкий рабочий стол у
+          </text>
+
+          
+          <text
+            x="631.95"
+            y="584"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            окна
+          </text>
+          
+
+          
+          <text
+            x="631.95"
+            y="606"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="14"
+            fill="#334155"
+          >
+            1.6 × 0.6 м
+          </text>
+          
+        </g>
+      
+        <g>
+          <rect
+            x="307.13"
+            y="592.88"
+            width="81.95"
+            height="81.95"
+            rx="10"
+            fill="#CEC9BF"
+            stroke="#94918a"
+            stroke-width="2.2"
+          />
+
+          <text
+            x="348.11"
+            y="629.86"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="10"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            Рабочее
+          </text>
+
+          
+          <text
+            x="348.11"
+            y="643.86"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="10"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            кресло
+          </text>
+          
+
+          
+        </g>
+      
+        <g>
+          <rect
+            x="468.05"
+            y="524.34"
+            width="104.3"
+            height="104.3"
+            rx="10"
+            fill="#D9D3C8"
+            stroke="#9c9890"
+            stroke-width="2.2"
+          />
+
+          <text
+            x="520.2"
+            y="572.49"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="11"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            Небольшое
+          </text>
+
+          
+          <text
+            x="520.2"
+            y="587.49"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="11"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            кресло/пуф
+          </text>
+          
+
+          
+        </g>
+      
+        <g>
+          <rect
+            x="432.29"
+            y="440.9"
+            width="298"
+            height="238.4"
+            rx="10"
+            fill="#F2EFE8"
+            stroke="#aeaca7"
+            stroke-width="2.2"
+          />
+
+          <text
+            x="581.29"
+            y="558.1"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="700"
+            fill="#0f172a"
+          >
+            Ковер в центре
+          </text>
+
+          
+
+          
+          <text
+            x="581.29"
+            y="580.1"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="14"
+            fill="#334155"
+          >
+            2 × 1.6 м
+          </text>
+          
+        </g>
+      
+  </g>
+
+  
+    <text
+      x="550"
+      y="112"
+      text-anchor="middle"
+      font-family="Arial, sans-serif"
+      font-size="15"
+      font-weight="700"
+      fill="#334155"
+    >
+      3.5 м
+    </text>
+
+    <text
+      x="271.25"
+      y="426"
+      transform="rotate(-90 271.25 426)"
+      text-anchor="middle"
+      font-family="Arial, sans-serif"
+      font-size="15"
+      font-weight="700"
+      fill="#334155"
+    >
+      4 м
+    </text>
+  
+
+  <text
+    x="60"
+    y="780"
+    font-family="Arial, sans-serif"
+    font-size="14"
+    fill="#64748b"
+  >
+    Схема построена автоматически по координатам мебели. Это концептуальный план, а не строительный чертёж.
+  </text>
+</svg>

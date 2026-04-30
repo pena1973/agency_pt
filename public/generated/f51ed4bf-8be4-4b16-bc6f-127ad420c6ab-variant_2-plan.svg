@@ -1,0 +1,284 @@
+<svg width="1100" height="860" viewBox="0 0 1100 860" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="rugPattern" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="12" stroke="#94a3b8" stroke-width="2" opacity="0.55"/>
+    </pattern>
+    <pattern id="rugDots" patternUnits="userSpaceOnUse" width="10" height="10">
+      <circle cx="3" cy="3" r="1.2" fill="#94a3b8" opacity="0.35"/>
+    </pattern>
+  </defs>
+
+  <rect width="1100" height="860" fill="#f8fafc"/>
+  <rect x="24" y="20" width="1052" height="820" rx="28" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+
+  <text x="60" y="60" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#059669">
+    ПЛАН РАССТАНОВКИ
+  </text>
+
+  <text x="60" y="96" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#0f172a">
+    Кровать вдоль стены, рабочая зона у окна
+  </text>
+
+  <text x="1040" y="60" text-anchor="end" font-family="Arial, sans-serif" font-size="15" fill="#475569">
+    Спальня
+  </text>
+
+  <text x="1040" y="84" text-anchor="end" font-family="Arial, sans-serif" font-size="15" fill="#475569">
+    Размер: 3 × 3.5 м
+  </text>
+
+  <text x="1040" y="108" text-anchor="end" font-family="Arial, sans-serif" font-size="13" fill="#64748b">
+    Точность: low
+  </text>
+
+  
+      <line x1="458.57" y1="130" x2="458.57" y2="770" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="5 7"/>
+    
+      <line x1="641.43" y1="130" x2="641.43" y2="770" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="5 7"/>
+    
+      <line x1="275.71" y1="312.86" x2="824.29" y2="312.86" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="5 7"/>
+    
+      <line x1="275.71" y1="495.71" x2="824.29" y2="495.71" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="5 7"/>
+    
+
+  <rect
+    x="275.71"
+    y="130"
+    width="548.57"
+    height="640"
+    rx="8"
+    fill="#fffefc"
+    stroke="#1e293b"
+    stroke-width="4"
+  />
+
+  
+      <g>
+        <line x1="275.71" y1="166.57" x2="422" y2="312.86" stroke="#475569" stroke-width="2"/>
+        <path d="M 275.71 166.57 A 146.29 146.29 0 0 1 422 312.86" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-dasharray="5 5"/>
+        <text x="289.71" y="184.57" font-family="Arial, sans-serif" font-size="12" fill="#475569">
+          дверь
+        </text>
+      </g>
+    
+      <g>
+        <line x1="440.29" y1="768" x2="732.86" y2="768" stroke="#38bdf8" stroke-width="8" stroke-linecap="round"/>
+        <text x="586.57" y="790" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#38bdf8">
+          окно
+        </text>
+      </g>
+    
+
+  
+    <g>
+      <rect x="422" y="349.43" width="310.86" height="256" rx="10" fill="#e5e7eb" stroke="#94a3b8" stroke-width="1.8"/>
+      <rect x="426" y="353.43" width="302.86" height="248" rx="8" fill="url(#rugPattern)" opacity="0.9"/>
+      <text x="577.43" y="482.43" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#475569">
+        Ковер по це…
+      </text>
+    </g>
+  
+
+  
+    <g>
+      <rect x="458.57" y="203.14" width="365.71" height="256" rx="10" fill="#FFFFFF" stroke="#b8b8b8" stroke-width="2.2"/>
+      <rect x="458.57" y="203.14" width="365.71" height="10" rx="8" fill="#b8b8b8" opacity="0.9"/>
+      <rect x="468.57" y="219.14" width="166.86" height="20" rx="6" fill="#ffffff" opacity="0.85"/>
+      <rect x="647.43" y="219.14" width="166.86" height="20" rx="6" fill="#ffffff" opacity="0.85"/>
+      <rect x="468.57" y="247.14" width="345.71" height="202" rx="8" fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+      
+        <text
+          x="641.43"
+          y="337.64"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="16"
+          font-weight="700"
+          fill="#0f172a"
+        >
+          Кровать 140…
+        </text>
+      
+    </g>
+  
+    <g>
+      <rect x="290.34" y="243.37" width="73.14" height="73.14" rx="10" fill="#F3F3F3" stroke="#afafaf" stroke-width="2.2"/>
+      <rect x="290.34" y="243.37" width="73.14" height="10" rx="8" fill="#afafaf" opacity="0.9"/>
+      <rect x="300.34" y="259.37" width="24" height="14" rx="6" fill="#ffffff" opacity="0.85"/>
+      <rect x="332.91" y="259.37" width="24" height="14" rx="6" fill="#ffffff" opacity="0.85"/>
+      <rect x="300.34" y="287.37" width="53.14" height="19.14" rx="8" fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+      
+        <text
+          x="326.91"
+          y="276.94"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="9"
+          font-weight="700"
+          fill="#0f172a"
+        >
+          Тумба
+        </text>
+      
+        <text
+          x="326.91"
+          y="288.94"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="9"
+          font-weight="700"
+          fill="#0f172a"
+        >
+          прикр…
+        </text>
+      
+    </g>
+  
+    <g>
+      <rect x="312.29" y="550.57" width="292.57" height="109.71" rx="8" fill="#EDEDED" stroke="#ababab" stroke-width="2"/>
+      <rect x="446.57" y="668.29" width="24" height="10" rx="5" fill="#cbd5e1" stroke="#64748b" stroke-width="1"/>
+      
+        <text
+          x="458.57"
+          y="611.93"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="16"
+          font-weight="700"
+          fill="#0f172a"
+        >
+          Широкий пис…
+        </text>
+      
+    </g>
+  
+    <g>
+      <rect x="608.51" y="503.71" width="91.43" height="83.43" rx="8" fill="#D8D8D8" stroke="#9c9c9c" stroke-width="1.8"/>
+      <rect x="614.51" y="495.71" width="79.43" height="10" rx="5" fill="rgba(255,255,255,0.22)" stroke="#9c9c9c" stroke-width="1.2"/>
+      
+        <text
+          x="654.23"
+          y="544.93"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="10"
+          font-weight="700"
+          fill="#0f172a"
+        >
+          Стул
+        </text>
+      
+    </g>
+  
+    <g>
+      <rect x="487.83" y="258" width="292.57" height="109.71" rx="8" fill="#E4E4E4" stroke="#a4a4a4" stroke-width="2.2"/>
+      <line x1="634.11" y1="264" x2="634.11" y2="361.71" stroke="#a4a4a4" stroke-width="1.8"/>
+      <circle cx="624.11" cy="312.86" r="2.3" fill="#a4a4a4"/>
+      <circle cx="644.11" cy="312.86" r="2.3" fill="#a4a4a4"/>
+      
+        <text
+          x="634.11"
+          y="319.36"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="16"
+          font-weight="700"
+          fill="#0f172a"
+        >
+          Шкаф трёхдв…
+        </text>
+      
+    </g>
+  
+    <g>
+      <rect x="312.29" y="312.86" width="146.29" height="82.29" rx="8" fill="#F0ECE7" stroke="#adaaa6" stroke-width="2"/>
+      <line x1="318.29" y1="340.29" x2="452.57" y2="340.29" stroke="#adaaa6" stroke-width="1.3"/>
+      <line x1="318.29" y1="367.71" x2="452.57" y2="367.71" stroke="#adaaa6" stroke-width="1.3"/>
+      
+        <text
+          x="385.43"
+          y="360.5"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="16"
+          font-weight="700"
+          fill="#0f172a"
+        >
+          Комод
+        </text>
+      
+    </g>
+  
+    <g>
+      <rect x="699.94" y="559.71" width="64" height="64" rx="8" fill="#FFFFFF" stroke="#b8b8b8" stroke-width="2"/>
+      <rect x="724.9" y="631.71" width="14.08" height="10" rx="5" fill="#cbd5e1" stroke="#64748b" stroke-width="1"/>
+      
+        <text
+          x="731.94"
+          y="594.71"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="9"
+          font-weight="700"
+          fill="#0f172a"
+        >
+          Наст…
+        </text>
+      
+    </g>
+  
+    <g>
+      <rect x="465.89" y="214.11" width="64" height="219.43" rx="6" fill="#F5F5F5" stroke="#b0b0b0" stroke-width="2"/>
+      <line x1="471.89" y1="287.26" x2="523.89" y2="287.26" stroke="#b0b0b0" stroke-width="1.2"/>
+      <line x1="471.89" y1="360.4" x2="523.89" y2="360.4" stroke="#b0b0b0" stroke-width="1.2"/>
+      
+        <text
+          x="497.89"
+          y="320.83"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="9"
+          font-weight="700"
+          fill="#0f172a"
+        >
+          Полка
+        </text>
+      
+        <text
+          x="497.89"
+          y="332.83"
+          text-anchor="middle"
+          font-family="Arial, sans-serif"
+          font-size="9"
+          font-weight="700"
+          fill="#0f172a"
+        >
+          над
+        </text>
+      
+    </g>
+  
+
+  
+    <text x="550" y="114" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#334155">
+      3 м
+    </text>
+
+    <text
+      x="257.71"
+      y="450"
+      transform="rotate(-90 257.71 450)"
+      text-anchor="middle"
+      font-family="Arial, sans-serif"
+      font-size="15"
+      font-weight="700"
+      fill="#334155"
+    >
+      3.5 м
+    </text>
+  
+
+  <text x="60" y="820" font-family="Arial, sans-serif" font-size="14" fill="#64748b">
+    Вид сверху. Схема построена автоматически по координатам мебели и проёмов. Это концептуальный план, а не строительный чертёж.
+  </text>
+</svg>

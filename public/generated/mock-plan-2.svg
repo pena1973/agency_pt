@@ -1,0 +1,8 @@
+<svg width="700" height="700" viewBox="0 0 700 700" xmlns="http://www.w3.org/2000/svg">
+  <rect width="700" height="700" fill="#fff7ed"/>
+  <rect x="100" y="80" width="500" height="540" fill="#ffffff" stroke="#7c2d12" stroke-width="8"/>
+  <rect x="130" y="130" width="330" height="90" rx="8" fill="#fed7aa" stroke="#9a3412" stroke-width="3"/>
+  <rect x="480" y="130" width="80" height="300" rx="8" fill="#fdba74" stroke="#9a3412" stroke-width="3"/>
+  <rect x="180" y="460" width="240" height="100" rx="8" fill="#fb923c" stroke="#9a3412" stroke-width="3"/>
+  <text x="350" y="660" text-anchor="middle" font-family="Arial" font-size="26" fill="#9a3412">Mock plan variant 2</text>
+</svg>

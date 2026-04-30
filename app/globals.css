@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f8fb;
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -12,15 +13,51 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+.property-map-marker {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+  background: #0f172a;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.25);
+}
+
+.property-map-marker--selected {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px 9999px 9999px 0;
+  border: 2px solid #ffffff;
+  background: #dc2626;
+  transform: rotate(-45deg);
+}
+
+.property-map-marker--selected::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #ffffff;
+}
+
+.property-map--drawing,
+.property-map--drawing .leaflet-container,
+.property-map--drawing .leaflet-interactive,
+.property-map--drawing .leaflet-pane,
+.property-map--drawing .leaflet-top,
+.property-map--drawing .leaflet-bottom {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%230f172a' d='M3 17.25V21h3.75L17.8 9.94l-3.75-3.75z'/%3E%3Cpath fill='%23059669' d='m20.71 7.04-3.75-3.75a1 1 0 0 0-1.41 0l-1.13 1.13 5.16 5.16 1.13-1.13a1 1 0 0 0 0-1.41'/%3E%3C/svg%3E")
+      4 20,
+    crosshair;
 }
