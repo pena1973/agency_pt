@@ -61,3 +61,11 @@ body {
       4 20,
     crosshair;
 }
+
+.admin-form-shell input:not([type="checkbox"]):not([type="file"]),
+.admin-form-shell select {
+  height: 44px;
+  min-height: 44px;
+  padding-top: 0;
+  padding-bottom: 0;
+}

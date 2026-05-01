@@ -184,7 +184,7 @@
     "mode": "rent",
     "title": "Лофт у набережной Дору",
     "city": "Порту",
-    "district": "Ribeira",
+    "district": "Порту",
     "country": "Португалия",
     "location": {
       "addressLabel": "Ribeira, Porto, Portugal",
@@ -193,7 +193,7 @@
       "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=41.1406,-8.611"
     },
     "priceAmount": 2400,
-    "priceLabel": "€2 400 / месяц",
+    "priceLabel": "€2 400 / месяц",
     "shortDescription": "Атмосферный лофт для аренды с открытой зоной кухни-гостиной и пешей доступностью к центру.",
     "fullDescription": "Лофт для долгосрочной аренды с характерной архитектурой, высокими потолками и открытым пространством. Подойдет для пары или специалиста, которому важны стиль, центр города и быстрый доступ к инфраструктуре.",
     "bedrooms": 1,
@@ -217,12 +217,12 @@
       "floor": "2 этаж",
       "exterior": true,
       "elevator": false,
-      "parkingSpaces": 0,
+      "parkingSpaces": 1,
       "storageRoom": false,
       "builtInWardrobes": false,
       "equippedKitchen": true,
       "furnished": true,
-      "balconyCount": 1,
+      "balconyCount": 2,
       "terraceCount": 0,
       "condition": "good",
       "yearBuilt": 2009,
@@ -233,7 +233,7 @@
       ],
       "energyRating": "C",
       "bathroomsFull": 1,
-      "buildingFloors": 4,
+      "buildingFloors": 5,
       "monthlyCondoFeeEur": 90
     },
     "transportAccess": [

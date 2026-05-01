@@ -29,7 +29,8 @@ export type PropertyType =
   | "penthouse"
   | "townhouse"
   | "loft"
-  | "duplex";
+  | "duplex"
+  | "land";
 
 export type HeatingType =
   | "central"
@@ -91,6 +92,7 @@ export type PropertyTaxProfile = {
 export type PropertyListing = {
   id: string;
   slug: string;
+  isActive?: boolean;
   mode: ListingMode;
   title: string;
   city: string;
@@ -112,4 +114,59 @@ export type PropertyListing = {
   taxProfile?: PropertyTaxProfile;
   agentName: string;
   publishedAt: string;
+};
+
+export type InquiryMessenger = "whatsapp" | "telegram" | "viber" | "signal";
+
+export type InquirySource = "catalog_request" | "property_request";
+
+export type CustomerInquiry = {
+  id: string;
+  createdAt: string;
+  status: "new" | "reviewed";
+  source: InquirySource;
+  phone: string;
+  messengers: InquiryMessenger[];
+  name?: string;
+  email?: string;
+  message?: string;
+  propertyId?: string;
+  propertySlug?: string;
+  propertyTitle?: string;
+  searchType?: string;
+  location?: string;
+  areaAndTypology?: string;
+  mustHave?: string;
+  balcony?: boolean;
+  terrace?: boolean;
+  garageParking?: boolean;
+  closedGarage?: boolean;
+  nearMetroTransport?: boolean;
+  nearSupermarket?: boolean;
+};
+
+export type RegisteredUserStatus = "new" | "active" | "archived";
+
+export type RegisteredUserSearchProfile = {
+  mode?: ListingMode | "all";
+  cities?: string[];
+  propertyTypes?: PropertyType[];
+  budgetLabel?: string;
+  mustHave?: string[];
+  notes?: string;
+};
+
+export type RegisteredUser = {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  messengers?: InquiryMessenger[];
+  createdAt: string;
+  lastActiveAt: string;
+  status: RegisteredUserStatus;
+  favoriteIds: string[];
+  compareIds: string[];
+  lastViewedIds?: string[];
+  searchProfile?: RegisteredUserSearchProfile;
 };

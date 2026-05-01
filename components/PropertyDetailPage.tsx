@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { getFeatureLabel } from "@/lib/real-estate/data";
 import type {
   EnergyRating,
@@ -20,6 +20,7 @@ type PropertyDetailPageProps = {
 const propertyTypeLabels: Record<PropertyType, string> = {
   apartment: "Квартира",
   duplex: "Дуплекс",
+  land: "Участок",
   loft: "Лофт",
   penthouse: "Пентхаус",
   townhouse: "Таунхаус",
@@ -48,6 +49,15 @@ const transportModeLabels: Record<TransportMode, string> = {
   train: "Поезд",
   tram: "Трамвай",
 };
+
+type MessengerOption = "whatsapp" | "telegram" | "viber" | "signal";
+
+const messengerLabels: Array<{ value: MessengerOption; label: string }> = [
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "telegram", label: "Telegram" },
+  { value: "viber", label: "Viber" },
+  { value: "signal", label: "Signal" },
+];
 
 function formatMoney(value: number): string {
   return new Intl.NumberFormat("ru-RU", {
@@ -95,6 +105,15 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   const [showTaxCalculator, setShowTaxCalculator] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactMessengers, setContactMessengers] = useState<MessengerOption[]>([]);
+  const [contactMessage, setContactMessage] = useState(
+    `Здравствуйте! Меня интересует объект ${property.id} — ${property.title}.`
+  );
+  const [contactSubmitState, setContactSubmitState] = useState<
+    "idle" | "error" | "success"
+  >("idle");
   const { compareIds, toggleCompare } = useCompareList();
   const isCompared = compareIds.includes(property.id);
 
@@ -140,6 +159,58 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
     }
 
     await handleCopyLink();
+  }
+
+  function toggleMessenger(messenger: MessengerOption) {
+    setContactMessengers((currentMessengers) =>
+      currentMessengers.includes(messenger)
+        ? currentMessengers.filter((item) => item !== messenger)
+        : [...currentMessengers, messenger]
+    );
+    setContactSubmitState("idle");
+  }
+
+  async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (contactPhone.trim().length === 0) {
+      setContactSubmitState("error");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          source: "property_request",
+          name: contactName,
+          phone: contactPhone,
+          messengers: contactMessengers,
+          message: contactMessage,
+          propertyId: property.id,
+          propertySlug: property.slug,
+          propertyTitle: property.title,
+        }),
+      });
+
+      if (!response.ok) {
+        setContactSubmitState("error");
+        return;
+      }
+
+      setContactSubmitState("success");
+      setContactName("");
+      setContactPhone("");
+      setContactMessengers([]);
+      setContactMessage(
+        `Здравствуйте! Меня интересует объект ${property.id} — ${property.title}.`
+      );
+    } catch {
+      setContactSubmitState("error");
+    }
   }
 
   return (
@@ -435,29 +506,63 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                 {showContactForm ? (
                   <form
                     className="mt-3 grid gap-3"
-                    action={`mailto:irina@example.com?subject=${encodeURIComponent(
-                      `Запрос по объекту ${property.id}`
-                    )}`}
-                    method="post"
-                    encType="text/plain"
+                    onSubmit={handleContactSubmit}
                   >
                     <input
                       type="text"
-                      name="name"
+                      value={contactName}
+                      onChange={(event) => setContactName(event.target.value)}
                       placeholder="Ваше имя"
                       className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500"
                     />
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Ваш email"
-                      className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500"
-                    />
+                    <div className="grid gap-2">
+                      <input
+                        type="tel"
+                        required
+                        value={contactPhone}
+                        onChange={(event) => setContactPhone(event.target.value)}
+                        placeholder="Телефон (обязательно)"
+                        className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500"
+                      />
+                      <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-[#fbfdff] px-3 py-3">
+                        {messengerLabels.map((messenger) => {
+                          const isChecked = contactMessengers.includes(messenger.value);
+
+                          return (
+                            <label
+                              key={messenger.value}
+                              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                                isChecked
+                                  ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                                  : "border-slate-200 bg-white text-slate-700"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleMessenger(messenger.value)}
+                                className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
+                              />
+                              {messenger.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <textarea
-                      name="message"
-                      defaultValue={`Здравствуйте! Меня интересует объект ${property.id} — ${property.title}.`}
+                      value={contactMessage}
+                      onChange={(event) => setContactMessage(event.target.value)}
                       className="min-h-[104px] rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500"
                     />
+                    {contactSubmitState === "error" ? (
+                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        Укажи телефон, чтобы отправить обращение.
+                      </div>
+                    ) : contactSubmitState === "success" ? (
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                        Обращение отправлено и сохранено в админке.
+                      </div>
+                    ) : null}
                     <button
                       type="submit"
                       className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"

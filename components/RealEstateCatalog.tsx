@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { getFeatureLabel } from "@/lib/real-estate/data";
 import type { ListingFeature, ListingMode, PropertyListing } from "@/lib/real-estate/types";
 import { useCompareList } from "@/lib/real-estate/useCompareList";
+import { useFavoritesList } from "@/lib/real-estate/useFavoritesList";
 
 const languageOptions = [
   { code: "pt", label: "PT" },
@@ -42,6 +43,7 @@ const rentPriceOptions = [
 type SalePriceFilter = (typeof salePriceOptions)[number]["value"];
 type RentPriceFilter = (typeof rentPriceOptions)[number]["value"];
 type LocationFilter = "all" | "drawn_area";
+type FavoriteFilter = "all" | "favorite";
 type MapPoint = { lat: number; lng: number };
 
 const PropertyMap = dynamic(
@@ -107,6 +109,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
   const [salePriceFilter, setSalePriceFilter] = useState<SalePriceFilter>("all");
   const [rentPriceFilter, setRentPriceFilter] = useState<RentPriceFilter>("all");
   const [locationFilter, setLocationFilter] = useState<LocationFilter>("all");
+  const [favoriteFilter, setFavoriteFilter] = useState<FavoriteFilter>("all");
   const [selectedMapPropertyId, setSelectedMapPropertyId] = useState<string | null>(
     null
   );
@@ -116,6 +119,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [imageIndexes, setImageIndexes] = useState<Record<string, number>>({});
   const { compareIds, toggleCompare } = useCompareList();
+  const { favoriteIds, toggleFavorite } = useFavoritesList();
 
   const cities = useMemo(() => {
     const uniqueCities = new Set(
@@ -146,6 +150,10 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
       }
 
       if (featureFilter !== "all" && !property.features.includes(featureFilter)) {
+        return false;
+      }
+
+      if (favoriteFilter === "favorite" && !favoriteIds.includes(property.id)) {
         return false;
       }
 
@@ -193,7 +201,9 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
     appliedPolygon,
     bedroomFilter,
     cityFilter,
+    favoriteFilter,
     featureFilter,
+    favoriteIds,
     locationFilter,
     mode,
     propertiesData,
@@ -208,9 +218,6 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
     const startIndex = (currentListPage - 1) * LISTINGS_PER_PAGE;
     return properties.slice(startIndex, startIndex + LISTINGS_PER_PAGE);
   }, [currentListPage, properties]);
-  const comparedProperties = propertiesData.filter((property) =>
-    compareIds.includes(property.id)
-  );
   const selectedMapProperty =
     properties.find((property) => property.id === selectedMapPropertyId) ??
     properties[0] ??
@@ -223,6 +230,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
     setSalePriceFilter("all");
     setRentPriceFilter("all");
     setLocationFilter("all");
+    setFavoriteFilter("all");
   }
 
   function clearPolygonSelection() {
@@ -332,13 +340,13 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
               </span>
             </Link>
 
-            <button
-              type="button"
+            <Link
+              href="/login"
               className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
             >
               <span className="text-base">⌂</span>
               <span>Вход</span>
-            </button>
+            </Link>
 
             <div className="flex items-center rounded-[18px] border border-slate-200 bg-white p-1 shadow-sm">
               {languageOptions.map((item) => (
@@ -363,12 +371,17 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
       <section className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-[1380px] px-8 py-5">
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Фильтр
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex w-full justify-end">
+              <Link
+                href="/contact-realtor"
+                className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
+              >
+                Написать риэлтору
+              </Link>
             </div>
 
-            <div className="grid w-full gap-2 rounded-[24px] border border-slate-200 bg-[#fbfdff] p-3 shadow-sm lg:grid-cols-[1.1fr_1fr_0.9fr_1.2fr_1fr_auto]">
+            <div className="grid w-full gap-2 rounded-[24px] border border-slate-200 bg-[#fbfdff] p-3 shadow-sm lg:grid-cols-[1.1fr_1fr_0.9fr_1.2fr_1fr_0.85fr_auto]">
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                   Город
@@ -473,6 +486,23 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 </select>
               </label>
 
+              <label className="grid gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Избранное
+                </span>
+                <select
+                  value={favoriteFilter}
+                  onChange={(event) => {
+                    setFavoriteFilter(event.target.value as FavoriteFilter);
+                    setCurrentPage(1);
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                >
+                  <option value="all">Все объекты</option>
+                  <option value="favorite">Только избранное</option>
+                </select>
+              </label>
+
               <div className="flex items-end">
                 <button
                   type="button"
@@ -493,7 +523,13 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 <div>
                   В сравнении:{" "}
                   <span className="font-semibold text-slate-800">
-                    {comparedProperties.length}
+                    {compareIds.length}
+                  </span>
+                </div>
+                <div>
+                  В избранном:{" "}
+                  <span className="font-semibold text-slate-800">
+                    {favoriteIds.length}
                   </span>
                 </div>
               </div>
@@ -525,20 +561,6 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 </button>
               </div>
             </div>
-
-            {comparedProperties.length > 0 && (
-              <div className="flex w-full flex-wrap items-center gap-2 rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm">
-                <span className="font-semibold text-slate-900">Сравнение:</span>
-                {comparedProperties.map((property) => (
-                  <span
-                    key={property.id}
-                    className="rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700"
-                  >
-                    {property.title}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </section>
@@ -604,6 +626,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   const imageCount = property.imageGallery.length;
                   const currentImageIndex = imageIndexes[property.id] ?? 0;
                   const isCompared = compareIds.includes(property.id);
+                  const isFavorite = favoriteIds.includes(property.id);
 
                   return (
                     <article
@@ -723,6 +746,17 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
+                              onClick={() => toggleFavorite(property.id)}
+                              className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                                isFavorite
+                                  ? "border border-amber-300 bg-amber-50 text-amber-900"
+                                  : "border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800"
+                              }`}
+                            >
+                              {isFavorite ? "В избранном" : "В избранное"}
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => toggleCompare(property.id)}
                               className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
                                 isCompared
@@ -762,6 +796,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
               <div className="flex max-h-[820px] flex-col items-start gap-4 overflow-y-auto pr-1">
                 {properties.map((property) => {
                   const isActive = selectedMapProperty?.id === property.id;
+                  const isFavorite = favoriteIds.includes(property.id);
 
                   return (
                     <button
@@ -810,7 +845,21 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         </div>
                       </div>
 
-                      <div className="mt-3 grid grid-cols-2 gap-2">
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleFavorite(property.id);
+                          }}
+                          className={`rounded-2xl px-3 py-2 text-center text-xs font-semibold transition ${
+                            isFavorite
+                              ? "border border-amber-300 bg-amber-50 text-amber-900"
+                              : "border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800"
+                          }`}
+                        >
+                          {isFavorite ? "Избранное" : "В избранное"}
+                        </button>
                         <a
                           href={property.location.googleMapsUrl}
                           target="_blank"

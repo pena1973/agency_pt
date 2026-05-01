@@ -25,6 +25,7 @@ export const propertyTypeSchema = z.enum([
   "townhouse",
   "loft",
   "duplex",
+  "land",
 ]);
 export const heatingTypeSchema = z.enum([
   "central",
