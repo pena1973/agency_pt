@@ -96,7 +96,7 @@
     "mode": "sale",
     "title": "Апартаменты в Лиссабоне",
     "city": "Лиссабон",
-    "district": "Avenidas Novas",
+    "district": "Лиссабон",
     "country": "Португалия",
     "location": {
       "addressLabel": "Avenidas Novas, Lisbon, Portugal",
@@ -105,13 +105,13 @@
       "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=38.7374,-9.1502"
     },
     "priceAmount": 690000,
-    "priceLabel": "€690 000",
+    "priceLabel": "€690 000",
     "shortDescription": "2 спальни, высокий этаж, светлая гостиная и удобная локация для жизни или инвестиции.",
     "fullDescription": "Апартаменты после обновления с удобной планировкой, встроенным хранением и солнечной гостиной. Район хорошо подходит для деловой активности, долгосрочной аренды и комфортной городской жизни.",
     "bedrooms": 2,
     "bathrooms": 2,
     "areaM2": 118,
-    "imageUrl": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+    "imageUrl": "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
     "imageGallery": [
       "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",

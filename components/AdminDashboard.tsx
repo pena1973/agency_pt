@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import type { ChangeEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type {
   CustomerInquiry,
   EnergyRating,
@@ -25,8 +25,7 @@ type AdminTab = "catalog" | "inquiries" | "users";
 type AdminCatalogModeFilter = "all" | PropertyListing["mode"];
 type PendingLeaveAction =
   | { kind: "select"; property: PropertyListing }
-  | { kind: "create" }
-  | { kind: "tab"; tab: AdminTab };
+  | { kind: "create" };
 
 type UploadedAdminPhoto = {
   id: string;
@@ -59,6 +58,8 @@ const extendedPropertyTypeOptions: Array<{ value: PropertyType; label: string }>
   { value: "land", label: "Участок" },
   { value: "loft", label: "Лофт" },
   { value: "penthouse", label: "Пентхаус" },
+  { value: "room", label: "Комната" },
+  { value: "studio", label: "Студия" },
   { value: "townhouse", label: "Таунхаус" },
   { value: "villa", label: "Вилла" },
 ];
@@ -326,6 +327,34 @@ export function AdminDashboard({
   const [selectedUserId, setSelectedUserId] = useState<string | null>(
     initialUsers[0]?.id ?? null
   );
+  const catalogContentScrollRef = useRef<HTMLDivElement | null>(null);
+  const photoFileInputRef = useRef<HTMLInputElement | null>(null);
+  const photoPickerScrollStateRef = useRef<{
+    panelScrollTop: number;
+    windowScrollX: number;
+    windowScrollY: number;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousWindowScrollX = window.scrollX;
+    const previousWindowScrollY = window.scrollY;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      window.scrollTo({
+        top: previousWindowScrollY,
+        left: previousWindowScrollX,
+        behavior: "auto",
+      });
+    };
+  }, []);
   const [selectedId, setSelectedId] = useState<string | null>(
     initialProperties[0]?.id ?? null
   );
@@ -388,6 +417,7 @@ export function AdminDashboard({
     return true;
   });
   const selectedUser = users.find((user) => user.id === selectedUserId) ?? users[0] ?? null;
+  const usersById = new Map(users.map((user) => [user.id, user] as const));
   const featureGridClass = showsCompactLayout
     ? "mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6"
     : "mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4";
@@ -409,6 +439,41 @@ export function AdminDashboard({
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
+
+  function restorePhotoPickerScrollState() {
+    const scrollState = photoPickerScrollStateRef.current;
+
+    if (!scrollState) {
+      return;
+    }
+
+    if (catalogContentScrollRef.current) {
+      catalogContentScrollRef.current.scrollTop = scrollState.panelScrollTop;
+    }
+
+    window.scrollTo({
+      top: scrollState.windowScrollY,
+      left: scrollState.windowScrollX,
+      behavior: "auto",
+    });
+  }
+
+  function openPhotoPicker() {
+    photoPickerScrollStateRef.current = {
+      panelScrollTop: catalogContentScrollRef.current?.scrollTop ?? 0,
+      windowScrollX: window.scrollX,
+      windowScrollY: window.scrollY,
+    };
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    requestAnimationFrame(() => {
+      restorePhotoPickerScrollState();
+      photoFileInputRef.current?.click();
+    });
+  }
 
   function isFieldChanged(path: string) {
     if (!propertyDraft || !originalPropertyDraft) {
@@ -457,12 +522,7 @@ export function AdminDashboard({
       return;
     }
 
-    if (action.kind === "create") {
-      applyCreatePropertyTemplate();
-      return;
-    }
-
-    setActiveTab(action.tab);
+    applyCreatePropertyTemplate();
   }
 
   function requestLeaveAction(action: PendingLeaveAction) {
@@ -1004,6 +1064,7 @@ export function AdminDashboard({
   }
 
   async function handlePhotoUpload(event: ChangeEvent<HTMLInputElement>) {
+    restorePhotoPickerScrollState();
     const files = Array.from(event.target.files ?? []);
 
     if (files.length === 0) {
@@ -1042,9 +1103,13 @@ export function AdminDashboard({
     }));
 
     setUploadedPhotos((currentPhotos) => [...currentPhotos, ...nextPhotos]);
-    setAiStatus("Фотографии загружены. Можно выбрать кадры для AI-обработки.");
-    event.target.value = "";
-  }
+      setAiStatus("Фотографии загружены. Можно выбрать кадры для AI-обработки.");
+      event.target.value = "";
+
+      requestAnimationFrame(() => {
+        restorePhotoPickerScrollState();
+      });
+    }
 
   function togglePhotoForAi(photoId: string) {
     setUploadedPhotos((currentPhotos) =>
@@ -1232,10 +1297,24 @@ export function AdminDashboard({
     }).format(new Date(isoDate));
   }
 
+  function formatUserPropertyTypes(propertyTypes?: PropertyType[]) {
+    if (!propertyTypes || propertyTypes.length === 0) {
+      return "Не указаны";
+    }
+
+    return propertyTypes
+      .map(
+        (propertyType) =>
+          extendedPropertyTypeOptions.find((option) => option.value === propertyType)?.label ??
+          propertyType
+      )
+      .join(", ");
+  }
+
   return (
-    <main className="h-screen overflow-hidden bg-[#f8fbff] px-6 py-8 text-slate-950">
-      <div className="mx-auto flex h-full min-h-0 max-w-[1520px] flex-col">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <main className="site-page-background h-[100dvh] overflow-hidden px-6 text-slate-950">
+      <div className="mx-auto flex h-full min-h-0 max-w-[1520px] flex-col py-8">
+        <div className="mb-5 shrink-0 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl font-semibold tracking-tight">Панель администратора</h1>
           <div className="flex flex-wrap gap-2">
             <button
@@ -1245,7 +1324,7 @@ export function AdminDashboard({
                   return;
                 }
 
-                requestLeaveAction({ kind: "tab", tab: "catalog" });
+                setActiveTab("catalog");
               }}
               className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                 activeTab === "catalog"
@@ -1257,7 +1336,7 @@ export function AdminDashboard({
             </button>
             <button
               type="button"
-              onClick={() => requestLeaveAction({ kind: "tab", tab: "inquiries" })}
+              onClick={() => setActiveTab("inquiries")}
               className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                 activeTab === "inquiries"
                   ? "bg-slate-950 text-white"
@@ -1271,7 +1350,7 @@ export function AdminDashboard({
             </button>
             <button
               type="button"
-              onClick={() => requestLeaveAction({ kind: "tab", tab: "users" })}
+              onClick={() => setActiveTab("users")}
               className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                 activeTab === "users"
                   ? "bg-slate-950 text-white"
@@ -1328,7 +1407,7 @@ export function AdminDashboard({
         ) : null}
 
         {activeTab === "catalog" ? (
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="mb-4 shrink-0 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -1340,8 +1419,8 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
-              <aside className="flex min-h-0 flex-col rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="grid min-h-0 flex-1 items-start gap-6 overflow-hidden xl:grid-cols-[300px_minmax(0,1fr)]">
+              <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="mb-3 text-sm font-semibold text-slate-950">
                   Каталог: {filteredProperties.length} из {properties.length} объектов
                 </div>
@@ -1420,7 +1499,11 @@ export function AdminDashboard({
                 </div>
               </aside>
 
-              <section className="grid min-h-0 gap-6 overflow-y-auto pr-1">
+              <div
+                ref={catalogContentScrollRef}
+                className="h-full min-h-0 overflow-y-auto pr-1"
+              >
+                <section className="grid gap-6 pb-6">
                 <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -2535,23 +2618,34 @@ export function AdminDashboard({
                           Загрузка фотографий
                         </span>
                         <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5">
-                          <label className="flex flex-wrap items-center gap-4">
-                            <span className="inline-flex cursor-pointer rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+                          <div className="flex flex-wrap items-center gap-4">
+                              <button
+                                type="button"
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                }}
+                                onClick={() => {
+                                  openPhotoPicker();
+                                }}
+                                className="inline-flex rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                              >
                               Выбрать файлы
-                            </span>
+                            </button>
                             <span className="text-sm text-slate-600">
                               {uploadedPhotos.length > 0
                                 ? `Загружено фото: ${uploadedPhotos.length}`
                                 : "Можно загрузить одно или несколько фото"}
                             </span>
                             <input
+                              ref={photoFileInputRef}
                               type="file"
                               accept="image/*"
                               multiple
                               onChange={handlePhotoUpload}
-                              className="sr-only"
+                              tabIndex={-1}
+                              className="hidden"
                             />
-                          </label>
+                          </div>
                         </div>
                       </label>
 
@@ -2721,6 +2815,7 @@ export function AdminDashboard({
               </section>
             </div>
           </div>
+        </div>
         ) : activeTab === "inquiries" ? (
           <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-4">
@@ -2735,13 +2830,19 @@ export function AdminDashboard({
 
             <div className="grid gap-4">
               {inquiries.length > 0 ? (
-                inquiries.map((inquiry) => (
-                  <article
-                    key={inquiry.id}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
+                inquiries.map((inquiry) => {
+                  const linkedUser = inquiry.userId
+                    ? usersById.get(inquiry.userId) ?? null
+                    : null;
+                  const visibleInquiryEmail = inquiry.email ?? linkedUser?.email ?? null;
+
+                  return (
+                    <article
+                      key={inquiry.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
                         <div className="text-sm font-semibold text-slate-950">
                           {inquiry.source === "property_request"
                             ? "Обращение по объекту"
@@ -2752,75 +2853,103 @@ export function AdminDashboard({
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateInquiryStatus(
-                            inquiry.id,
-                            inquiry.status === "new" ? "reviewed" : "new"
-                          )
-                        }
-                        className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                          inquiry.status === "new"
-                            ? "border border-amber-300 bg-amber-50 text-amber-900"
-                            : "border border-emerald-300 bg-emerald-50 text-emerald-900"
-                        }`}
-                      >
-                        {inquiry.status === "new" ? "Пометить просмотренным" : "Вернуть в новые"}
-                      </button>
-                    </div>
-
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700">
-                        <div>
-                          <span className="font-semibold">Телефон:</span> {inquiry.phone}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {linkedUser ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedUserId(linkedUser.id);
+                                setActiveTab("users");
+                              }}
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                            >
+                              Открыть пользователя
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateInquiryStatus(
+                                inquiry.id,
+                                inquiry.status === "new" ? "reviewed" : "new"
+                              )
+                            }
+                            className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                              inquiry.status === "new"
+                                ? "border border-amber-300 bg-amber-50 text-amber-900"
+                                : "border border-emerald-300 bg-emerald-50 text-emerald-900"
+                            }`}
+                          >
+                            {inquiry.status === "new"
+                              ? "Пометить просмотренным"
+                              : "Вернуть в новые"}
+                          </button>
                         </div>
-                        <div className="mt-1">
-                          <span className="font-semibold">Мессенджеры:</span>{" "}
-                          {inquiry.messengers.join(", ") || "-"}
-                        </div>
-                        {inquiry.name ? (
-                          <div className="mt-1">
-                            <span className="font-semibold">Имя:</span> {inquiry.name}
-                          </div>
-                        ) : null}
                       </div>
 
-                      <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700">
-                        {inquiry.propertyTitle ? (
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700">
                           <div>
-                            <span className="font-semibold">Объект:</span>{" "}
-                            {inquiry.propertyTitle}
+                            <span className="font-semibold">Телефон:</span> {inquiry.phone}
                           </div>
-                        ) : null}
-                        {inquiry.location ? (
+                          {visibleInquiryEmail ? (
+                            <div className="mt-1">
+                              <span className="font-semibold">Email:</span> {visibleInquiryEmail}
+                            </div>
+                          ) : null}
                           <div className="mt-1">
-                            <span className="font-semibold">Локация:</span>{" "}
-                            {inquiry.location}
+                            <span className="font-semibold">Мессенджеры:</span>{" "}
+                            {inquiry.messengers.join(", ") || "-"}
                           </div>
-                        ) : null}
-                        {inquiry.areaAndTypology ? (
-                          <div className="mt-1">
-                            <span className="font-semibold">Площадь и типология:</span>{" "}
-                            {inquiry.areaAndTypology}
-                          </div>
-                        ) : null}
-                        {inquiry.searchType ? (
-                          <div className="mt-1">
-                            <span className="font-semibold">Что необходимо:</span>{" "}
-                            {inquiry.searchType}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
+                          {inquiry.name ? (
+                            <div className="mt-1">
+                              <span className="font-semibold">Имя:</span> {inquiry.name}
+                            </div>
+                          ) : null}
+                        </div>
 
-                    {inquiry.message ? (
-                      <div className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm leading-6 text-slate-700">
-                        <span className="font-semibold">Сообщение:</span> {inquiry.message}
+                        <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700">
+                          {linkedUser ? (
+                            <div>
+                              <span className="font-semibold">Пользователь:</span>{" "}
+                              {linkedUser.email}
+                            </div>
+                          ) : null}
+                          {inquiry.propertyTitle ? (
+                            <div className={linkedUser ? "mt-1" : undefined}>
+                              <span className="font-semibold">Объект:</span>{" "}
+                              {inquiry.propertyTitle}
+                            </div>
+                          ) : null}
+                          {inquiry.location ? (
+                            <div className="mt-1">
+                              <span className="font-semibold">Локация:</span>{" "}
+                              {inquiry.location}
+                            </div>
+                          ) : null}
+                          {inquiry.areaAndTypology ? (
+                            <div className="mt-1">
+                              <span className="font-semibold">Площадь и типология:</span>{" "}
+                              {inquiry.areaAndTypology}
+                            </div>
+                          ) : null}
+                          {inquiry.searchType ? (
+                            <div className="mt-1">
+                              <span className="font-semibold">Что необходимо:</span>{" "}
+                              {inquiry.searchType}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
-                    ) : null}
-                  </article>
-                ))
+
+                      {inquiry.message ? (
+                        <div className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm leading-6 text-slate-700">
+                          <span className="font-semibold">Сообщение:</span> {inquiry.message}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })
               ) : (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
                   Пока нет обращений с сайта.
@@ -2829,7 +2958,7 @@ export function AdminDashboard({
             </div>
           </section>
         ) : (
-          <section className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <section className="grid min-h-0 flex-1 items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
             <aside className="flex min-h-0 flex-col rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
               <div className="mb-3 text-sm font-semibold text-slate-950">
                 Зарегистрированные пользователи: {users.length}
@@ -2849,38 +2978,13 @@ export function AdminDashboard({
                           : "border-slate-200 bg-white hover:border-slate-300"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-base font-semibold text-slate-950">
-                            {user.name}
-                          </div>
-                          <div className="mt-1 truncate text-sm text-slate-500">
-                            {user.email}
-                          </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-slate-950">
+                          {user.email}
                         </div>
-                        <span
-                          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
-                            user.status === "active"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : user.status === "new"
-                                ? "bg-sky-100 text-sky-800"
-                                : "bg-slate-200 text-slate-600"
-                          }`}
-                        >
-                          {user.status === "active"
-                            ? "активен"
-                            : user.status === "new"
-                              ? "новый"
-                              : "архив"}
-                        </span>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1">
-                          Избранное: {user.favoriteIds.length}
-                        </span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1">
-                          Сравнение: {user.compareIds.length}
-                        </span>
+                        <div className="mt-1 text-xs text-slate-400">
+                          Регистрация: {formatAdminDate(user.createdAt)}
+                        </div>
                       </div>
                     </button>
                   );
@@ -2895,10 +2999,10 @@ export function AdminDashboard({
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <div className="text-2xl font-semibold text-slate-950">
-                          {selectedUser.name}
+                          {selectedUser.email}
                         </div>
                         <div className="mt-1 text-sm text-slate-500">
-                          {selectedUser.email}
+                          Пользователь сайта
                         </div>
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
@@ -2906,23 +3010,13 @@ export function AdminDashboard({
                       </div>
                     </div>
 
-                    <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="mt-5 grid gap-4 md:grid-cols-2">
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          Телефон
+                          Email
                         </div>
                         <div className="mt-2 text-base font-semibold text-slate-950">
-                          {selectedUser.phone ?? "Не указан"}
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          Мессенджеры
-                        </div>
-                        <div className="mt-2 text-base font-semibold text-slate-950">
-                          {selectedUser.messengers?.length
-                            ? selectedUser.messengers.join(", ")
-                            : "Не указаны"}
+                          {selectedUser.email}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -2931,18 +3025,6 @@ export function AdminDashboard({
                         </div>
                         <div className="mt-2 text-base font-semibold text-slate-950">
                           {formatAdminDate(selectedUser.createdAt)}
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          Сценарий
-                        </div>
-                        <div className="mt-2 text-base font-semibold text-slate-950">
-                          {selectedUser.searchProfile?.mode === "sale"
-                            ? "Покупка"
-                            : selectedUser.searchProfile?.mode === "rent"
-                              ? "Аренда"
-                              : "Разные сценарии"}
                         </div>
                       </div>
                     </div>
@@ -2966,7 +3048,7 @@ export function AdminDashboard({
                           Типы объектов
                         </div>
                         <div className="mt-2 text-sm leading-6 text-slate-700">
-                          {selectedUser.searchProfile?.propertyTypes?.join(", ") ?? "Не указаны"}
+                          {formatUserPropertyTypes(selectedUser.searchProfile?.propertyTypes)}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">

@@ -23,6 +23,8 @@ const propertyTypeLabels: Record<PropertyType, string> = {
   land: "Участок",
   loft: "Лофт",
   penthouse: "Пентхаус",
+  room: "Комната",
+  studio: "Студия",
   townhouse: "Таунхаус",
   villa: "Вилла",
 };
@@ -58,6 +60,47 @@ const messengerLabels: Array<{ value: MessengerOption; label: string }> = [
   { value: "viber", label: "Viber" },
   { value: "signal", label: "Signal" },
 ];
+
+const displayPropertyTypeLabels: Record<PropertyType, string> = {
+  apartment: "Квартира",
+  duplex: "Дуплекс",
+  land: "Участок",
+  loft: "Лофт",
+  penthouse: "Пентхаус",
+  room: "Комната",
+  studio: "Студия",
+  townhouse: "Таунхаус",
+  villa: "Вилла",
+};
+
+const displayConditionLabels: Record<PropertyCondition, string> = {
+  excellent: "В отличном состоянии",
+  good: "Хорошее состояние",
+  needs_renovation: "Нужен ремонт",
+  new_build: "Новостройка",
+};
+
+const displayHeatingLabels: Record<HeatingType, string> = {
+  central: "Центральное отопление",
+  electric: "Электрическое отопление",
+  heat_pump: "Тепловой насос",
+  none: "Без отопления",
+  underfloor: "Теплый пол",
+};
+
+function getPropertyTags(property: PropertyListing): string[] {
+  const tags = new Set<string>(property.features.map((feature) => getFeatureLabel(feature)));
+
+  if (property.details.storageRoom) tags.add("Кладовая");
+  if (property.details.elevator) tags.add("Лифт");
+  if (property.details.equippedKitchen) tags.add("Оснащенная кухня");
+  if (property.details.builtInWardrobes) tags.add("Встроенные шкафы");
+  if (property.details.parkingSpaces > 0) tags.add("Паркинг");
+  if (property.details.balconyCount > 0) tags.add("Балкон");
+  if (property.details.terraceCount > 0) tags.add("Терраса");
+
+  return Array.from(tags);
+}
 
 function formatMoney(value: number): string {
   return new Intl.NumberFormat("ru-RU", {
@@ -142,6 +185,167 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
     };
   }, [property]);
 
+  const propertyTags = useMemo(() => getPropertyTags(property), [property]);
+
+  const summaryStats = useMemo(() => {
+    if (property.details.propertyType === "land") {
+      return [
+        { label: "Площадь", value: `${property.areaM2} м²` },
+        { label: "Тип помещения", value: displayPropertyTypeLabels[property.details.propertyType] },
+      ];
+    }
+
+    return [
+      { label: "Площадь", value: `${property.areaM2} м²` },
+      { label: "Спальни", value: String(property.bedrooms) },
+      { label: "Тип помещения", value: displayPropertyTypeLabels[property.details.propertyType] },
+    ];
+  }, [property]);
+
+  const detailCharacteristics = useMemo(() => {
+    const propertyType = property.details.propertyType;
+    const isLand = propertyType === "land";
+    const hasAttachedLand = ["villa", "townhouse"].includes(propertyType);
+    const items: Array<{ label: string; value: string }> = [
+      { label: "Тип помещения", value: displayPropertyTypeLabels[property.details.propertyType] },
+      { label: "Состояние", value: displayConditionLabels[property.details.condition] },
+      { label: "Площадь", value: `${property.areaM2} м²` },
+    ];
+
+    if (!isLand && property.details.usableAreaM2 > 0 && property.details.usableAreaM2 !== property.areaM2) {
+      items.push({ label: "Полезная площадь", value: `${property.details.usableAreaM2} м²` });
+    }
+
+    if (hasAttachedLand && property.details.plotAreaM2 && property.details.plotAreaM2 > 0) {
+      items.push({ label: "Участок", value: `${property.details.plotAreaM2} м²` });
+    }
+
+    if (!isLand && property.details.floor) {
+      items.push({ label: "Этаж", value: property.details.floor });
+    }
+
+    if (!isLand && property.details.buildingFloors && property.details.buildingFloors > 0) {
+      items.push({ label: "Этажность", value: String(property.details.buildingFloors) });
+    }
+
+    if (property.details.yearBuilt > 0) {
+      items.push({ label: "Год постройки", value: String(property.details.yearBuilt) });
+    }
+
+    if (!isLand) {
+      items.push(
+        { label: "Спальни", value: String(property.bedrooms) },
+        { label: "Ванные", value: String(property.bathrooms) }
+      );
+    }
+
+    if (property.details.parkingSpaces > 0) {
+      items.push({ label: "Парк. мест", value: String(property.details.parkingSpaces) });
+    }
+
+    if (property.details.balconyCount > 0) {
+      items.push({ label: "Балконы", value: String(property.details.balconyCount) });
+    }
+
+    if (property.details.terraceCount > 0) {
+      items.push({ label: "Террасы", value: String(property.details.terraceCount) });
+    }
+
+    if (!isLand) {
+      items.push(
+        { label: "Энергокласс", value: property.details.energyRating },
+        { label: "Отопление", value: displayHeatingLabels[property.details.heating] },
+        { label: "Ориентация", value: property.details.orientation.join(", ") }
+      );
+    }
+
+    if (property.details.elevator) items.push({ label: "Лифт", value: "Да" });
+    if (property.details.storageRoom) items.push({ label: "Кладовая", value: "Есть" });
+    if (property.details.builtInWardrobes) items.push({ label: "Встроенные шкафы", value: "Есть" });
+    if (property.details.equippedKitchen) items.push({ label: "Оснащенная кухня", value: "Да" });
+    if (property.details.furnished) items.push({ label: "Меблировка", value: "Да" });
+    if (property.details.exterior) items.push({ label: "Наружное расположение", value: "Да" });
+    if (property.details.accessibilityAdapted) {
+      items.push({ label: "Адаптировано", value: "Да" });
+    }
+
+    return items;
+  }, [property]);
+  void summaryStats;
+  void detailCharacteristics;
+
+  const cardSummaryStats = useMemo(() => {
+    if (property.details.propertyType === "land") {
+      return [
+        { label: "Площадь", value: `${property.areaM2} м²` },
+        { label: "Тип помещения", value: displayPropertyTypeLabels[property.details.propertyType] },
+      ];
+    }
+
+    return [
+      { label: "Площадь", value: `${property.areaM2} м²` },
+      { label: "Спальни", value: String(property.bedrooms) },
+      { label: "Тип помещения", value: displayPropertyTypeLabels[property.details.propertyType] },
+    ];
+  }, [property]);
+
+  const cardCharacteristics = useMemo(() => {
+    const propertyType = property.details.propertyType;
+    const isLand = propertyType === "land";
+    const hasAttachedLand = ["villa", "townhouse"].includes(propertyType);
+
+    const items: Array<{ label: string; value: string }> = [
+      { label: "Тип помещения", value: displayPropertyTypeLabels[propertyType] },
+      { label: "Состояние", value: displayConditionLabels[property.details.condition] },
+      { label: "Площадь", value: `${property.areaM2} м²` },
+    ];
+
+    if (isLand) {
+      return items;
+    }
+
+    if (property.details.floor) {
+      items.push({ label: "Этаж", value: property.details.floor });
+    }
+
+    if (property.details.buildingFloors && property.details.buildingFloors > 0) {
+      items.push({ label: "Этажность", value: String(property.details.buildingFloors) });
+    }
+
+    if (property.details.yearBuilt > 0) {
+      items.push({ label: "Год постройки", value: String(property.details.yearBuilt) });
+    }
+
+    items.push(
+      { label: "Спальни", value: String(property.bedrooms) },
+      { label: "Ванные", value: String(property.bathrooms) }
+    );
+
+    if (property.details.balconyCount > 0) {
+      items.push({ label: "Балконов", value: String(property.details.balconyCount) });
+    }
+
+    if (property.details.parkingSpaces > 0) {
+      items.push({ label: "Парк. мест", value: String(property.details.parkingSpaces) });
+    }
+
+    if (hasAttachedLand && property.details.plotAreaM2 && property.details.plotAreaM2 > 0) {
+      items.push({ label: "Участок", value: `${property.details.plotAreaM2} м²` });
+    }
+
+    if (hasAttachedLand && property.details.terraceCount > 0) {
+      items.push({ label: "Террас", value: String(property.details.terraceCount) });
+    }
+
+    items.push(
+      { label: "Энергокласс", value: property.details.energyRating },
+      { label: "Отопление", value: displayHeatingLabels[property.details.heating] },
+      { label: "Ориентация", value: property.details.orientation.join(", ") }
+    );
+
+    return items;
+  }, [property]);
+
   async function handleCopyLink() {
     await navigator.clipboard.writeText(propertyUrl);
     setCopyState("copied");
@@ -214,7 +418,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#f8f4eb_0%,#f6f8fb_40%,#ffffff_100%)] px-5 py-6 text-slate-950 md:py-8">
+    <main className="site-page-background min-h-screen px-5 py-6 text-slate-950 md:py-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <Link
@@ -348,17 +552,17 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               </p>
 
               <div className="flex flex-wrap items-start content-start gap-2 self-start">
-                {property.features.map((feature) => (
+                {propertyTags.map((featureLabel) => (
                   <span
-                    key={feature}
+                    key={featureLabel}
                     className="inline-flex w-fit shrink-0 self-start whitespace-nowrap rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium leading-none text-slate-700"
                   >
-                    {getFeatureLabel(feature)}
+                    {featureLabel}
                   </span>
                 ))}
               </div>
 
-              <section className="grid gap-3 rounded-[28px] border border-slate-200 bg-slate-50 p-4">
+              <section className="hidden">
                 <h2 className="text-lg font-semibold text-slate-950">Характеристики объекта</h2>
                 <div className="grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                   <div>Тип недвижимости: {propertyTypeLabels[property.details.propertyType]}</div>
@@ -390,6 +594,17 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                 </div>
               </section>
 
+              <section className="grid gap-3 rounded-[28px] border border-slate-200 bg-slate-50 p-4">
+                <h2 className="text-lg font-semibold text-slate-950">Характеристики объекта</h2>
+                <div className="grid gap-2 text-sm text-slate-700 md:grid-cols-2">
+                  {cardCharacteristics.map((item) => (
+                    <div key={item.label}>
+                      {item.label}: {item.value}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
             </div>
 
             <aside className="grid gap-3 self-start rounded-[28px] bg-slate-50 p-4">
@@ -402,7 +617,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                 </div>
               </div>
 
-              <div className="grid gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
+              <div className="hidden">
                 <div className="grid grid-cols-3 gap-3 text-sm text-slate-600">
                   <div>
                     <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
@@ -428,6 +643,19 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                       {property.bathrooms}
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
+                <div className="grid gap-3 text-sm text-slate-600 md:grid-cols-3">
+                  {cardSummaryStats.map((item) => (
+                    <div key={item.label}>
+                      <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        {item.label}
+                      </div>
+                      <div className="mt-1 font-semibold text-slate-900">{item.value}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
 

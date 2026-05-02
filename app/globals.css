@@ -2,8 +2,11 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #f6f8fb;
+  --background: #f8f4eb;
   --foreground: #111827;
+  --page-background: linear-gradient(180deg, #f8f4eb 0%, #f3f6f8 42%, #ffffff 100%);
+  --surface-soft: #fbf9f3;
+  --surface-muted: #f3f5f7;
 }
 
 @theme inline {
@@ -14,9 +17,21 @@
 }
 
 body {
-  background: var(--background);
+  background: var(--page-background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+.site-page-background {
+  background: var(--page-background);
+}
+
+.site-soft-surface {
+  background: var(--surface-soft);
+}
+
+.site-muted-surface {
+  background: var(--surface-muted);
 }
 
 .property-map-marker {

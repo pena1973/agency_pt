@@ -4,9 +4,7 @@ export const registeredUsers: RegisteredUser[] = [
   {
     id: "user-001",
     email: "maria.silva@example.com",
-    name: "Мария Силва",
-    phone: "+351 912 345 001",
-    messengers: ["whatsapp", "telegram"],
+    name: "",
     createdAt: "2026-04-14T10:20:00.000Z",
     lastActiveAt: "2026-05-01T09:15:00.000Z",
     status: "active",
@@ -25,9 +23,7 @@ export const registeredUsers: RegisteredUser[] = [
   {
     id: "user-002",
     email: "andrei.pereira@example.com",
-    name: "Андрей Перейра",
-    phone: "+351 912 345 002",
-    messengers: ["whatsapp"],
+    name: "",
     createdAt: "2026-04-18T14:05:00.000Z",
     lastActiveAt: "2026-04-30T18:40:00.000Z",
     status: "active",
@@ -46,9 +42,7 @@ export const registeredUsers: RegisteredUser[] = [
   {
     id: "user-003",
     email: "olena.k@example.com",
-    name: "Олена К.",
-    phone: "+351 912 345 003",
-    messengers: ["telegram", "viber"],
+    name: "",
     createdAt: "2026-04-26T08:30:00.000Z",
     lastActiveAt: "2026-04-29T12:10:00.000Z",
     status: "new",

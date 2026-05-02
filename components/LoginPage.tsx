@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { AgencyLogo } from "./AgencyLogo";
 
 type AuthMode = "login" | "register";
 type SubmitStatus = "idle" | "success";
@@ -77,16 +78,17 @@ export function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fbff] text-slate-950">
+    <main className="site-page-background min-h-screen text-slate-950">
       <section className="mx-auto flex min-h-screen max-w-[1380px] items-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid w-full gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8 lg:p-10">
             <div className="flex items-center justify-between gap-4">
-              <Link href="/" className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-emerald-900 text-sm font-semibold text-white shadow-sm">
+              <Link href="/" className="-my-6 flex items-center sm:-my-8 lg:-my-10">
+                <AgencyLogo priority className="h-[52px] w-auto sm:h-[62px]" />
+                <div className="hidden flex h-12 w-12 items-center justify-center rounded-[18px] bg-emerald-900 text-sm font-semibold text-white shadow-sm">
                   И
                 </div>
-                <div>
+                <div className="hidden">
                   <div className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
                     Агентство недвижимости
                   </div>
@@ -182,14 +184,12 @@ export function LoginPage() {
                       }));
                       setSubmitStatus("idle");
                     }}
-                    placeholder="До 8 символов"
+                    placeholder="Пароль"
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                   />
                 </label>
 
-                <div className="text-sm leading-7 text-slate-500">
-                  Пароль: максимум 8 символов, минимум 1 буква, 1 цифра и 1 знак.
-                </div>
+                
 
                 <label className="inline-flex items-center gap-3 text-sm text-slate-600">
                   <input
@@ -227,7 +227,7 @@ export function LoginPage() {
               <form className="mt-8 grid gap-5" onSubmit={handleRegisterSubmit}>
                 <label className="grid gap-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                    Email для восстановления доступа
+                    Email
                   </span>
                   <input
                     type="email"
@@ -260,14 +260,10 @@ export function LoginPage() {
                       }));
                       setSubmitStatus("idle");
                     }}
-                    placeholder="До 8 символов"
+                    placeholder="Минимум 8 символов, минимум 1 буква, 1 цифра и 1 знак."
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                   />
                 </label>
-
-                <div className="text-sm leading-7 text-slate-500">
-                  Пароль: максимум 8 символов, минимум 1 буква, 1 цифра и 1 знак.
-                </div>
 
                 <div className="grid gap-3 pt-2">
                   <button

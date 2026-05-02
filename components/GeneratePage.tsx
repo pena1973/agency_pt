@@ -20,7 +20,7 @@ export function GeneratePage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#f6f7f4] text-slate-950">
+    <main className="site-page-background min-h-screen text-slate-950">
       <section className="border-b border-slate-200 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 md:flex-row md:items-end md:justify-between">
           <div>

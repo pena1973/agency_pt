@@ -4,9 +4,15 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { getFeatureLabel } from "@/lib/real-estate/data";
-import type { ListingFeature, ListingMode, PropertyListing } from "@/lib/real-estate/types";
+import type {
+  ListingFeature,
+  ListingMode,
+  PropertyListing,
+  PropertyType,
+} from "@/lib/real-estate/types";
 import { useCompareList } from "@/lib/real-estate/useCompareList";
 import { useFavoritesList } from "@/lib/real-estate/useFavoritesList";
+import { AgencyLogo } from "./AgencyLogo";
 
 const languageOptions = [
   { code: "pt", label: "PT" },
@@ -15,16 +21,30 @@ const languageOptions = [
   { code: "uk", label: "UA" },
 ] as const;
 
-const featureFilterOptions: Array<{
-  value: "all" | ListingFeature;
+type CatalogFeatureFilterKey =
+  | ListingFeature
+  | "storageRoom"
+  | "elevator"
+  | "equippedKitchen"
+  | "builtInWardrobes";
+
+const catalogFeatureOptions: Array<{
+  value: CatalogFeatureFilterKey;
   label: string;
 }> = [
-  { value: "all", label: "Любая характеристика" },
-  { value: "parking", label: "Паркинг" },
-  { value: "furnished", label: "С мебелью" },
   { value: "sea_view", label: "Вид на море" },
+  { value: "city_center", label: "Центр города" },
+  { value: "parking", label: "Паркинг" },
+  { value: "pool", label: "Бассейн" },
+  { value: "security", label: "Охрана" },
+  { value: "furnished", label: "С мебелью" },
+  { value: "balcony", label: "Балкон" },
   { value: "terrace", label: "Терраса" },
-] as const;
+  { value: "storageRoom", label: "Кладовая" },
+  { value: "elevator", label: "Лифт" },
+  { value: "equippedKitchen", label: "Обор. кухня" },
+  { value: "builtInWardrobes", label: "Встр. шкафы" },
+];
 
 const salePriceOptions = [
   { value: "all", label: "Любая цена" },
@@ -40,11 +60,78 @@ const rentPriceOptions = [
   { value: "over_3500", label: "От €3 500" },
 ] as const;
 
+const propertyTypeLabels: Record<PropertyType, string> = {
+  apartment: "Квартира",
+  duplex: "Дуплекс",
+  land: "Участок",
+  loft: "Лофт",
+  penthouse: "Пентхаус",
+  room: "Комната",
+  studio: "Студия",
+  townhouse: "Таунхаус",
+  villa: "Вилла",
+};
+
+function getPropertyTags(property: PropertyListing): string[] {
+  const tags = new Set<string>(property.features.map((feature) => getFeatureLabel(feature)));
+
+  if (property.details.storageRoom) tags.add("Кладовая");
+  if (property.details.elevator) tags.add("Лифт");
+  if (property.details.equippedKitchen) tags.add("Оснащенная кухня");
+  if (property.details.builtInWardrobes) tags.add("Встроенные шкафы");
+  if (property.details.parkingSpaces > 0) tags.add("Паркинг");
+  if (property.details.balconyCount > 0) tags.add("Балкон");
+  if (property.details.terraceCount > 0) tags.add("Терраса");
+
+  return Array.from(tags);
+}
+
+function getCatalogMetrics(property: PropertyListing) {
+  const typeLabel = propertyTypeLabels[property.details.propertyType];
+
+  if (property.details.propertyType === "land") {
+    return [
+      { label: "Площадь", value: `${property.areaM2} м²` },
+      { label: "Тип помещения", value: typeLabel },
+      { label: "Состояние", value: "Участок" },
+    ];
+  }
+
+  return [
+    { label: "Площадь", value: `${property.areaM2} м²` },
+    { label: "Спальни", value: String(property.bedrooms) },
+    { label: "Тип помещения", value: typeLabel },
+  ];
+}
+
 type SalePriceFilter = (typeof salePriceOptions)[number]["value"];
 type RentPriceFilter = (typeof rentPriceOptions)[number]["value"];
 type LocationFilter = "all" | "drawn_area";
 type FavoriteFilter = "all" | "favorite";
 type MapPoint = { lat: number; lng: number };
+
+function matchesCatalogFeature(
+  property: PropertyListing,
+  feature: CatalogFeatureFilterKey
+) {
+  if (feature === "storageRoom") {
+    return property.details.storageRoom;
+  }
+
+  if (feature === "elevator") {
+    return property.details.elevator;
+  }
+
+  if (feature === "equippedKitchen") {
+    return property.details.equippedKitchen;
+  }
+
+  if (feature === "builtInWardrobes") {
+    return property.details.builtInWardrobes;
+  }
+
+  return property.features.includes(feature);
+}
 
 const PropertyMap = dynamic(
   () => import("@/components/PropertyMap").then((module) => module.PropertyMap),
@@ -105,7 +192,8 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [bedroomFilter, setBedroomFilter] = useState<string>("all");
-  const [featureFilter, setFeatureFilter] = useState<"all" | ListingFeature>("all");
+  const [propertyTypeFilter, setPropertyTypeFilter] = useState<"all" | PropertyType>("all");
+  const [selectedFeatures, setSelectedFeatures] = useState<CatalogFeatureFilterKey[]>([]);
   const [salePriceFilter, setSalePriceFilter] = useState<SalePriceFilter>("all");
   const [rentPriceFilter, setRentPriceFilter] = useState<RentPriceFilter>("all");
   const [locationFilter, setLocationFilter] = useState<LocationFilter>("all");
@@ -131,6 +219,18 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
     return Array.from(uniqueCities).sort((left, right) => left.localeCompare(right));
   }, [mode, propertiesData]);
 
+  const propertyTypes = useMemo(() => {
+    const uniqueTypes = new Set(
+      propertiesData
+        .filter((property) => property.mode === mode)
+        .map((property) => property.details.propertyType)
+    );
+
+    return Array.from(uniqueTypes).sort((left, right) =>
+      propertyTypeLabels[left].localeCompare(propertyTypeLabels[right])
+    );
+  }, [mode, propertiesData]);
+
   const properties = useMemo(() => {
     return propertiesData.filter((property) => {
       if (property.mode !== mode) {
@@ -141,6 +241,14 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
         return false;
       }
 
+      if (propertyTypeFilter !== "all" && property.details.propertyType !== propertyTypeFilter) {
+        return false;
+      }
+
+      if (bedroomFilter === "room") {
+        return property.details.propertyType === "room";
+      }
+
       if (bedroomFilter !== "all") {
         const minimumBedrooms = Number(bedroomFilter);
 
@@ -149,7 +257,10 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
         }
       }
 
-      if (featureFilter !== "all" && !property.features.includes(featureFilter)) {
+      if (
+        selectedFeatures.length > 0 &&
+        !selectedFeatures.every((feature) => matchesCatalogFeature(property, feature))
+      ) {
         return false;
       }
 
@@ -202,13 +313,14 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
     bedroomFilter,
     cityFilter,
     favoriteFilter,
-    featureFilter,
     favoriteIds,
     locationFilter,
     mode,
+    propertyTypeFilter,
     propertiesData,
     rentPriceFilter,
     salePriceFilter,
+    selectedFeatures,
   ]);
 
   const activePriceOptions = mode === "sale" ? salePriceOptions : rentPriceOptions;
@@ -226,11 +338,21 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
   function resetFilters() {
     setCityFilter("all");
     setBedroomFilter("all");
-    setFeatureFilter("all");
+    setPropertyTypeFilter("all");
+    setSelectedFeatures([]);
     setSalePriceFilter("all");
     setRentPriceFilter("all");
     setLocationFilter("all");
     setFavoriteFilter("all");
+  }
+
+  function toggleFeatureFilter(feature: CatalogFeatureFilterKey) {
+    setSelectedFeatures((currentFeatures) =>
+      currentFeatures.includes(feature)
+        ? currentFeatures.filter((currentFeature) => currentFeature !== feature)
+        : [...currentFeatures, feature]
+    );
+    setCurrentPage(1);
   }
 
   function clearPolygonSelection() {
@@ -277,14 +399,15 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#f8fbff] text-slate-950">
+    <main className="site-page-background flex min-h-screen flex-col text-slate-950">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-[1380px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-emerald-900 text-sm font-semibold text-white shadow-sm">
+          <Link href="/" className="-my-4 flex items-center overflow-visible lg:-my-5">
+            <AgencyLogo priority className="h-[76px] w-auto object-contain sm:h-[88px]" />
+            <div className="hidden flex h-12 w-12 items-center justify-center rounded-[18px] bg-emerald-900 text-sm font-semibold text-white shadow-sm">
               И
             </div>
-            <div>
+            <div className="hidden">
               <div className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
                 Агентство недвижимости
               </div>
@@ -369,10 +492,9 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
         </div>
       </header>
 
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-[1380px] px-8 py-5">
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex w-full justify-end">
+      <div className="mx-auto max-w-[1380px] px-8 py-5">
+        <div className="flex flex-col items-center gap-3">
+            <div className="hidden w-full justify-end">
               <Link
                 href="/contact-realtor"
                 className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
@@ -381,7 +503,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
               </Link>
             </div>
 
-            <div className="grid w-full gap-2 rounded-[24px] border border-slate-200 bg-[#fbfdff] p-3 shadow-sm lg:grid-cols-[1.1fr_1fr_0.9fr_1.2fr_1fr_0.85fr_auto]">
+            <div className="grid w-full gap-2 rounded-[24px] border border-slate-200 bg-[#fbfdff] p-3 shadow-sm lg:grid-cols-[1.1fr_1fr_0.9fr_1.1fr_1fr_0.85fr_auto]">
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                   Город
@@ -442,6 +564,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                 >
                   <option value="all">Любое число</option>
+                  {mode === "rent" ? <option value="room">Комната</option> : null}
                   <option value="1">От 1</option>
                   <option value="2">От 2</option>
                   <option value="3">От 3</option>
@@ -451,19 +574,20 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Особенность
+                  Тип жилья
                 </span>
                 <select
-                  value={featureFilter}
+                  value={propertyTypeFilter}
                   onChange={(event) => {
-                    setFeatureFilter(event.target.value as "all" | ListingFeature);
+                    setPropertyTypeFilter(event.target.value as "all" | PropertyType);
                     setCurrentPage(1);
                   }}
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                 >
-                  {featureFilterOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  <option value="all">Любой тип</option>
+                  {propertyTypes.map((propertyType) => (
+                    <option key={propertyType} value={propertyType}>
+                      {propertyTypeLabels[propertyType]}
                     </option>
                   ))}
                 </select>
@@ -514,7 +638,37 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
               </div>
             </div>
 
-            <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="grid w-full gap-3 rounded-[24px] border border-slate-200 bg-[#fbfdff] p-3 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                Особенности
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {catalogFeatureOptions.map((option) => {
+                  const isActive = selectedFeatures.includes(option.value);
+
+                  return (
+                    <label
+                      key={option.value}
+                      className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
+                        isActive
+                          ? "border-emerald-400 bg-emerald-50 text-emerald-900"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isActive}
+                        onChange={() => toggleFeatureFilter(option.value)}
+                        className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex w-full flex-col gap-3 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center">
               <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                 <div>
                   Найдено объектов:{" "}
@@ -534,7 +688,16 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 </div>
               </div>
 
-              <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+              <div className="flex justify-center">
+                <Link
+                  href="/contact-realtor"
+                  className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
+                >
+                  Написать риэлтору
+                </Link>
+              </div>
+
+              <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm md:justify-self-end">
                 <button
                   type="button"
                   onClick={() => setViewMode("list")}
@@ -561,61 +724,66 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 </button>
               </div>
             </div>
-          </div>
+
         </div>
-      </section>
+      </div>
 
       <section id="catalog" className="mx-auto flex-1 max-w-[1380px] px-8 pb-16 pt-8">
         <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-              Каталог объектов
-            </div>
-
-            {viewMode === "list" && (
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="text-sm text-slate-500">
-                  Страница {currentListPage} из {pageCount}
+          <div className="border-b border-slate-100 pb-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                  Каталог объектов
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                    disabled={currentListPage === 1}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Назад
-                  </button>
+                {viewMode === "list" && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="text-sm text-slate-500">
+                      Страница {currentListPage} из {pageCount}
+                    </div>
 
-                  {Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() => setCurrentPage(page)}
-                      className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-                        currentListPage === page
-                          ? "bg-slate-950 text-white"
-                          : "border border-slate-200 bg-white text-slate-700"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                        disabled={currentListPage === 1}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Назад
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => Math.min(pageCount, page + 1))
-                    }
-                    disabled={currentListPage === pageCount}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Далее
-                  </button>
-                </div>
+                      {Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => setCurrentPage(page)}
+                          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                            currentListPage === page
+                              ? "bg-slate-950 text-white"
+                              : "border border-slate-200 bg-white text-slate-700"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCurrentPage((page) => Math.min(pageCount, page + 1))
+                        }
+                        disabled={currentListPage === pageCount}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Далее
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+
+            </div>
           </div>
 
           {viewMode === "list" ? (
@@ -627,6 +795,8 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   const currentImageIndex = imageIndexes[property.id] ?? 0;
                   const isCompared = compareIds.includes(property.id);
                   const isFavorite = favoriteIds.includes(property.id);
+                  const propertyTags = getPropertyTags(property);
+                  const propertyMetrics = getCatalogMetrics(property);
 
                   return (
                     <article
@@ -698,41 +868,27 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         </p>
 
                         <div className="flex flex-wrap gap-2">
-                          {property.features.slice(0, 4).map((feature) => (
+                          {propertyTags.slice(0, 4).map((featureLabel) => (
                             <span
-                              key={feature}
+                              key={`${property.id}-${featureLabel}`}
                               className="rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600"
                             >
-                              {getFeatureLabel(feature)}
+                              {featureLabel}
                             </span>
                           ))}
                         </div>
 
                         <div className="grid gap-2 border-t border-slate-100 pt-3 text-sm text-slate-600 sm:grid-cols-3">
-                          <div>
-                            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                              Площадь
+                          {propertyMetrics.map((metric) => (
+                            <div key={`${property.id}-${metric.label}`}>
+                              <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                                {metric.label}
+                              </div>
+                              <div className="mt-1 font-semibold text-slate-900">
+                                {metric.value}
+                              </div>
                             </div>
-                            <div className="mt-1 font-semibold text-slate-900">
-                              {property.areaM2} м²
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                              Спальни
-                            </div>
-                            <div className="mt-1 font-semibold text-slate-900">
-                              {property.bedrooms}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                              Ванные
-                            </div>
-                            <div className="mt-1 font-semibold text-slate-900">
-                              {property.bathrooms}
-                            </div>
-                          </div>
+                          ))}
                         </div>
 
                         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
@@ -797,6 +953,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 {properties.map((property) => {
                   const isActive = selectedMapProperty?.id === property.id;
                   const isFavorite = favoriteIds.includes(property.id);
+                  const compactMetrics = getCatalogMetrics(property);
 
                   return (
                     <button
@@ -836,11 +993,11 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           </p>
 
                           <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                            <span>{property.areaM2} м²</span>
+                            <span>{compactMetrics[0]?.value}</span>
                             <span>•</span>
-                            <span>{property.bedrooms} спальни</span>
+                            <span>{compactMetrics[1]?.value}</span>
                             <span>•</span>
-                            <span>{property.bathrooms} ванные</span>
+                            <span>{compactMetrics[2]?.value}</span>
                           </div>
                         </div>
                       </div>
@@ -979,26 +1136,21 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
       </section>
 
       <footer className="border-t border-slate-200 bg-[#0f172a] text-slate-200">
-        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-[1.1fr_0.9fr]">
-          <div className="grid gap-4">
+        <div className="mx-auto grid max-w-7xl gap-3 px-5 py-8 md:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid gap-3">
             <div className="text-lg font-semibold">Агентство недвижимости ИРИНА</div>
-            <p className="max-w-2xl text-sm leading-7 text-slate-300">
-              Информация на сайте носит ознакомительный характер и не является
-              публичной офертой. Точные условия сделки, доступность объекта,
-              состав мебели и юридические детали подтверждаются отдельно перед
-              бронированием, арендой или подписанием договора купли-продажи.
+            <p className="max-w-2xl text-sm leading-6 text-slate-300">
+              Контакты: +351 912 345 678 | info@irina-realestate.com
             </p>
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
               Юридическая информация
             </div>
-            <ul className="grid gap-3 text-sm leading-6 text-slate-300">
-              <li>Проверка статуса объекта и документов проводится до сделки.</li>
-              <li>Финальная стоимость может меняться из-за налогов и сборов.</li>
-              <li>Персональные данные клиентов обрабатываются по запросу сделки.</li>
-              <li>Cookies используются для хранения предпочтений и аналитики.</li>
+            <ul className="grid gap-2 text-sm leading-5 text-slate-300">
+              <li>Политика конфиденциальности</li>
+              <li>Раскрытие информации об ИИ</li>              
             </ul>
           </div>
         </div>

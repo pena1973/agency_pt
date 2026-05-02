@@ -26,6 +26,8 @@ export type PropertyCondition =
 export type PropertyType =
   | "villa"
   | "apartment"
+  | "studio"
+  | "room"
   | "penthouse"
   | "townhouse"
   | "loft"
@@ -125,6 +127,7 @@ export type CustomerInquiry = {
   createdAt: string;
   status: "new" | "reviewed";
   source: InquirySource;
+  userId?: string;
   phone: string;
   messengers: InquiryMessenger[];
   name?: string;

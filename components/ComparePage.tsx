@@ -17,7 +17,7 @@ export function ComparePage({ propertiesData }: ComparePageProps) {
 
   if (comparedProperties.length === 0) {
     return (
-      <main className="min-h-screen bg-[#f8fbff] px-8 py-10 text-slate-950">
+      <main className="site-page-background min-h-screen px-8 py-10 text-slate-950">
         <div className="mx-auto max-w-5xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -42,7 +42,7 @@ export function ComparePage({ propertiesData }: ComparePageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fbff] px-8 py-10 text-slate-950">
+    <main className="site-page-background min-h-screen px-8 py-10 text-slate-950">
       <div className="mx-auto max-w-[1380px]">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
