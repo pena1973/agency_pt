@@ -39,6 +39,7 @@ export type HeatingType =
   | "underfloor"
   | "electric"
   | "heat_pump"
+  | "gas_boiler"
   | "none";
 
 export type EnergyRating =
@@ -110,6 +111,7 @@ export type PropertyListing = {
   areaM2: number;
   imageUrl: string;
   imageGallery: string[];
+  imagePositions?: Record<string, { x: number; y: number }>;
   features: ListingFeature[];
   details: PropertyDetails;
   transportAccess: TransportRoute[];

@@ -13,12 +13,22 @@ type NominatimResult = {
 export async function POST(request: Request) {
   const payload = (await request.json()) as GeocodeRequest;
   const address = payload.address?.trim();
+  const city = payload.city?.trim();
 
   if (!address) {
     return NextResponse.json({ error: "Укажите адрес." }, { status: 400 });
   }
 
-  const query = [address, payload.city?.trim(), "Portugal"].filter(Boolean).join(", ");
+  const normalizedAddress = address.toLowerCase();
+  const normalizedCity = city?.toLowerCase();
+  const shouldAppendCity =
+    Boolean(city) &&
+    normalizedCity !== normalizedAddress &&
+    !normalizedAddress.includes(normalizedCity ?? "");
+
+  const query = [address, shouldAppendCity ? city : undefined, "Portugal"]
+    .filter(Boolean)
+    .join(", ");
   const endpoint = new URL("https://nominatim.openstreetmap.org/search");
   endpoint.searchParams.set("q", query);
   endpoint.searchParams.set("format", "jsonv2");

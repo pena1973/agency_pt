@@ -7,34 +7,40 @@ type PropertyRouteContext = {
 };
 
 export async function PATCH(request: Request, context: PropertyRouteContext) {
-  const { id } = await context.params;
-  const payload = await request.json();
-  const property = propertyListingSchema.parse(payload);
-  const properties = await readPropertyListings();
-  const propertyIndex = properties.findIndex((item) => item.id === id);
+  try {
+    const { id } = await context.params;
+    const payload = await request.json();
+    const property = propertyListingSchema.parse(payload);
+    const properties = await readPropertyListings();
+    const propertyIndex = properties.findIndex((item) => item.id === id);
 
-  if (propertyIndex === -1) {
-    return NextResponse.json({ error: "Объект не найден." }, { status: 404 });
-  }
+    if (propertyIndex === -1) {
+      return NextResponse.json({ error: "Объект не найден." }, { status: 404 });
+    }
 
-  const duplicateConflict = properties.some(
-    (item, index) =>
-      index !== propertyIndex &&
-      (item.id === property.id || item.slug === property.slug)
-  );
-
-  if (duplicateConflict) {
-    return NextResponse.json(
-      { error: "ID или slug уже используется другим объектом." },
-      { status: 409 }
+    const duplicateConflict = properties.some(
+      (item, index) =>
+        index !== propertyIndex &&
+        (item.id === property.id || item.slug === property.slug)
     );
+
+    if (duplicateConflict) {
+      return NextResponse.json(
+        { error: "ID или slug уже используется другим объектом." },
+        { status: 409 }
+      );
+    }
+
+    const nextProperties = [...properties];
+    nextProperties[propertyIndex] = property;
+    await writePropertyListings(nextProperties);
+    const persistedProperties = await readPropertyListings();
+
+    return NextResponse.json({ properties: persistedProperties });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Не удалось сохранить объект." }, { status: 500 });
   }
-
-  const nextProperties = [...properties];
-  nextProperties[propertyIndex] = property;
-  await writePropertyListings(nextProperties);
-
-  return NextResponse.json({ properties: nextProperties });
 }
 
 export async function DELETE(_request: Request, context: PropertyRouteContext) {
@@ -47,5 +53,6 @@ export async function DELETE(_request: Request, context: PropertyRouteContext) {
   }
 
   await writePropertyListings(nextProperties);
-  return NextResponse.json({ properties: nextProperties });
+  const persistedProperties = await readPropertyListings();
+  return NextResponse.json({ properties: persistedProperties });
 }

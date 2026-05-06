@@ -1,7 +1,14 @@
 ﻿"use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ChangeEvent } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  DEFAULT_PROPERTY_COVER_URL,
+  getPropertyImagePosition,
+} from "@/lib/real-estate/property-cover";
+import { normalizeCityName } from "@/lib/real-estate/city";
 import type {
   CustomerInquiry,
   EnergyRating,
@@ -112,6 +119,7 @@ const heatingOptions: Array<{ value: HeatingType; label: string }> = [
   { value: "underfloor", label: "Теплый пол" },
   { value: "electric", label: "Электрическое" },
   { value: "heat_pump", label: "Тепловой насос" },
+  { value: "gas_boiler", label: "Газовый котел" },
   { value: "none", label: "Нет" },
 ];
 
@@ -160,57 +168,59 @@ function cloneProperty(property: PropertyListing): PropertyListing {
   return JSON.parse(JSON.stringify(property)) as PropertyListing;
 }
 
+function normalizePropertyCollection(properties: PropertyListing[]): PropertyListing[] {
+  return properties.map((property) => normalizePropertyListing(property));
+}
+
 function createPropertyTemplate(): PropertyListing {
   const now = new Date().toISOString().slice(0, 10);
-  const placeholderImage =
-    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80";
 
   return {
     id: "",
     slug: "",
     isActive: true,
     mode: "sale",
-    title: "Новый объект",
-    city: "Лиссабон",
-    district: "Centro",
+    title: "",
+    city: "",
+    district: "",
     country: "Португалия",
     location: {
-      addressLabel: "Lisbon, Portugal",
-      latitude: 38.7223,
-      longitude: -9.1393,
-      googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=38.7223,-9.1393",
+      addressLabel: "",
+      latitude: 0,
+      longitude: 0,
+      googleMapsUrl: buildGoogleMapsUrl(0, 0),
     },
     priceAmount: 0,
     priceLabel: "€0",
-    shortDescription: "Краткое описание объекта.",
-    fullDescription: "Полное описание объекта.",
-    bedrooms: 1,
-    bathrooms: 1,
-    areaM2: 50,
-    imageUrl: placeholderImage,
-    imageGallery: [placeholderImage],
+    shortDescription: "",
+    fullDescription: "",
+    bedrooms: 0,
+    bathrooms: 0,
+    areaM2: 0,
+    imageUrl: DEFAULT_PROPERTY_COVER_URL,
+    imageGallery: [],
     features: ["city_center"],
     details: {
       propertyType: "apartment",
-      usableAreaM2: 45,
-      builtAreaM2: 50,
-      floor: "1 этаж",
-      exterior: true,
+      usableAreaM2: 0,
+      builtAreaM2: 0,
+      floor: "",
+      exterior: false,
       elevator: false,
       parkingSpaces: 0,
       storageRoom: false,
       builtInWardrobes: false,
-      equippedKitchen: true,
+      equippedKitchen: false,
       furnished: false,
       balconyCount: 0,
       terraceCount: 0,
       condition: "good",
-      yearBuilt: 2020,
-      heating: "electric",
+      yearBuilt: 0,
+      heating: "none",
       accessibilityAdapted: false,
-      orientation: ["юг"],
+      orientation: [],
       energyRating: "B",
-      bathroomsFull: 1,
+      bathroomsFull: 0,
     },
     transportAccess: [],
     taxProfile: {
@@ -246,9 +256,24 @@ function slugifyValue(value: string) {
 }
 
 function buildPropertySlug(title: string, id: string) {
-  const titlePart = slugifyValue(title) || "property";
   const idPart = slugifyValue(id) || buildGeneratedPropertyId();
-  return `${titlePart}-${idPart}`;
+  const shortIdPart = idPart.replace(/^irina-/, "") || idPart;
+  return shortIdPart;
+}
+
+function getPropertyPublicPath(property: PropertyListing) {
+  const generatedIdSlug = property.id.replace(/^irina-/, "");
+  const pathSlug = /^irina-\d+$/.test(property.id) ? generatedIdSlug : property.slug;
+
+  return `/properties/${encodeURIComponent(pathSlug)}`;
+}
+
+function isGeneratedPropertySlugForId(slug: string, id: string) {
+  const normalizedSlug = slugifyValue(slug);
+  const normalizedId = slugifyValue(id);
+  const shortId = normalizedId.replace(/^irina-/, "");
+
+  return Boolean(shortId) && normalizedSlug.includes(shortId);
 }
 
 function buildGoogleMapsUrl(latitude: number, longitude: number) {
@@ -260,6 +285,108 @@ function parseOrientationValue(value: string) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function displayDraftNumberValue(value: number, isNewPropertyDraft: boolean): string | number {
+  return isNewPropertyDraft && value === 0 ? "" : value;
+}
+
+function clampPercentage(value: number | undefined) {
+  return Math.min(
+    100,
+    Math.max(0, typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 50)
+  );
+}
+
+function normalizePropertyListing(property: PropertyListing): PropertyListing {
+  const nextId = property.id.trim();
+  const nextCity = normalizeCityName(property.city);
+  const nextLatitude = Number(property.location.latitude);
+  const nextLongitude = Number(property.location.longitude);
+  const latitude = Number.isFinite(nextLatitude) ? nextLatitude : 38.7223;
+  const longitude = Number.isFinite(nextLongitude) ? nextLongitude : -9.1393;
+  const normalizedBathrooms = Math.max(
+    0,
+    property.details.bathroomsFull ?? property.bathrooms
+  );
+  const nextGallery = Array.from(
+    new Set(property.imageGallery.map((imageUrl) => imageUrl.trim()).filter(Boolean))
+  );
+  const currentCoverImage = property.imageUrl?.trim();
+  const normalizedCoverImage =
+    currentCoverImage && nextGallery.includes(currentCoverImage)
+      ? currentCoverImage
+      : nextGallery[0] ?? currentCoverImage ?? DEFAULT_PROPERTY_COVER_URL;
+  const normalizedImagePositions = Object.fromEntries(
+    nextGallery.map((imageUrl) => {
+      const position = property.imagePositions?.[imageUrl];
+
+      return [
+        imageUrl,
+        {
+          x: clampPercentage(position?.x),
+          y: clampPercentage(position?.y),
+        },
+      ];
+    })
+  );
+
+  return {
+    ...property,
+    id: nextId,
+    slug:
+      !property.slug.trim() || isGeneratedPropertySlugForId(property.slug, nextId)
+        ? buildPropertySlug(property.title, nextId || buildGeneratedPropertyId())
+        : property.slug.trim(),
+    isActive: property.isActive !== false,
+    city: nextCity,
+    district: property.district?.trim() || nextCity,
+    country: "Португалия",
+    priceAmount: Math.max(0, property.priceAmount),
+    priceLabel: buildPriceLabel(Math.max(0, property.priceAmount), property.mode),
+    bathrooms: normalizedBathrooms,
+    imageGallery: nextGallery,
+    imageUrl: normalizedCoverImage,
+    imagePositions: normalizedImagePositions,
+    location: {
+      ...property.location,
+      addressLabel: property.location.addressLabel.trim() || "Lisbon, Portugal",
+      latitude,
+      longitude,
+      googleMapsUrl: buildGoogleMapsUrl(latitude, longitude),
+    },
+    details: {
+      ...property.details,
+      usableAreaM2: Math.max(0, property.details.usableAreaM2),
+      builtAreaM2: Math.max(0, property.details.builtAreaM2),
+      plotAreaM2: Math.max(0, property.details.plotAreaM2 ?? 0),
+      parkingSpaces: Math.max(0, property.details.parkingSpaces),
+      balconyCount: Math.max(0, property.details.balconyCount),
+      terraceCount: Math.max(0, property.details.terraceCount),
+      yearBuilt: Math.max(0, property.details.yearBuilt),
+      bathroomsFull: normalizedBathrooms,
+      guestBathrooms: Math.max(0, property.details.guestBathrooms ?? 0),
+      buildingFloors: Math.max(0, property.details.buildingFloors ?? 0),
+      monthlyCondoFeeEur: Math.max(0, property.details.monthlyCondoFeeEur ?? 0),
+      orientation: property.details.orientation.filter(Boolean).length
+        ? property.details.orientation.filter(Boolean)
+        : ["юг"],
+    },
+    transportAccess: property.transportAccess.map((route) => ({
+      ...route,
+      route: route.route.trim(),
+      stopName: route.stopName.trim(),
+      walkMinutes: Math.max(0, route.walkMinutes),
+    })),
+    taxProfile: property.taxProfile
+      ? {
+          propertyTransferTaxRate: Math.max(0, property.taxProfile.propertyTransferTaxRate),
+          stampDutyRate: Math.max(0, property.taxProfile.stampDutyRate),
+          notaryEstimateRate: Math.max(0, property.taxProfile.notaryEstimateRate),
+        }
+      : undefined,
+    agentName: property.agentName?.trim() || "Ирина",
+  };
 }
 
 function getNestedValue(source: unknown, path: string): unknown {
@@ -320,6 +447,7 @@ export function AdminDashboard({
   initialInquiries,
   initialUsers,
 }: AdminDashboardProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<AdminTab>("catalog");
   const [properties, setProperties] = useState<PropertyListing[]>(initialProperties);
   const [inquiries, setInquiries] = useState<CustomerInquiry[]>(initialInquiries);
@@ -329,11 +457,6 @@ export function AdminDashboard({
   );
   const catalogContentScrollRef = useRef<HTMLDivElement | null>(null);
   const photoFileInputRef = useRef<HTMLInputElement | null>(null);
-  const photoPickerScrollStateRef = useRef<{
-    panelScrollTop: number;
-    windowScrollX: number;
-    windowScrollY: number;
-  } | null>(null);
 
   useLayoutEffect(() => {
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -390,7 +513,9 @@ export function AdminDashboard({
     const matchesId =
       normalizedQuery.length === 0
         ? true
-        : property.id.toLowerCase().includes(normalizedQuery);
+        : property.id.toLowerCase().includes(normalizedQuery) ||
+          property.id.replace(/^irina-/, "").toLowerCase().includes(normalizedQuery) ||
+          property.slug.toLowerCase().includes(normalizedQuery);
 
     return matchesMode && matchesId;
   });
@@ -406,6 +531,7 @@ export function AdminDashboard({
   const showsCompactResidentialLayout = showsResidentialFields && !showsSecondaryAreaFields;
   const showsCompactAttachedLandLayout = showsResidentialFields && showsSecondaryAreaFields;
   const showsCompactLayout = showsCompactResidentialLayout || showsCompactAttachedLandLayout;
+  const isNewPropertyDraft = selectedId === null;
   const visibleFeatureOptions = listingFeatureOptions.filter((feature) => {
     if (isLandProperty) {
       return (
@@ -421,6 +547,12 @@ export function AdminDashboard({
   const featureGridClass = showsCompactLayout
     ? "mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6"
     : "mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4";
+  const removedGalleryImages =
+    originalPropertyDraft && propertyDraft
+      ? originalPropertyDraft.imageGallery.filter(
+          (imageUrl) => !propertyDraft.imageGallery.includes(imageUrl)
+        )
+      : [];
   const hasUnsavedChanges =
     propertyDraft !== null &&
     originalPropertyDraft !== null &&
@@ -440,39 +572,30 @@ export function AdminDashboard({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  function restorePhotoPickerScrollState() {
-    const scrollState = photoPickerScrollStateRef.current;
+  function openPhotoPicker() {
+    const fileInput = photoFileInputRef.current;
 
-    if (!scrollState) {
+    if (!fileInput) {
       return;
     }
 
-    if (catalogContentScrollRef.current) {
-      catalogContentScrollRef.current.scrollTop = scrollState.panelScrollTop;
+    if (typeof fileInput.showPicker === "function") {
+      fileInput.showPicker();
+      return;
     }
 
-    window.scrollTo({
-      top: scrollState.windowScrollY,
-      left: scrollState.windowScrollX,
-      behavior: "auto",
-    });
+    fileInput.click();
   }
 
-  function openPhotoPicker() {
-    photoPickerScrollStateRef.current = {
-      panelScrollTop: catalogContentScrollRef.current?.scrollTop ?? 0,
-      windowScrollX: window.scrollX,
-      windowScrollY: window.scrollY,
-    };
-
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
+  async function handleAdminLogout() {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+    } finally {
+      router.push("/");
+      router.refresh();
     }
-
-    requestAnimationFrame(() => {
-      restorePhotoPickerScrollState();
-      photoFileInputRef.current?.click();
-    });
   }
 
   function isFieldChanged(path: string) {
@@ -494,10 +617,59 @@ export function AdminDashboard({
     }`;
   }
 
+  function withChangedBlockClass(baseClassName: string, isChanged: boolean) {
+    return `${baseClassName}${
+      isChanged
+        ? " border-amber-500 bg-amber-50 ring-2 ring-amber-200 shadow-[0_0_0_1px_rgba(245,158,11,0.18)]"
+        : ""
+    }`;
+  }
+
+  function isFeatureOptionChanged(option: FeatureOption) {
+    if (!propertyDraft || !originalPropertyDraft) {
+      return false;
+    }
+
+    if (option.source === "feature") {
+      return (
+        propertyDraft.features.includes(option.value) !==
+        originalPropertyDraft.features.includes(option.value)
+      );
+    }
+
+    return Boolean(propertyDraft.details[option.value]) !== Boolean(originalPropertyDraft.details[option.value]);
+  }
+
+  function isTransportRouteChanged(index: number) {
+    if (!propertyDraft || !originalPropertyDraft) {
+      return false;
+    }
+
+    return (
+      JSON.stringify(propertyDraft.transportAccess[index]) !==
+      JSON.stringify(originalPropertyDraft.transportAccess[index])
+    );
+  }
+
+  function isGalleryImageChanged(imageUrl: string, index: number) {
+    if (!propertyDraft || !originalPropertyDraft) {
+      return false;
+    }
+
+    return (
+      !originalPropertyDraft.imageGallery.includes(imageUrl) ||
+      originalPropertyDraft.imageGallery[index] !== imageUrl ||
+      (propertyDraft.imageUrl === imageUrl && originalPropertyDraft.imageUrl !== imageUrl) ||
+      JSON.stringify(propertyDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 }) !==
+        JSON.stringify(originalPropertyDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 })
+    );
+  }
+
   function applySelectedProperty(property: PropertyListing) {
-    setSelectedId(property.id);
-    setPropertyDraft(cloneProperty(property));
-    setOriginalPropertyDraft(cloneProperty(property));
+    const normalizedProperty = normalizePropertyListing(property);
+    setSelectedId(normalizedProperty.id);
+    setPropertyDraft(cloneProperty(normalizedProperty));
+    setOriginalPropertyDraft(cloneProperty(normalizedProperty));
     setStatusMessage("");
     setGeocodeMessage("");
     setAiStatus("");
@@ -506,7 +678,7 @@ export function AdminDashboard({
   }
 
   function applyCreatePropertyTemplate() {
-    const template = createPropertyTemplate();
+    const template = normalizePropertyListing(createPropertyTemplate());
     setGeocodeMessage("");
     setSelectedId(null);
     setPropertyDraft(cloneProperty(template));
@@ -756,7 +928,7 @@ export function AdminDashboard({
         },
         body: JSON.stringify({
           address,
-          city: propertyDraft.city.trim(),
+          city: normalizeCityName(propertyDraft.city),
         }),
       });
 
@@ -767,7 +939,19 @@ export function AdminDashboard({
       };
 
       if (!response.ok || payload.latitude === undefined || payload.longitude === undefined) {
-        setGeocodeMessage(payload.error ?? "Не удалось определить координаты по адресу.");
+        setPropertyDraft((currentDraft) =>
+          currentDraft
+            ? {
+                ...currentDraft,
+                location: {
+                  ...currentDraft.location,
+                  latitude: 0,
+                  longitude: 0,
+                },
+              }
+            : currentDraft
+        );
+        setGeocodeMessage(payload.error ?? "Не удалось определить координаты.");
         return;
       }
 
@@ -785,7 +969,19 @@ export function AdminDashboard({
       );
       setGeocodeMessage("Координаты заполнены по адресу.");
     } catch {
-      setGeocodeMessage("Не удалось определить координаты по адресу.");
+      setPropertyDraft((currentDraft) =>
+        currentDraft
+          ? {
+              ...currentDraft,
+              location: {
+                ...currentDraft.location,
+                latitude: 0,
+                longitude: 0,
+              },
+            }
+          : currentDraft
+      );
+      setGeocodeMessage("Не удалось определить координаты.");
     } finally {
       setIsGeocodingAddress(false);
     }
@@ -814,14 +1010,16 @@ export function AdminDashboard({
       return false;
     }
 
+    const normalizedProperties = normalizePropertyCollection(payload.properties);
     const savedProperty =
-      payload.properties.find((property) => property.id === nextProperty.id) ??
-      nextProperty;
+      normalizedProperties.find((property) => property.id === nextProperty.id) ??
+      normalizePropertyListing(nextProperty);
 
-    setProperties(payload.properties);
+    setProperties(normalizedProperties);
     setSelectedId(savedProperty.id);
     setPropertyDraft(cloneProperty(savedProperty));
     setOriginalPropertyDraft(cloneProperty(savedProperty));
+    router.refresh();
     return true;
   }
 
@@ -831,33 +1029,14 @@ export function AdminDashboard({
     }
 
     const nextId = propertyDraft.id.trim() || buildGeneratedPropertyId();
-    const nextLatitude = Number(propertyDraft.location.latitude);
-    const nextLongitude = Number(propertyDraft.location.longitude);
-    const nextProperty: PropertyListing = {
+    const nextProperty = normalizePropertyListing({
       ...propertyDraft,
       id: nextId,
-      slug: propertyDraft.slug.trim() || buildPropertySlug(propertyDraft.title, nextId),
-      city: propertyDraft.city.trim() || "Лиссабон",
-      district: propertyDraft.city.trim() || "Лиссабон",
-      country: "Португалия",
-      priceLabel: buildPriceLabel(propertyDraft.priceAmount, propertyDraft.mode),
-      agentName: "Ирина",
-      location: {
-        ...propertyDraft.location,
-        latitude: Number.isFinite(nextLatitude) ? nextLatitude : 38.7223,
-        longitude: Number.isFinite(nextLongitude) ? nextLongitude : -9.1393,
-        googleMapsUrl: buildGoogleMapsUrl(
-          Number.isFinite(nextLatitude) ? nextLatitude : 38.7223,
-          Number.isFinite(nextLongitude) ? nextLongitude : -9.1393
-        ),
-      },
-      details: {
-        ...propertyDraft.details,
-        orientation: propertyDraft.details.orientation.filter(Boolean).length
-          ? propertyDraft.details.orientation.filter(Boolean)
-          : ["юг"],
-      },
-    };
+      slug:
+        !propertyDraft.slug.trim() || isGeneratedPropertySlugForId(propertyDraft.slug, nextId)
+          ? buildPropertySlug(propertyDraft.title, nextId)
+          : propertyDraft.slug.trim(),
+    });
 
     setIsSaving(true);
     setStatusMessage("");
@@ -882,9 +1061,11 @@ export function AdminDashboard({
           return false;
         }
 
+        const normalizedProperties = normalizePropertyCollection(payload.properties);
         const createdProperty =
-          payload.properties.find((property) => property.id === nextProperty.id) ?? nextProperty;
-        setProperties(payload.properties);
+          normalizedProperties.find((property) => property.id === nextProperty.id) ??
+          normalizePropertyListing(nextProperty);
+        setProperties(normalizedProperties);
         setSelectedId(createdProperty.id);
         setPropertyDraft(cloneProperty(createdProperty));
         setOriginalPropertyDraft(cloneProperty(createdProperty));
@@ -931,8 +1112,9 @@ export function AdminDashboard({
       return;
     }
 
-    const nextSelected = payload.properties[0] ?? null;
-    setProperties(payload.properties);
+    const normalizedProperties = normalizePropertyCollection(payload.properties);
+    const nextSelected = normalizedProperties[0] ?? null;
+    setProperties(normalizedProperties);
     setSelectedId(nextSelected?.id ?? null);
     setPropertyDraft(nextSelected ? cloneProperty(nextSelected) : null);
     setOriginalPropertyDraft(nextSelected ? cloneProperty(nextSelected) : null);
@@ -992,33 +1174,11 @@ export function AdminDashboard({
     try {
       const parsed = JSON.parse(jsonEditorValue) as PropertyListing;
       const nextId = parsed.id.trim() || buildGeneratedPropertyId();
-      const nextLatitude = Number(parsed.location.latitude);
-      const nextLongitude = Number(parsed.location.longitude);
-      const nextProperty: PropertyListing = {
+      const nextProperty = normalizePropertyListing({
         ...parsed,
         id: nextId,
         slug: parsed.slug.trim() || buildPropertySlug(parsed.title, nextId),
-        city: parsed.city.trim() || "Лиссабон",
-        district: parsed.city.trim() || "Лиссабон",
-        country: "Португалия",
-        priceLabel: buildPriceLabel(parsed.priceAmount, parsed.mode),
-        agentName: "Ирина",
-        location: {
-          ...parsed.location,
-          latitude: Number.isFinite(nextLatitude) ? nextLatitude : 38.7223,
-          longitude: Number.isFinite(nextLongitude) ? nextLongitude : -9.1393,
-          googleMapsUrl: buildGoogleMapsUrl(
-            Number.isFinite(nextLatitude) ? nextLatitude : 38.7223,
-            Number.isFinite(nextLongitude) ? nextLongitude : -9.1393
-          ),
-        },
-        details: {
-          ...parsed.details,
-          orientation: parsed.details.orientation.filter(Boolean).length
-            ? parsed.details.orientation.filter(Boolean)
-            : ["юг"],
-        },
-      };
+      });
 
       if (!selectedId) {
         const response = await fetch("/api/admin/properties", {
@@ -1039,9 +1199,11 @@ export function AdminDashboard({
           return;
         }
 
+        const normalizedProperties = normalizePropertyCollection(payload.properties);
         const createdProperty =
-          payload.properties.find((property) => property.id === nextProperty.id) ?? nextProperty;
-        setProperties(payload.properties);
+          normalizedProperties.find((property) => property.id === nextProperty.id) ??
+          normalizePropertyListing(nextProperty);
+        setProperties(normalizedProperties);
         setSelectedId(createdProperty.id);
         setPropertyDraft(cloneProperty(createdProperty));
         setOriginalPropertyDraft(cloneProperty(createdProperty));
@@ -1064,7 +1226,6 @@ export function AdminDashboard({
   }
 
   async function handlePhotoUpload(event: ChangeEvent<HTMLInputElement>) {
-    restorePhotoPickerScrollState();
     const files = Array.from(event.target.files ?? []);
 
     if (files.length === 0) {
@@ -1103,13 +1264,9 @@ export function AdminDashboard({
     }));
 
     setUploadedPhotos((currentPhotos) => [...currentPhotos, ...nextPhotos]);
-      setAiStatus("Фотографии загружены. Можно выбрать кадры для AI-обработки.");
-      event.target.value = "";
-
-      requestAnimationFrame(() => {
-        restorePhotoPickerScrollState();
-      });
-    }
+    setAiStatus("Фотографии загружены. Можно выбрать кадры для AI-обработки.");
+    event.target.value = "";
+  }
 
   function togglePhotoForAi(photoId: string) {
     setUploadedPhotos((currentPhotos) =>
@@ -1143,28 +1300,34 @@ export function AdminDashboard({
         const nextGallery = currentDraft.imageGallery.includes(imageUrl)
           ? currentDraft.imageGallery
           : [...currentDraft.imageGallery, imageUrl];
+        const nextImagePositions = {
+          ...currentDraft.imagePositions,
+          [imageUrl]: currentDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 },
+        };
 
         return {
           ...currentDraft,
-          imageUrl: currentDraft.imageUrl || imageUrl,
+          imageUrl:
+            currentDraft.imageUrl === DEFAULT_PROPERTY_COVER_URL || !currentDraft.imageUrl
+              ? imageUrl
+              : currentDraft.imageUrl,
           imageGallery: nextGallery,
+          imagePositions: nextImagePositions,
         };
       }
 
       const nextGallery = currentDraft.imageGallery.filter((item) => item !== imageUrl);
-
-      if (nextGallery.length === 0) {
-        setStatusMessage("У объекта должна остаться хотя бы одна фотография.");
-        return currentDraft;
-      }
+      const nextImagePositions = { ...currentDraft.imagePositions };
+      delete nextImagePositions[imageUrl];
 
       return {
         ...currentDraft,
         imageUrl:
           currentDraft.imageUrl === imageUrl
-            ? nextGallery[0] ?? currentDraft.imageUrl
+            ? nextGallery[0] ?? DEFAULT_PROPERTY_COVER_URL
             : currentDraft.imageUrl,
         imageGallery: nextGallery,
+        imagePositions: nextImagePositions,
       };
     });
   }
@@ -1183,6 +1346,55 @@ export function AdminDashboard({
         : currentDraft
     );
     setStatusMessage("Обложка выбрана. Сохраните объект, чтобы закрепить изменение.");
+  }
+
+  function moveGalleryImage(index: number, direction: -1 | 1) {
+    setPropertyDraft((currentDraft) => {
+      if (!currentDraft) {
+        return currentDraft;
+      }
+
+      const nextIndex = index + direction;
+
+      if (nextIndex < 0 || nextIndex >= currentDraft.imageGallery.length) {
+        return currentDraft;
+      }
+
+      const nextGallery = [...currentDraft.imageGallery];
+      const currentImage = nextGallery[index];
+      nextGallery[index] = nextGallery[nextIndex];
+      nextGallery[nextIndex] = currentImage;
+
+      return {
+        ...currentDraft,
+        imageGallery: nextGallery,
+      };
+    });
+  }
+
+  function setGalleryImagePosition(
+    imageUrl: string,
+    axis: "x" | "y",
+    value: number
+  ) {
+    setPropertyDraft((currentDraft) => {
+      if (!currentDraft || !currentDraft.imageGallery.includes(imageUrl)) {
+        return currentDraft;
+      }
+
+      const currentPosition = currentDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 };
+
+      return {
+        ...currentDraft,
+        imagePositions: {
+          ...currentDraft.imagePositions,
+          [imageUrl]: {
+            ...currentPosition,
+            [axis]: clampPercentage(value),
+          },
+        },
+      };
+    });
   }
 
   async function downloadImageToComputer(imageUrl: string, fileName: string) {
@@ -1217,19 +1429,17 @@ export function AdminDashboard({
       }
 
       const nextGallery = currentDraft.imageGallery.filter((item) => item !== imageUrl);
-
-      if (nextGallery.length === 0) {
-        setStatusMessage("У объекта должна остаться хотя бы одна фотография.");
-        return currentDraft;
-      }
+      const nextImagePositions = { ...currentDraft.imagePositions };
+      delete nextImagePositions[imageUrl];
 
       return {
         ...currentDraft,
         imageUrl:
           currentDraft.imageUrl === imageUrl
-            ? nextGallery[0] ?? currentDraft.imageUrl
+            ? nextGallery[0] ?? DEFAULT_PROPERTY_COVER_URL
             : currentDraft.imageUrl,
         imageGallery: nextGallery,
+        imagePositions: nextImagePositions,
       };
     });
 
@@ -1248,9 +1458,31 @@ export function AdminDashboard({
     setAiStatus("");
 
     try {
-      const mockResult = buildMockAiResult(selectedPhotos, aiPalette);
-      setAiResult(mockResult);
-      setAiStatus("Подставлены временные мок-варианты. Можно отобрать лучшие и добавить в карточку.");
+      const formData = new FormData();
+      const roomType = selectedPhotos[0]?.roomType ?? "living_room";
+
+      for (const photo of selectedPhotos) {
+        formData.append("photos", photo.file, photo.name);
+      }
+
+      formData.append("roomType", roomType);
+      formData.append("palette", aiPalette);
+
+      const response = await fetch("/api/room-ai/generate", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as GenerateRoomDesignResult & {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setAiStatus(payload.error ?? "Ошибка генерации вариантов.");
+        return;
+      }
+
+      setAiResult(payload);
+      setAiStatus("ИИ сгенерировал варианты. Можно отобрать лучшие и добавить в карточку.");
     } catch {
       setAiStatus("Ошибка генерации вариантов.");
     } finally {
@@ -1314,9 +1546,9 @@ export function AdminDashboard({
   return (
     <main className="site-page-background h-[100dvh] overflow-hidden px-6 text-slate-950">
       <div className="mx-auto flex h-full min-h-0 max-w-[1520px] flex-col py-8">
-        <div className="mb-5 shrink-0 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-semibold tracking-tight">Панель администратора</h1>
-          <div className="flex flex-wrap gap-2">
+          <div className="mb-5 shrink-0 flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-3xl font-semibold tracking-tight">Панель администратора</h1>
+            <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => {
@@ -1348,22 +1580,35 @@ export function AdminDashboard({
                 {inquiries.length}
               </span>
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("users")}
-              className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                activeTab === "users"
+              <button
+                type="button"
+                onClick={() => setActiveTab("users")}
+                className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                  activeTab === "users"
                   ? "bg-slate-950 text-white"
                   : "border border-slate-200 bg-white text-slate-700"
               }`}
             >
               Пользователи
-              <span className="ml-2 rounded-full bg-white/15 px-2 py-1 text-xs">
-                {users.length}
-              </span>
-            </button>
+                <span className="ml-2 rounded-full bg-white/15 px-2 py-1 text-xs">
+                  {users.length}
+                </span>
+              </button>
+              <Link
+                href="/"
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+              >
+                Каталог сайта
+              </Link>
+              <button
+                type="button"
+                onClick={handleAdminLogout}
+                className="rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+              >
+                Выйти
+              </button>
+            </div>
           </div>
-        </div>
 
         <div className="sr-only" aria-live="polite">
           {statusMessage}
@@ -1448,7 +1693,7 @@ export function AdminDashboard({
                     <input
                       value={catalogIdQuery}
                       onChange={(event) => setCatalogIdQuery(event.target.value)}
-                      placeholder="Например: irina-001"
+                      placeholder="Например: 1778062918727"
                       className="h-11 rounded-2xl border border-slate-300 px-4 text-sm outline-none focus:border-emerald-500"
                     />
                   </label>
@@ -1553,7 +1798,7 @@ export function AdminDashboard({
                           </button>
                           {selectedId && propertyDraft.slug ? (
                             <a
-                              href={`/properties/${propertyDraft.slug}`}
+                              href={`${getPropertyPublicPath(propertyDraft)}?admin_preview=1`}
                               target="_blank"
                               rel="noreferrer"
                               className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
@@ -1576,6 +1821,7 @@ export function AdminDashboard({
                           <input
                             value={propertyDraft.title}
                             onChange={(event) => setDraftValue("title", event.target.value)}
+                            placeholder="Например: Вилла у океана"
                             className={withChangedFieldClass(
                               "h-11 w-full min-w-0 rounded-2xl border border-slate-300 px-4 text-sm outline-none focus:border-emerald-500",
                               "title"
@@ -1605,10 +1851,11 @@ export function AdminDashboard({
                             Цена
                           </span>
                           <input
-                            value={propertyDraft.priceAmount}
+                            value={displayDraftNumberValue(propertyDraft.priceAmount, isNewPropertyDraft)}
                             onChange={(event) =>
                               setDraftValue("priceAmount", toNumber(event.target.value))
                             }
+                            placeholder="Например: 850000"
                             className={withChangedFieldClass(
                               "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                               "priceAmount"
@@ -1624,6 +1871,7 @@ export function AdminDashboard({
                             onChange={(event) =>
                               setDraftValue("publishedAt", event.target.value)
                             }
+                            placeholder="2026-05-06"
                             className={withChangedFieldClass(
                               "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                               "publishedAt"
@@ -1653,6 +1901,7 @@ export function AdminDashboard({
                             onChange={(event) =>
                               setDraftValue("shortDescription", event.target.value)
                             }
+                            placeholder="Кратко опишите объект"
                             className={withChangedFieldClass(
                               "min-h-[92px] rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                               "shortDescription"
@@ -1668,6 +1917,7 @@ export function AdminDashboard({
                             onChange={(event) =>
                               setDraftValue("fullDescription", event.target.value)
                             }
+                            placeholder="Полное описание объекта"
                             className={withChangedFieldClass(
                               "min-h-[92px] rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                               "fullDescription"
@@ -1688,6 +1938,7 @@ export function AdminDashboard({
                           <input
                             value={propertyDraft.city}
                             onChange={(event) => setDraftValue("city", event.target.value)}
+                            placeholder="Например: Лиссабон"
                             className={withChangedFieldClass(
                               "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                               "city"
@@ -1704,6 +1955,7 @@ export function AdminDashboard({
                               onChange={(event) =>
                                 setDraftLocationValue("addressLabel", event.target.value)
                               }
+                              placeholder="Например: Avenida da Liberdade, Lisbon"
                               className={withChangedFieldClass(
                                 "h-11 w-full min-w-0 flex-1 rounded-2xl border border-slate-300 px-4 text-sm outline-none focus:border-emerald-500",
                                 "location.addressLabel"
@@ -1724,14 +1976,20 @@ export function AdminDashboard({
                           </button>
                         </div>
                         <label className="min-w-0 grid gap-2">
-                          <span className="text-sm font-semibold text-slate-800">
-                            Широта
-                          </span>
+                          <div className="grid gap-1">
+                            {geocodeMessage ? (
+                              <span className="text-xs text-slate-500">{geocodeMessage}</span>
+                            ) : null}
+                            <span className="text-sm font-semibold text-slate-800">
+                              Широта
+                            </span>
+                          </div>
                           <input
-                            value={propertyDraft.location.latitude}
+                            value={displayDraftNumberValue(propertyDraft.location.latitude, isNewPropertyDraft)}
                             onChange={(event) =>
                               setDraftLocationValue("latitude", toNumber(event.target.value))
                             }
+                            placeholder="0"
                             className={withChangedFieldClass(
                               "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                               "location.latitude"
@@ -1743,23 +2001,18 @@ export function AdminDashboard({
                             Долгота
                           </span>
                           <input
-                            value={propertyDraft.location.longitude}
+                            value={displayDraftNumberValue(propertyDraft.location.longitude, isNewPropertyDraft)}
                             onChange={(event) =>
                               setDraftLocationValue("longitude", toNumber(event.target.value))
                             }
+                            placeholder="0"
                             className={withChangedFieldClass(
                               "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                               "location.longitude"
                             )}
                           />
                         </label>
-                        {!showsCompactLayout ? (
-                          <div className="min-w-0">
-                            {geocodeMessage ? (
-                              <div className="pt-7 text-xs text-slate-500">{geocodeMessage}</div>
-                            ) : null}
-                          </div>
-                        ) : null}
+                        {!showsCompactLayout ? <div className="min-w-0" /> : null}
                       </div>
 
                       {showsCompactLayout ? (
@@ -1818,13 +2071,14 @@ export function AdminDashboard({
                                 Год постройки
                               </span>
                               <input
-                                value={propertyDraft.details.yearBuilt}
+                                value={displayDraftNumberValue(propertyDraft.details.yearBuilt, isNewPropertyDraft)}
                                 onChange={(event) =>
                                   setDraftDetailsValue(
                                     "yearBuilt",
                                     toNumber(event.target.value)
                                   )
                                 }
+                                placeholder="2024"
                                 className={withChangedFieldClass(
                                   "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                                   "details.yearBuilt"
@@ -1851,13 +2105,14 @@ export function AdminDashboard({
                                 Этажность
                               </span>
                               <input
-                                value={propertyDraft.details.buildingFloors ?? 0}
+                                value={displayDraftNumberValue(propertyDraft.details.buildingFloors ?? 0, isNewPropertyDraft)}
                                 onChange={(event) =>
                                   setDraftDetailsValue(
                                     "buildingFloors",
                                     toNumber(event.target.value)
                                   )
                                 }
+                                placeholder="0"
                                 className={withChangedFieldClass(
                                   "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                                   "details.buildingFloors"
@@ -1921,10 +2176,11 @@ export function AdminDashboard({
                                 Ширина/площадь, м²
                               </span>
                               <input
-                                value={propertyDraft.areaM2}
+                                value={displayDraftNumberValue(propertyDraft.areaM2, isNewPropertyDraft)}
                                 onChange={(event) =>
                                   setDraftValue("areaM2", toNumber(event.target.value))
                                 }
+                                placeholder="0"
                                 className={withChangedFieldClass(
                                   "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                                   "areaM2"
@@ -1936,10 +2192,11 @@ export function AdminDashboard({
                                 Спальни
                               </span>
                               <input
-                                value={propertyDraft.bedrooms}
+                                value={displayDraftNumberValue(propertyDraft.bedrooms, isNewPropertyDraft)}
                                 onChange={(event) =>
                                   setDraftValue("bedrooms", toNumber(event.target.value))
                                 }
+                                placeholder="0"
                                 className={withChangedFieldClass(
                                   "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                                   "bedrooms"
@@ -1951,10 +2208,11 @@ export function AdminDashboard({
                                 Ванные
                               </span>
                               <input
-                                value={propertyDraft.bathrooms}
+                                value={displayDraftNumberValue(propertyDraft.bathrooms, isNewPropertyDraft)}
                                 onChange={(event) =>
                                   setDraftValue("bathrooms", toNumber(event.target.value))
                                 }
+                                placeholder="0"
                                 className={withChangedFieldClass(
                                   "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                                   "bathrooms"
@@ -1966,13 +2224,14 @@ export function AdminDashboard({
                                 Балконов
                               </span>
                               <input
-                                value={propertyDraft.details.balconyCount}
+                                value={displayDraftNumberValue(propertyDraft.details.balconyCount, isNewPropertyDraft)}
                                 onChange={(event) =>
                                   setDraftDetailsValue(
                                     "balconyCount",
                                     toNumber(event.target.value)
                                   )
                                 }
+                                placeholder="0"
                                 className={withChangedFieldClass(
                                   "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                                   "details.balconyCount"
@@ -1984,13 +2243,14 @@ export function AdminDashboard({
                                 Парк. мест
                               </span>
                               <input
-                                value={propertyDraft.details.parkingSpaces}
+                                value={displayDraftNumberValue(propertyDraft.details.parkingSpaces, isNewPropertyDraft)}
                                 onChange={(event) =>
                                   setDraftDetailsValue(
                                     "parkingSpaces",
                                     toNumber(event.target.value)
                                   )
                                 }
+                                placeholder="0"
                                 className={withChangedFieldClass(
                                   "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
                                   "details.parkingSpaces"
@@ -2210,13 +2470,14 @@ export function AdminDashboard({
                                 Участок, м²
                               </span>
                               <input
-                                value={propertyDraft.details.plotAreaM2 ?? 0}
+                                value={displayDraftNumberValue(propertyDraft.details.plotAreaM2 ?? 0, isNewPropertyDraft)}
                                 onChange={(event) =>
                                   setDraftDetailsValue(
                                     "plotAreaM2",
                                     toNumber(event.target.value)
                                   )
                                 }
+                                placeholder="0"
                                 className="w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500"
                               />
                             </label>
@@ -2383,11 +2644,14 @@ export function AdminDashboard({
                           {visibleFeatureOptions.map((feature) => (
                             <label
                               key={`${feature.source}-${feature.value}`}
-                              className={`inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white text-slate-700 ${
-                                showsCompactLayout
-                                  ? "px-3 py-2 text-[13px]"
-                                  : "px-4 py-3 text-sm"
-                              }`}
+                              className={withChangedBlockClass(
+                                `inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white text-slate-700 ${
+                                  showsCompactLayout
+                                    ? "px-3 py-2 text-[13px]"
+                                    : "px-4 py-3 text-sm"
+                                }`,
+                                isFeatureOptionChanged(feature)
+                              )}
                             >
                               <input
                                 type="checkbox"
@@ -2419,8 +2683,11 @@ export function AdminDashboard({
                         <div className="grid gap-2">
                           {propertyDraft.transportAccess.map((route, index) => (
                             <div
-                              key={`${route.route}-${index}`}
-                              className="grid gap-2 rounded-2xl border border-slate-200 bg-white p-2 lg:grid-cols-[0.82fr_0.96fr_1fr_0.92fr_auto]"
+                              key={`transport-route-${index}`}
+                              className={withChangedBlockClass(
+                                "grid gap-2 rounded-2xl border border-slate-200 bg-white p-2 lg:grid-cols-[0.82fr_0.96fr_1fr_0.92fr_auto]",
+                                isTransportRouteChanged(index)
+                              )}
                             >
                               <select
                                 value={route.mode}
@@ -2431,7 +2698,10 @@ export function AdminDashboard({
                                     event.target.value as TransportMode
                                   )
                                 }
-                                className="h-10 rounded-2xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500"
+                                className={withChangedFieldClass(
+                                  "h-10 rounded-2xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500",
+                                  `transportAccess.${index}.mode`
+                                )}
                               >
                                 {transportModeOptions.map((option) => (
                                   <option key={option.value} value={option.value}>
@@ -2440,20 +2710,28 @@ export function AdminDashboard({
                                 ))}
                               </select>
                               <input
+                                type="text"
                                 value={route.route}
                                 onChange={(event) =>
                                   setDraftTransportValue(index, "route", event.target.value)
                                 }
-                                placeholder="Маршрут"
-                                className="h-10 rounded-2xl border border-slate-300 px-3 text-sm outline-none focus:border-emerald-500"
+                                placeholder="726, 728, 731"
+                                className={withChangedFieldClass(
+                                  "h-10 rounded-2xl border border-slate-300 px-3 text-sm outline-none focus:border-emerald-500",
+                                  `transportAccess.${index}.route`
+                                )}
                               />
                               <input
+                                type="text"
                                 value={route.stopName}
                                 onChange={(event) =>
                                   setDraftTransportValue(index, "stopName", event.target.value)
                                 }
                                 placeholder="Остановка"
-                                className="h-10 rounded-2xl border border-slate-300 px-3 text-sm outline-none focus:border-emerald-500"
+                                className={withChangedFieldClass(
+                                  "h-10 rounded-2xl border border-slate-300 px-3 text-sm outline-none focus:border-emerald-500",
+                                  `transportAccess.${index}.stopName`
+                                )}
                               />
                               <input
                                 value={route.walkMinutes}
@@ -2465,7 +2743,10 @@ export function AdminDashboard({
                                   )
                                 }
                                 placeholder="5 минут пешком"
-                                className="h-10 rounded-2xl border border-slate-300 px-3 text-sm outline-none focus:border-emerald-500"
+                                className={withChangedFieldClass(
+                                  "h-10 rounded-2xl border border-slate-300 px-3 text-sm outline-none focus:border-emerald-500",
+                                  `transportAccess.${index}.walkMinutes`
+                                )}
                               />
                               <button
                                 type="button"
@@ -2543,23 +2824,109 @@ export function AdminDashboard({
                         <div className="text-sm font-semibold text-slate-900">
                           Текущие фотографии объекта
                         </div>
+                        {removedGalleryImages.length > 0 ? (
+                          <div className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-2 ring-amber-100">
+                            Удалено из галереи: {removedGalleryImages.length}. Сохраните объект,
+                            чтобы удалить эти фото из базы.
+                          </div>
+                        ) : null}
                         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                           {propertyDraft.imageGallery.length > 0 ? (
-                            propertyDraft.imageGallery.map((imageUrl) => (
+                            propertyDraft.imageGallery.map((imageUrl, index) => {
+                              const imagePosition =
+                                propertyDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 };
+
+                              return (
                               <div
                                 key={imageUrl}
-                                className={`overflow-hidden rounded-2xl border bg-white ${
-                                  propertyDraft.imageUrl === imageUrl
-                                    ? "border-amber-400 ring-2 ring-amber-200"
-                                    : "border-slate-200"
-                                }`}
+                                className={withChangedBlockClass(
+                                  `overflow-hidden rounded-2xl border bg-white ${
+                                    propertyDraft.imageUrl === imageUrl
+                                      ? "border-amber-400 ring-2 ring-amber-200"
+                                      : "border-slate-200"
+                                  }`,
+                                  isGalleryImageChanged(imageUrl, index)
+                                )}
                               >
-                                <img
-                                  src={imageUrl}
-                                  alt={propertyDraft.title}
-                                  className="h-32 w-full object-cover"
-                                />
+                                <div className="relative">
+                                  <img
+                                    src={imageUrl}
+                                    alt={propertyDraft.title}
+                                    className="h-40 w-full object-cover"
+                                    style={{
+                                      objectPosition: getPropertyImagePosition(
+                                        propertyDraft,
+                                        imageUrl
+                                      ),
+                                    }}
+                                  />
+                                  <div className="absolute left-2 top-2 rounded-full bg-slate-950/80 px-2 py-1 text-xs font-semibold text-white">
+                                    {index + 1}
+                                  </div>
+                                  {propertyDraft.imageUrl === imageUrl ? (
+                                    <div className="absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">
+                                      Обложка
+                                    </div>
+                                  ) : null}
+                                </div>
                                 <div className="p-3">
+                                  <div className="mb-3 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                      Позиция фото
+                                    </div>
+                                    <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                                      Горизонтально: {imagePosition.x}%
+                                      <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        value={imagePosition.x}
+                                        onChange={(event) =>
+                                          setGalleryImagePosition(
+                                            imageUrl,
+                                            "x",
+                                            Number(event.target.value)
+                                          )
+                                        }
+                                        className="accent-emerald-700"
+                                      />
+                                    </label>
+                                    <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                                      Вертикально: {imagePosition.y}%
+                                      <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        value={imagePosition.y}
+                                        onChange={(event) =>
+                                          setGalleryImagePosition(
+                                            imageUrl,
+                                            "y",
+                                            Number(event.target.value)
+                                          )
+                                        }
+                                        className="accent-emerald-700"
+                                      />
+                                    </label>
+                                  </div>
+                                  <div className="mb-2 flex flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => moveGalleryImage(index, -1)}
+                                      disabled={index === 0}
+                                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 disabled:opacity-40"
+                                    >
+                                      Выше
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => moveGalleryImage(index, 1)}
+                                      disabled={index === propertyDraft.imageGallery.length - 1}
+                                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 disabled:opacity-40"
+                                    >
+                                      Ниже
+                                    </button>
+                                  </div>
                                   <div className="flex flex-wrap gap-2">
                                     <button
                                       type="button"
@@ -2584,7 +2951,8 @@ export function AdminDashboard({
                                   </div>
                                 </div>
                               </div>
-                            ))
+                              );
+                            })
                           ) : (
                             <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
                               У объекта пока нет фотографий.
@@ -2643,7 +3011,8 @@ export function AdminDashboard({
                               multiple
                               onChange={handlePhotoUpload}
                               tabIndex={-1}
-                              className="hidden"
+                              aria-hidden="true"
+                              className="pointer-events-none fixed left-0 top-0 h-px w-px opacity-0"
                             />
                           </div>
                         </div>
@@ -3045,7 +3414,7 @@ export function AdminDashboard({
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          Типы объектов
+                          Тип объекта
                         </div>
                         <div className="mt-2 text-sm leading-6 text-slate-700">
                           {formatUserPropertyTypes(selectedUser.searchProfile?.propertyTypes)}
@@ -3086,11 +3455,23 @@ export function AdminDashboard({
                             key={`favorite-${property.id}`}
                             className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
                           >
-                            <div className="text-base font-semibold text-slate-950">
-                              {property.title}
-                            </div>
-                            <div className="mt-1 text-sm text-slate-500">
-                              {property.city} · {property.priceLabel}
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-base font-semibold text-slate-950">
+                                  {property.title}
+                                </div>
+                                <div className="mt-1 text-sm text-slate-500">
+                                  {property.city} · {property.priceLabel}
+                                </div>
+                              </div>
+                              <a
+                                href={getPropertyPublicPath(property)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                              >
+                                Открыть карточку
+                              </a>
                             </div>
                           </div>
                         ))}
@@ -3107,11 +3488,23 @@ export function AdminDashboard({
                             key={`compare-${property.id}`}
                             className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
                           >
-                            <div className="text-base font-semibold text-slate-950">
-                              {property.title}
-                            </div>
-                            <div className="mt-1 text-sm text-slate-500">
-                              {property.city} · {property.priceLabel}
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-base font-semibold text-slate-950">
+                                  {property.title}
+                                </div>
+                                <div className="mt-1 text-sm text-slate-500">
+                                  {property.city} · {property.priceLabel}
+                                </div>
+                              </div>
+                              <a
+                                href={getPropertyPublicPath(property)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                              >
+                                Открыть карточку
+                              </a>
                             </div>
                           </div>
                         ))}

@@ -1,14 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { AgencyLogo } from "./AgencyLogo";
 
 type AuthMode = "login" | "register";
-type SubmitStatus = "idle" | "success";
+type SubmitState = "idle" | "submitting" | "success" | "error";
+type AuthenticatedUser = {
+  id: string;
+  email: string;
+  name: string;
+  phone: string | null;
+  role: "admin" | "realtor" | "client";
+};
 
 type LoginFormState = {
-  login: string;
+  email: string;
   password: string;
   rememberMe: boolean;
 };
@@ -18,10 +26,11 @@ type RegisterFormState = {
   password: string;
 };
 
-const passwordPattern = /^(?=.*[A-Za-zА-Яа-я])(?=.*\d)(?=.*[^A-Za-zА-Яа-я\d]).{1,8}$/;
+const passwordPattern =
+  /^(?=.*[A-Za-zА-Яа-я])(?=.*\d)(?=.*[^A-Za-zА-Яа-я\d]).{1,8}$/;
 
 const initialLoginFormState: LoginFormState = {
-  login: "",
+  email: "",
   password: "",
   rememberMe: true,
 };
@@ -32,49 +41,176 @@ const initialRegisterFormState: RegisterFormState = {
 };
 
 export function LoginPage() {
+  const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("login");
   const [loginFormState, setLoginFormState] =
     useState<LoginFormState>(initialLoginFormState);
-  const [registerFormState, setRegisterFormState] = useState<RegisterFormState>(
-    initialRegisterFormState
-  );
-  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
+  const [registerFormState, setRegisterFormState] =
+    useState<RegisterFormState>(initialRegisterFormState);
+  const [submitState, setSubmitState] = useState<SubmitState>("idle");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   const isLoginValid = useMemo(() => {
     return (
-      loginFormState.login.trim().length > 0 &&
+      loginFormState.email.trim().length > 0 &&
       passwordPattern.test(loginFormState.password.trim())
     );
-  }, [loginFormState.login, loginFormState.password]);
+  }, [loginFormState.email, loginFormState.password]);
 
   const isRegisterValid = useMemo(() => {
     return (
       registerFormState.email.trim().length > 0 &&
       passwordPattern.test(registerFormState.password.trim())
     );
-  }, [
-    registerFormState.email,
-    registerFormState.password,
-  ]);
+  }, [registerFormState.email, registerFormState.password]);
 
-  function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("session");
+        }
+
+        const payload = (await response.json()) as {
+          user?: AuthenticatedUser | null;
+        };
+
+        if (!isCancelled) {
+          setCurrentUser(payload.user ?? null);
+        }
+      } catch {
+        if (!isCancelled) {
+          setCurrentUser(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsCheckingSession(false);
+        }
+      }
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!isLoginValid) {
       return;
     }
 
-    setSubmitStatus("success");
+    setSubmitState("submitting");
+    setStatusMessage("");
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginFormState),
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+        redirectTo?: string;
+        user?: AuthenticatedUser;
+      };
+
+      if (!response.ok || !payload.user || !payload.redirectTo) {
+        setSubmitState("error");
+        setStatusMessage(payload.error ?? "Не удалось выполнить вход.");
+        return;
+      }
+
+      setCurrentUser(payload.user);
+      setSubmitState("success");
+      setStatusMessage("Вход выполнен успешно.");
+      router.push(payload.redirectTo);
+      router.refresh();
+    } catch {
+      setSubmitState("error");
+      setStatusMessage("Не удалось выполнить вход.");
+    }
   }
 
-  function handleRegisterSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleRegisterSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!isRegisterValid) {
       return;
     }
 
-    setSubmitStatus("success");
+    setSubmitState("submitting");
+    setStatusMessage("");
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(registerFormState),
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+        redirectTo?: string;
+        user?: AuthenticatedUser;
+      };
+
+      if (!response.ok || !payload.user || !payload.redirectTo) {
+        setSubmitState("error");
+        setStatusMessage(payload.error ?? "Не удалось завершить регистрацию.");
+        return;
+      }
+
+      setCurrentUser(payload.user);
+      setSubmitState("success");
+      setStatusMessage("Регистрация выполнена успешно.");
+      router.push(payload.redirectTo);
+      router.refresh();
+    } catch {
+      setSubmitState("error");
+      setStatusMessage("Не удалось завершить регистрацию.");
+    }
+  }
+
+  async function handleLogout() {
+    setSubmitState("submitting");
+    setStatusMessage("");
+
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("logout");
+      }
+
+      setCurrentUser(null);
+      setSubmitState("idle");
+      setLoginFormState(initialLoginFormState);
+      setRegisterFormState(initialRegisterFormState);
+      router.refresh();
+    } catch {
+      setSubmitState("error");
+      setStatusMessage("Не удалось завершить сеанс.");
+    }
   }
 
   return (
@@ -85,17 +221,6 @@ export function LoginPage() {
             <div className="flex items-center justify-between gap-4">
               <Link href="/" className="-my-6 flex items-center sm:-my-8 lg:-my-10">
                 <AgencyLogo priority className="h-[52px] w-auto sm:h-[62px]" />
-                <div className="hidden flex h-12 w-12 items-center justify-center rounded-[18px] bg-emerald-900 text-sm font-semibold text-white shadow-sm">
-                  И
-                </div>
-                <div className="hidden">
-                  <div className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
-                    Агентство недвижимости
-                  </div>
-                  <div className="text-[2rem] font-semibold leading-none tracking-tight text-slate-950">
-                    ИРИНА
-                  </div>
-                </div>
               </Link>
 
               <Link
@@ -121,7 +246,8 @@ export function LoginPage() {
                 type="button"
                 onClick={() => {
                   setMode("login");
-                  setSubmitStatus("idle");
+                  setSubmitState("idle");
+                  setStatusMessage("");
                 }}
                 className={`rounded-2xl px-6 py-3 text-sm font-semibold transition ${
                   mode === "login"
@@ -135,7 +261,8 @@ export function LoginPage() {
                 type="button"
                 onClick={() => {
                   setMode("register");
-                  setSubmitStatus("idle");
+                  setSubmitState("idle");
+                  setStatusMessage("");
                 }}
                 className={`rounded-2xl px-6 py-3 text-sm font-semibold transition ${
                   mode === "register"
@@ -147,7 +274,54 @@ export function LoginPage() {
               </button>
             </div>
 
-            {mode === "login" ? (
+            {isCheckingSession ? (
+              <div className="mt-8 rounded-[24px] border border-slate-200 bg-[#fbfdff] px-5 py-4 text-sm text-slate-600">
+                Проверяем текущую сессию...
+              </div>
+            ) : currentUser ? (
+              <div className="mt-8 grid gap-5">
+                <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm leading-7 text-emerald-900">
+                  <p>
+                    Вы уже вошли как <strong>{currentUser.email}</strong>.
+                  </p>
+                  <p>
+                    Роль доступа:{" "}
+                    <strong>
+                      {currentUser.role === "admin"
+                        ? "admin"
+                        : currentUser.role === "realtor"
+                        ? "realtor"
+                        : "client"}
+                    </strong>
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                  <Link
+                    href={currentUser.role === "admin" ? "/admin" : "/"}
+                    className="rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
+                  >
+                    {currentUser.role === "admin"
+                      ? "Перейти в админку"
+                      : "Перейти в каталог"}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => router.refresh()}
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                  >
+                    Обновить
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-rose-300 hover:text-rose-700"
+                  >
+                    Выйти
+                  </button>
+                </div>
+              </div>
+            ) : mode === "login" ? (
               <form className="mt-8 grid gap-5" onSubmit={handleLoginSubmit}>
                 <label className="grid gap-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
@@ -156,13 +330,14 @@ export function LoginPage() {
                   <input
                     type="email"
                     autoComplete="email"
-                    value={loginFormState.login}
+                    value={loginFormState.email}
                     onChange={(event) => {
                       setLoginFormState((currentState) => ({
                         ...currentState,
-                        login: event.target.value,
+                        email: event.target.value,
                       }));
-                      setSubmitStatus("idle");
+                      setSubmitState("idle");
+                      setStatusMessage("");
                     }}
                     placeholder="you@example.com"
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
@@ -182,14 +357,13 @@ export function LoginPage() {
                         ...currentState,
                         password: event.target.value.slice(0, 8),
                       }));
-                      setSubmitStatus("idle");
+                      setSubmitState("idle");
+                      setStatusMessage("");
                     }}
                     placeholder="Пароль"
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                   />
                 </label>
-
-                
 
                 <label className="inline-flex items-center gap-3 text-sm text-slate-600">
                   <input
@@ -209,10 +383,10 @@ export function LoginPage() {
                 <div className="grid gap-3 pt-2 sm:grid-cols-[1fr_auto]">
                   <button
                     type="submit"
-                    disabled={!isLoginValid}
+                    disabled={!isLoginValid || submitState === "submitting"}
                     className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
-                    Войти
+                    {submitState === "submitting" ? "Входим..." : "Войти"}
                   </button>
 
                   <button
@@ -238,7 +412,8 @@ export function LoginPage() {
                         ...currentState,
                         email: event.target.value,
                       }));
-                      setSubmitStatus("idle");
+                      setSubmitState("idle");
+                      setStatusMessage("");
                     }}
                     placeholder="you@example.com"
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
@@ -258,9 +433,10 @@ export function LoginPage() {
                         ...currentState,
                         password: event.target.value.slice(0, 8),
                       }));
-                      setSubmitStatus("idle");
+                      setSubmitState("idle");
+                      setStatusMessage("");
                     }}
-                    placeholder="Минимум 8 символов, минимум 1 буква, 1 цифра и 1 знак."
+                    placeholder="До 8 символов: буква, цифра и знак"
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                   />
                 </label>
@@ -268,25 +444,26 @@ export function LoginPage() {
                 <div className="grid gap-3 pt-2">
                   <button
                     type="submit"
-                    disabled={!isRegisterValid}
+                    disabled={!isRegisterValid || submitState === "submitting"}
                     className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
-                    Зарегистрироваться
+                    {submitState === "submitting"
+                      ? "Регистрируем..."
+                      : "Зарегистрироваться"}
                   </button>
                 </div>
               </form>
             )}
 
-            {submitStatus === "success" ? (
-              <div className="mt-5 rounded-[24px] border border-slate-200 bg-[#fbfdff] px-5 py-4 text-sm leading-7 text-slate-600">
-                {mode === "login" ? (
-                  <p>Данные приняты. Следующим шагом я могу подключить настоящий вход.</p>
-                ) : (
-                  <p>
-                    Данные регистрации приняты. Следующим шагом я могу подключить
-                    сохранение пользователя в SQLite.
-                  </p>
-                )}
+            {statusMessage ? (
+              <div
+                className={`mt-5 rounded-[24px] px-5 py-4 text-sm leading-7 ${
+                  submitState === "error"
+                    ? "border border-rose-200 bg-rose-50 text-rose-800"
+                    : "border border-slate-200 bg-[#fbfdff] text-slate-600"
+                }`}
+              >
+                <p>{statusMessage}</p>
               </div>
             ) : null}
           </div>

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import {
-  readCustomerInquiries,
-  writeCustomerInquiries,
-} from "@/lib/real-estate/storage";
+  readInquiriesFromDb,
+  updateInquiryStatusInDb,
+} from "@/lib/db/inquiries";
 
 export async function GET() {
-  const inquiries = await readCustomerInquiries();
+  const inquiries = await readInquiriesFromDb();
   return NextResponse.json({ inquiries });
 }
 
@@ -23,26 +23,16 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const inquiries = await readCustomerInquiries();
-    const inquiryIndex = inquiries.findIndex((item) => item.id === payload.id);
-
-    if (inquiryIndex === -1) {
+    const inquiries = await updateInquiryStatusInDb(payload.id, payload.status);
+    return NextResponse.json({ inquiries });
+  } catch (error) {
+    if (error instanceof Error && error.message === "INQUIRY_NOT_FOUND") {
       return NextResponse.json(
         { error: "Обращение не найдено." },
         { status: 404 }
       );
     }
 
-    const nextInquiries = [...inquiries];
-    nextInquiries[inquiryIndex] = {
-      ...nextInquiries[inquiryIndex],
-      status: payload.status,
-    };
-
-    await writeCustomerInquiries(nextInquiries);
-
-    return NextResponse.json({ inquiries: nextInquiries });
-  } catch {
     return NextResponse.json(
       { error: "Не удалось обновить статус обращения." },
       { status: 500 }

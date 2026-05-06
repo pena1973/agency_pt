@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { getFeatureLabel } from "@/lib/real-estate/data";
+import {
+  getPropertyCoverImage,
+  getPropertyImagePosition,
+} from "@/lib/real-estate/property-cover";
 import type {
   EnergyRating,
   HeatingType,
@@ -37,6 +41,7 @@ const conditionLabels: Record<PropertyCondition, string> = {
 };
 
 const heatingLabels: Record<HeatingType, string> = {
+  gas_boiler: "Газовый котел",
   central: "Центральное отопление",
   electric: "Электрическое отопление",
   heat_pump: "Тепловой насос",
@@ -61,6 +66,25 @@ const messengerLabels: Array<{ value: MessengerOption; label: string }> = [
   { value: "signal", label: "Signal" },
 ];
 
+function getPropertyPublicPath(property: PropertyListing) {
+  const generatedIdSlug = property.id.replace(/^irina-/, "");
+  const pathSlug = /^irina-\d+$/.test(property.id) ? generatedIdSlug : property.slug;
+
+  return `/properties/${encodeURIComponent(pathSlug)}`;
+}
+
+function getPropertyPublicReference(property: PropertyListing) {
+  return property.id.replace(/^irina-/, "");
+}
+
+function getListingModeLabel(mode: PropertyListing["mode"]) {
+  return mode === "rent" ? "Аренда" : "Продажа";
+}
+
+function buildContactMessage(property: PropertyListing) {
+  return `Здравствуйте! Меня интересует объект ${getPropertyPublicReference(property)} — ${property.title}/${getListingModeLabel(property.mode)}`;
+}
+
 const displayPropertyTypeLabels: Record<PropertyType, string> = {
   apartment: "Квартира",
   duplex: "Дуплекс",
@@ -81,6 +105,7 @@ const displayConditionLabels: Record<PropertyCondition, string> = {
 };
 
 const displayHeatingLabels: Record<HeatingType, string> = {
+  gas_boiler: "Газовый котел",
   central: "Центральное отопление",
   electric: "Электрическое отопление",
   heat_pump: "Тепловой насос",
@@ -152,7 +177,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   const [contactPhone, setContactPhone] = useState("");
   const [contactMessengers, setContactMessengers] = useState<MessengerOption[]>([]);
   const [contactMessage, setContactMessage] = useState(
-    `Здравствуйте! Меня интересует объект ${property.id} — ${property.title}.`
+    buildContactMessage(property)
   );
   const [contactSubmitState, setContactSubmitState] = useState<
     "idle" | "error" | "success"
@@ -162,11 +187,11 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
 
   const propertyUrl = useMemo(() => {
     if (typeof window === "undefined") {
-      return `/properties/${property.slug}`;
+      return getPropertyPublicPath(property);
     }
 
-    return `${window.location.origin}/properties/${property.slug}`;
-  }, [property.slug]);
+    return `${window.location.origin}${getPropertyPublicPath(property)}`;
+  }, [property]);
 
   const taxEstimate = useMemo(() => {
     if (property.mode !== "sale" || !property.taxProfile) {
@@ -191,14 +216,14 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
     if (property.details.propertyType === "land") {
       return [
         { label: "Площадь", value: `${property.areaM2} м²` },
-        { label: "Тип помещения", value: displayPropertyTypeLabels[property.details.propertyType] },
+        { label: "Тип объекта", value: displayPropertyTypeLabels[property.details.propertyType] },
       ];
     }
 
     return [
       { label: "Площадь", value: `${property.areaM2} м²` },
       { label: "Спальни", value: String(property.bedrooms) },
-      { label: "Тип помещения", value: displayPropertyTypeLabels[property.details.propertyType] },
+      { label: "Тип объекта", value: displayPropertyTypeLabels[property.details.propertyType] },
     ];
   }, [property]);
 
@@ -207,7 +232,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
     const isLand = propertyType === "land";
     const hasAttachedLand = ["villa", "townhouse"].includes(propertyType);
     const items: Array<{ label: string; value: string }> = [
-      { label: "Тип помещения", value: displayPropertyTypeLabels[property.details.propertyType] },
+      { label: "Тип объекта", value: displayPropertyTypeLabels[property.details.propertyType] },
       { label: "Состояние", value: displayConditionLabels[property.details.condition] },
       { label: "Площадь", value: `${property.areaM2} м²` },
     ];
@@ -278,14 +303,14 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
     if (property.details.propertyType === "land") {
       return [
         { label: "Площадь", value: `${property.areaM2} м²` },
-        { label: "Тип помещения", value: displayPropertyTypeLabels[property.details.propertyType] },
+        { label: "Тип объекта", value: displayPropertyTypeLabels[property.details.propertyType] },
       ];
     }
 
     return [
       { label: "Площадь", value: `${property.areaM2} м²` },
       { label: "Спальни", value: String(property.bedrooms) },
-      { label: "Тип помещения", value: displayPropertyTypeLabels[property.details.propertyType] },
+      { label: "Тип объекта", value: displayPropertyTypeLabels[property.details.propertyType] },
     ];
   }, [property]);
 
@@ -295,7 +320,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
     const hasAttachedLand = ["villa", "townhouse"].includes(propertyType);
 
     const items: Array<{ label: string; value: string }> = [
-      { label: "Тип помещения", value: displayPropertyTypeLabels[propertyType] },
+      { label: "Тип объекта", value: displayPropertyTypeLabels[propertyType] },
       { label: "Состояние", value: displayConditionLabels[property.details.condition] },
       { label: "Площадь", value: `${property.areaM2} м²` },
     ];
@@ -409,9 +434,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
       setContactName("");
       setContactPhone("");
       setContactMessengers([]);
-      setContactMessage(
-        `Здравствуйте! Меня интересует объект ${property.id} — ${property.title}.`
-      );
+      setContactMessage(buildContactMessage(property));
     } catch {
       setContactSubmitState("error");
     }
@@ -474,9 +497,15 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
         <article className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
           <div className="relative">
             <img
-              src={property.imageGallery[activeImageIndex] ?? property.imageUrl}
+              src={property.imageGallery[activeImageIndex] ?? getPropertyCoverImage(property)}
               alt={`${property.title} — фото ${activeImageIndex + 1}`}
-              className="h-[360px] w-full object-cover md:h-[400px]"
+              className="h-[440px] w-full object-cover md:h-[520px]"
+              style={{
+                objectPosition: getPropertyImagePosition(
+                  property,
+                  property.imageGallery[activeImageIndex] ?? getPropertyCoverImage(property)
+                ),
+              }}
             />
 
             {property.imageGallery.length > 1 && (
@@ -525,6 +554,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                     src={image}
                     alt={`${property.title} — миниатюра ${index + 1}`}
                     className="h-16 w-24 object-cover"
+                    style={{ objectPosition: getPropertyImagePosition(property, image) }}
                   />
                 </button>
               ))}
@@ -565,7 +595,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               <section className="hidden">
                 <h2 className="text-lg font-semibold text-slate-950">Характеристики объекта</h2>
                 <div className="grid gap-2 text-sm text-slate-700 md:grid-cols-2">
-                  <div>Тип недвижимости: {propertyTypeLabels[property.details.propertyType]}</div>
+                  <div>Тип объекта: {propertyTypeLabels[property.details.propertyType]}</div>
                   <div>Состояние: {conditionLabels[property.details.condition]}</div>
                   <div>Полезная площадь: {property.details.usableAreaM2} м²</div>
                   <div>Площадь застройки: {property.details.builtAreaM2} м²</div>

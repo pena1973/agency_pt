@@ -1,6 +1,9 @@
 import { randomUUID } from "crypto";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 import { throwIfRoomAiUserError } from "@/lib/room-ai/errors";
 import { OpenAiRoomProvider } from "@/lib/room-ai/providers/OpenAiRoomProvider";
+import { env } from "@/lib/room-ai/utils/env";
 import type {
   FurnitureItem,
   GenerateRoomDesignResult,
@@ -54,8 +57,51 @@ export class RoomAiService {
     return {
       jobId,
       roomAnalysis,
-      variants: photoAlignedVariants,
+      variants: await this.persistGeneratedVariantPhotos(jobId, photoAlignedVariants),
     };
+  }
+
+  private async persistGeneratedVariantPhotos(
+    jobId: string,
+    variants: RoomVariant[]
+  ): Promise<RoomVariant[]> {
+    return Promise.all(
+      variants.map(async (variant, index) => {
+        if (!variant.photoImageUrl.startsWith("data:image/")) {
+          return variant;
+        }
+
+        const savedImageUrl = await this.saveDataImage(
+          variant.photoImageUrl,
+          `${jobId}-${variant.id || `variant-${index + 1}`}.png`
+        );
+
+        return {
+          ...variant,
+          photoImageUrl: savedImageUrl,
+        };
+      })
+    );
+  }
+
+  private async saveDataImage(dataUrl: string, fileName: string) {
+    const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+
+    if (!match) {
+      return dataUrl;
+    }
+
+    const extension = match[1] === "jpeg" ? "jpg" : match[1];
+    const base64 = match[2];
+    const safeFileName = fileName
+      .replace(/\.[^.]+$/, `.${extension}`)
+      .replace(/[^a-zA-Z0-9._-]/g, "-");
+    const storageDirectory = path.resolve(process.cwd(), env.ROOM_AI_STORAGE_PATH);
+
+    await mkdir(storageDirectory, { recursive: true });
+    await writeFile(path.join(storageDirectory, safeFileName), Buffer.from(base64, "base64"));
+
+    return `/generated/${safeFileName}`;
   }
 
   private async generatePhotosForVariants(

@@ -2,8 +2,13 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { normalizeCityName } from "@/lib/real-estate/city";
 import { getFeatureLabel } from "@/lib/real-estate/data";
+import {
+  getPropertyCoverImage,
+  getPropertyImagePosition,
+} from "@/lib/real-estate/property-cover";
 import type {
   ListingFeature,
   ListingMode,
@@ -13,6 +18,13 @@ import type {
 import { useCompareList } from "@/lib/real-estate/useCompareList";
 import { useFavoritesList } from "@/lib/real-estate/useFavoritesList";
 import { AgencyLogo } from "./AgencyLogo";
+
+function getPropertyPublicPath(property: PropertyListing) {
+  const generatedIdSlug = property.id.replace(/^irina-/, "");
+  const pathSlug = /^irina-\d+$/.test(property.id) ? generatedIdSlug : property.slug;
+
+  return `/properties/${encodeURIComponent(pathSlug)}`;
+}
 
 const languageOptions = [
   { code: "pt", label: "PT" },
@@ -46,20 +58,6 @@ const catalogFeatureOptions: Array<{
   { value: "builtInWardrobes", label: "Встр. шкафы" },
 ];
 
-const salePriceOptions = [
-  { value: "all", label: "Любая цена" },
-  { value: "under_700k", label: "До €700k" },
-  { value: "700k_1_5m", label: "€700k - €1.5M" },
-  { value: "over_1_5m", label: "От €1.5M" },
-] as const;
-
-const rentPriceOptions = [
-  { value: "all", label: "Любая цена" },
-  { value: "under_2500", label: "До €2 500" },
-  { value: "2500_3500", label: "€2 500 - €3 500" },
-  { value: "over_3500", label: "От €3 500" },
-] as const;
-
 const propertyTypeLabels: Record<PropertyType, string> = {
   apartment: "Квартира",
   duplex: "Дуплекс",
@@ -71,6 +69,18 @@ const propertyTypeLabels: Record<PropertyType, string> = {
   townhouse: "Таунхаус",
   villa: "Вилла",
 };
+
+const propertyTypeOptions: Array<{ value: PropertyType; label: string }> = [
+  { value: "apartment", label: "Квартира" },
+  { value: "duplex", label: "Дуплекс" },
+  { value: "land", label: "Участок" },
+  { value: "loft", label: "Лофт" },
+  { value: "penthouse", label: "Пентхаус" },
+  { value: "room", label: "Комната" },
+  { value: "studio", label: "Студия" },
+  { value: "townhouse", label: "Таунхаус" },
+  { value: "villa", label: "Вилла" },
+];
 
 function getPropertyTags(property: PropertyListing): string[] {
   const tags = new Set<string>(property.features.map((feature) => getFeatureLabel(feature)));
@@ -92,7 +102,7 @@ function getCatalogMetrics(property: PropertyListing) {
   if (property.details.propertyType === "land") {
     return [
       { label: "Площадь", value: `${property.areaM2} м²` },
-      { label: "Тип помещения", value: typeLabel },
+      { label: "Тип объекта", value: typeLabel },
       { label: "Состояние", value: "Участок" },
     ];
   }
@@ -100,15 +110,22 @@ function getCatalogMetrics(property: PropertyListing) {
   return [
     { label: "Площадь", value: `${property.areaM2} м²` },
     { label: "Спальни", value: String(property.bedrooms) },
-    { label: "Тип помещения", value: typeLabel },
+    { label: "Тип объекта", value: typeLabel },
   ];
 }
 
-type SalePriceFilter = (typeof salePriceOptions)[number]["value"];
-type RentPriceFilter = (typeof rentPriceOptions)[number]["value"];
 type LocationFilter = "all" | "drawn_area";
 type FavoriteFilter = "all" | "favorite";
 type MapPoint = { lat: number; lng: number };
+type SearchPreferencesPayload = {
+  mode: ListingMode;
+  city?: string;
+  propertyType?: PropertyType;
+  priceFrom?: number;
+  priceTo?: number;
+  bedrooms?: string;
+  features?: CatalogFeatureFilterKey[];
+};
 
 function matchesCatalogFeature(
   property: PropertyListing,
@@ -180,8 +197,46 @@ function mapPropertyToPoint(property: PropertyListing): MapPoint {
   };
 }
 
+function parsePriceFilterValue(value: string): number | undefined {
+  const normalizedValue = value.replace(/\s/g, "").replace(",", ".");
+
+  if (normalizedValue.length === 0) {
+    return undefined;
+  }
+
+  const amount = Number(normalizedValue);
+
+  if (!Number.isFinite(amount)) {
+    return undefined;
+  }
+
+  return Math.max(0, Math.round(amount));
+}
+
+function getPriceRangeFromInputs(priceFromInput: string, priceToInput: string) {
+  const priceFrom = parsePriceFilterValue(priceFromInput);
+  const priceTo = parsePriceFilterValue(priceToInput);
+
+  if (typeof priceFrom === "number" && typeof priceTo === "number" && priceFrom > priceTo) {
+    return { priceFrom: priceTo, priceTo: priceFrom };
+  }
+
+  return {
+    priceFrom,
+    priceTo,
+  };
+}
+
 type RealEstateCatalogProps = {
   propertiesData: PropertyListing[];
+};
+
+type CatalogAuthUser = {
+  id: string;
+  email: string;
+  name: string;
+  phone: string | null;
+  role: "admin" | "realtor" | "client";
 };
 
 export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
@@ -194,8 +249,8 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
   const [bedroomFilter, setBedroomFilter] = useState<string>("all");
   const [propertyTypeFilter, setPropertyTypeFilter] = useState<"all" | PropertyType>("all");
   const [selectedFeatures, setSelectedFeatures] = useState<CatalogFeatureFilterKey[]>([]);
-  const [salePriceFilter, setSalePriceFilter] = useState<SalePriceFilter>("all");
-  const [rentPriceFilter, setRentPriceFilter] = useState<RentPriceFilter>("all");
+  const [priceFromInput, setPriceFromInput] = useState("");
+  const [priceToInput, setPriceToInput] = useState("");
   const [locationFilter, setLocationFilter] = useState<LocationFilter>("all");
   const [favoriteFilter, setFavoriteFilter] = useState<FavoriteFilter>("all");
   const [selectedMapPropertyId, setSelectedMapPropertyId] = useState<string | null>(
@@ -206,38 +261,116 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
   const [appliedPolygon, setAppliedPolygon] = useState<MapPoint[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [imageIndexes, setImageIndexes] = useState<Record<string, number>>({});
+  const [currentUser, setCurrentUser] = useState<CatalogAuthUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const { compareIds, toggleCompare } = useCompareList();
   const { favoriteIds, toggleFavorite } = useFavoritesList();
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          if (!isCancelled) {
+            setCurrentUser(null);
+          }
+          return;
+        }
+
+        const payload = (await response.json()) as { user?: CatalogAuthUser | null };
+
+        if (!isCancelled) {
+          setCurrentUser(payload.user ?? null);
+        }
+      } catch {
+        if (!isCancelled) {
+          setCurrentUser(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsAuthLoading(false);
+        }
+      }
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser || isAuthLoading) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const priceRange = getPriceRangeFromInputs(priceFromInput, priceToInput);
+      const searchProfile: SearchPreferencesPayload = {
+        mode,
+        city: cityFilter !== "all" ? cityFilter : undefined,
+        propertyType: propertyTypeFilter !== "all" ? propertyTypeFilter : undefined,
+        bedrooms: bedroomFilter !== "all" ? bedroomFilter : undefined,
+        features: selectedFeatures.length > 0 ? selectedFeatures : undefined,
+        ...priceRange,
+      };
+
+      void fetch("/api/user/preferences", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ searchProfile }),
+      });
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    bedroomFilter,
+    cityFilter,
+    currentUser,
+    isAuthLoading,
+    mode,
+    priceFromInput,
+    priceToInput,
+    propertyTypeFilter,
+    selectedFeatures,
+  ]);
 
   const cities = useMemo(() => {
     const uniqueCities = new Set(
       propertiesData
         .filter((property) => property.mode === mode)
-        .map((property) => property.city)
+        .map((property) => normalizeCityName(property.city))
     );
 
     return Array.from(uniqueCities).sort((left, right) => left.localeCompare(right));
   }, [mode, propertiesData]);
 
-  const propertyTypes = useMemo(() => {
-    const uniqueTypes = new Set(
-      propertiesData
-        .filter((property) => property.mode === mode)
-        .map((property) => property.details.propertyType)
-    );
-
-    return Array.from(uniqueTypes).sort((left, right) =>
-      propertyTypeLabels[left].localeCompare(propertyTypeLabels[right])
-    );
-  }, [mode, propertiesData]);
+  useEffect(() => {
+    if (cityFilter !== "all" && !cities.includes(cityFilter)) {
+      setCityFilter("all");
+      setCurrentPage(1);
+    }
+  }, [cities, cityFilter]);
 
   const properties = useMemo(() => {
+    const { priceFrom, priceTo } = getPriceRangeFromInputs(priceFromInput, priceToInput);
+
     return propertiesData.filter((property) => {
       if (property.mode !== mode) {
         return false;
       }
 
-      if (cityFilter !== "all" && property.city !== cityFilter) {
+      if (cityFilter !== "all" && normalizeCityName(property.city) !== cityFilter) {
         return false;
       }
 
@@ -268,38 +401,12 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
         return false;
       }
 
-      if (mode === "sale") {
-        if (salePriceFilter === "under_700k" && property.priceAmount >= 700000) {
-          return false;
-        }
-
-        if (
-          salePriceFilter === "700k_1_5m" &&
-          (property.priceAmount < 700000 || property.priceAmount > 1500000)
-        ) {
-          return false;
-        }
-
-        if (salePriceFilter === "over_1_5m" && property.priceAmount < 1500000) {
-          return false;
-        }
+      if (typeof priceFrom === "number" && property.priceAmount < priceFrom) {
+        return false;
       }
 
-      if (mode === "rent") {
-        if (rentPriceFilter === "under_2500" && property.priceAmount >= 2500) {
-          return false;
-        }
-
-        if (
-          rentPriceFilter === "2500_3500" &&
-          (property.priceAmount < 2500 || property.priceAmount > 3500)
-        ) {
-          return false;
-        }
-
-        if (rentPriceFilter === "over_3500" && property.priceAmount < 3500) {
-          return false;
-        }
+      if (typeof priceTo === "number" && property.priceAmount > priceTo) {
+        return false;
       }
 
       if (locationFilter === "drawn_area") {
@@ -316,14 +423,13 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
     favoriteIds,
     locationFilter,
     mode,
+    priceFromInput,
+    priceToInput,
     propertyTypeFilter,
     propertiesData,
-    rentPriceFilter,
-    salePriceFilter,
     selectedFeatures,
   ]);
 
-  const activePriceOptions = mode === "sale" ? salePriceOptions : rentPriceOptions;
   const pageCount = Math.max(1, Math.ceil(properties.length / LISTINGS_PER_PAGE));
   const currentListPage = Math.min(currentPage, pageCount);
   const pagedProperties = useMemo(() => {
@@ -340,8 +446,8 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
     setBedroomFilter("all");
     setPropertyTypeFilter("all");
     setSelectedFeatures([]);
-    setSalePriceFilter("all");
-    setRentPriceFilter("all");
+    setPriceFromInput("");
+    setPriceToInput("");
     setLocationFilter("all");
     setFavoriteFilter("all");
   }
@@ -395,7 +501,19 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
   function getCurrentImage(property: PropertyListing): string {
     const currentIndex = imageIndexes[property.id] ?? 0;
-    return property.imageGallery[currentIndex] ?? property.imageUrl;
+    return property.imageGallery[currentIndex] ?? getPropertyCoverImage(property);
+  }
+
+  async function handleCatalogLogout() {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      setCurrentUser(null);
+      window.location.reload();
+    }
   }
 
   return (
@@ -463,13 +581,26 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
               </span>
             </Link>
 
-            <Link
-              href="/login"
-              className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
-            >
-              <span className="text-base">⌂</span>
-              <span>Вход</span>
-            </Link>
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void handleCatalogLogout();
+                }}
+                className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
+              >
+                <span className="text-base">←</span>
+                <span>Выход</span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
+              >
+                <span className="text-base">⌂</span>
+                <span>{isAuthLoading ? "..." : "Вход"}</span>
+              </Link>
+            )}
 
             <div className="flex items-center rounded-[18px] border border-slate-200 bg-white p-1 shadow-sm">
               {languageOptions.map((item) => (
@@ -503,7 +634,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
               </Link>
             </div>
 
-            <div className="grid w-full gap-2 rounded-[24px] border border-slate-200 bg-[#fbfdff] p-3 shadow-sm lg:grid-cols-[1.1fr_1fr_0.9fr_1.1fr_1fr_0.85fr_auto]">
+            <div className="grid w-full gap-2 rounded-[24px] border border-slate-200 bg-[#fbfdff] p-3 shadow-sm lg:grid-cols-[1fr_minmax(19rem,1.65fr)_0.75fr_1fr_0.72fr_0.72fr_auto]">
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                   Город
@@ -527,28 +658,34 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Цена
+                  Цена, €
                 </span>
-                <select
-                  value={mode === "sale" ? salePriceFilter : rentPriceFilter}
-                  onChange={(event) => {
-                    if (mode === "sale") {
-                      setSalePriceFilter(event.target.value as SalePriceFilter);
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="От"
+                    value={priceFromInput}
+                    onChange={(event) => {
+                      setPriceFromInput(event.target.value);
                       setCurrentPage(1);
-                      return;
-                    }
-
-                    setRentPriceFilter(event.target.value as RentPriceFilter);
-                    setCurrentPage(1);
-                  }}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-                >
-                  {activePriceOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                    }}
+                    className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="До"
+                    value={priceToInput}
+                    onChange={(event) => {
+                      setPriceToInput(event.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                  />
+                </div>
               </label>
 
               <label className="grid gap-2">
@@ -574,7 +711,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Тип жилья
+                  Тип объекта
                 </span>
                 <select
                   value={propertyTypeFilter}
@@ -585,9 +722,9 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                 >
                   <option value="all">Любой тип</option>
-                  {propertyTypes.map((propertyType) => (
-                    <option key={propertyType} value={propertyType}>
-                      {propertyTypeLabels[propertyType]}
+                  {propertyTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </select>
@@ -807,7 +944,8 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         <img
                           src={currentImage}
                           alt={property.title}
-                          className="h-48 w-full object-cover"
+                          className="h-60 w-full object-cover md:h-64"
+                          style={{ objectPosition: getPropertyImagePosition(property, currentImage) }}
                         />
 
                         <div className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 shadow-sm">
@@ -933,7 +1071,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                               Карта
                             </a>
                             <Link
-                              href={`/properties/${property.slug}`}
+                              href={getPropertyPublicPath(property)}
                               className="rounded-xl bg-slate-950 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                             >
                               Открыть карточку
@@ -968,9 +1106,15 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                     >
                       <div className="flex gap-3">
                         <img
-                          src={property.imageGallery[0] ?? property.imageUrl}
+                          src={getPropertyCoverImage(property)}
                           alt={property.title}
                           className="h-24 w-24 shrink-0 rounded-[18px] object-cover"
+                          style={{
+                            objectPosition: getPropertyImagePosition(
+                              property,
+                              getPropertyCoverImage(property)
+                            ),
+                          }}
                         />
 
                         <div className="min-w-0 flex-1">
@@ -1027,7 +1171,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           Карта
                         </a>
                         <Link
-                          href={`/properties/${property.slug}`}
+                          href={getPropertyPublicPath(property)}
                           onClick={(event) => event.stopPropagation()}
                           className="rounded-2xl bg-slate-950 px-3 py-2 text-center text-xs font-semibold text-white transition hover:bg-slate-800"
                         >

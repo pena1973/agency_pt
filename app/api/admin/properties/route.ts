@@ -21,14 +21,16 @@ export async function POST(request: Request) {
 
   const nextProperties = [property, ...properties];
   await writePropertyListings(nextProperties);
+  const persistedProperties = await readPropertyListings();
 
-  return NextResponse.json({ properties: nextProperties }, { status: 201 });
+  return NextResponse.json({ properties: persistedProperties }, { status: 201 });
 }
 
 export async function PUT(request: Request) {
   const payload = await request.json();
   const properties = propertyListingsSchema.parse(payload);
   await writePropertyListings(properties);
+  const persistedProperties = await readPropertyListings();
 
-  return NextResponse.json({ properties });
+  return NextResponse.json({ properties: persistedProperties });
 }

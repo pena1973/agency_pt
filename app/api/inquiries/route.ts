@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
-import {
-  readCustomerInquiries,
-  writeCustomerInquiries,
-} from "@/lib/real-estate/storage";
-import type {
-  CustomerInquiry,
-  InquiryMessenger,
-  InquirySource,
-} from "@/lib/real-estate/types";
+import { getCurrentUser } from "@/lib/auth/session";
+import { createInquiryInDb } from "@/lib/db/inquiries";
+import type { InquiryMessenger, InquirySource } from "@/lib/real-estate/types";
 
 type InquiryPayload = {
   source?: InquirySource;
@@ -23,19 +17,13 @@ type InquiryPayload = {
   location?: string;
   areaAndTypology?: string;
   mustHave?: string;
-  balcony?: boolean;
-  terrace?: boolean;
-  garageParking?: boolean;
-  closedGarage?: boolean;
-  nearMetroTransport?: boolean;
-  nearSupermarket?: boolean;
 };
 
 function isMessenger(value: string): value is InquiryMessenger {
   return ["whatsapp", "telegram", "viber", "signal"].includes(value);
 }
 
-function normalizePayload(payload: InquiryPayload): Omit<CustomerInquiry, "id" | "createdAt" | "status"> | null {
+function normalizePayload(payload: InquiryPayload) {
   if (!payload.source || !payload.phone || payload.phone.trim().length === 0) {
     return null;
   }
@@ -49,7 +37,7 @@ function normalizePayload(payload: InquiryPayload): Omit<CustomerInquiry, "id" |
     phone: payload.phone.trim(),
     messengers,
     name: payload.name?.trim() || undefined,
-    email: payload.email?.trim() || undefined,
+    email: payload.email?.trim().toLowerCase() || undefined,
     message: payload.message?.trim() || undefined,
     propertyId: payload.propertyId?.trim() || undefined,
     propertySlug: payload.propertySlug?.trim() || undefined,
@@ -58,12 +46,6 @@ function normalizePayload(payload: InquiryPayload): Omit<CustomerInquiry, "id" |
     location: payload.location?.trim() || undefined,
     areaAndTypology: payload.areaAndTypology?.trim() || undefined,
     mustHave: payload.mustHave?.trim() || undefined,
-    balcony: Boolean(payload.balcony),
-    terrace: Boolean(payload.terrace),
-    garageParking: Boolean(payload.garageParking),
-    closedGarage: Boolean(payload.closedGarage),
-    nearMetroTransport: Boolean(payload.nearMetroTransport),
-    nearSupermarket: Boolean(payload.nearSupermarket),
   };
 }
 
@@ -79,17 +61,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const currentInquiries = await readCustomerInquiries();
-    const nextInquiry: CustomerInquiry = {
-      id: `inquiry-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      status: "new",
+    const currentUser = await getCurrentUser();
+    const inquiry = await createInquiryInDb({
       ...normalized,
-    };
+      userId: currentUser?.id,
+      email: normalized.email ?? currentUser?.email ?? undefined,
+      name: normalized.name ?? currentUser?.name ?? undefined,
+    });
 
-    await writeCustomerInquiries([nextInquiry, ...currentInquiries]);
-
-    return NextResponse.json({ inquiry: nextInquiry }, { status: 201 });
+    return NextResponse.json({ inquiry }, { status: 201 });
   } catch {
     return NextResponse.json(
       { error: "Не удалось сохранить обращение." },

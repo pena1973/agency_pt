@@ -1,0 +1,2 @@
+ALTER TABLE property_images ADD COLUMN position_x INTEGER NOT NULL DEFAULT 50;
+ALTER TABLE property_images ADD COLUMN position_y INTEGER NOT NULL DEFAULT 50;

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { getFeatureLabel } from "@/lib/real-estate/data";
+import { getPropertyCoverImage } from "@/lib/real-estate/property-cover";
 import type { PropertyListing } from "@/lib/real-estate/types";
 import { useCompareList } from "@/lib/real-estate/useCompareList";
 
@@ -86,7 +87,7 @@ export function ComparePage({ propertiesData }: ComparePageProps) {
                     >
                       <div className="grid gap-3">
                         <img
-                          src={property.imageGallery[0] ?? property.imageUrl}
+                          src={getPropertyCoverImage(property)}
                           alt={property.title}
                           className="h-40 w-full rounded-[20px] object-cover"
                         />

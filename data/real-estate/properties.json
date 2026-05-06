@@ -1,7 +1,101 @@
 [
   {
+    "id": "irina-1778062918727",
+    "slug": "1778062918727",
+    "isActive": true,
+    "mode": "rent",
+    "title": "Комната",
+    "city": "Гандра",
+    "district": "Гандра",
+    "country": "Португалия",
+    "location": {
+      "addressLabel": "Гандра",
+      "latitude": 41.1963232,
+      "longitude": -8.4359653,
+      "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=41.1963232,-8.4359653"
+    },
+    "priceAmount": 450,
+    "priceLabel": "€450 / месяц",
+    "shortDescription": "Комната в 2 комнатной квартире",
+    "fullDescription": "Комната в 2 комнатной квартире",
+    "bedrooms": 2,
+    "bathrooms": 1,
+    "areaM2": 32,
+    "imageUrl": "/uploads/properties/1-1778106029302.png",
+    "imageGallery": [
+      "/uploads/properties/1-1778106029302.png",
+      "/uploads/properties/photo-1778106029302.png"
+    ],
+    "imagePositions": {
+      "/uploads/properties/1-1778106029302.png": {
+        "x": 50,
+        "y": 63
+      },
+      "/uploads/properties/photo-1778106029302.png": {
+        "x": 50,
+        "y": 86
+      }
+    },
+    "features": [
+      "city_center",
+      "parking",
+      "pool",
+      "security"
+    ],
+    "details": {
+      "propertyType": "room",
+      "usableAreaM2": 45,
+      "builtAreaM2": 50,
+      "plotAreaM2": 0,
+      "floor": "2 этаж",
+      "exterior": true,
+      "elevator": false,
+      "parkingSpaces": 2,
+      "storageRoom": true,
+      "builtInWardrobes": false,
+      "equippedKitchen": true,
+      "furnished": false,
+      "balconyCount": 0,
+      "terraceCount": 0,
+      "condition": "good",
+      "yearBuilt": 2021,
+      "heating": "gas_boiler",
+      "accessibilityAdapted": false,
+      "orientation": [
+        "юг"
+      ],
+      "energyRating": "A",
+      "bathroomsFull": 1,
+      "guestBathrooms": 0,
+      "buildingFloors": 5,
+      "monthlyCondoFeeEur": 0
+    },
+    "transportAccess": [
+      {
+        "mode": "bus",
+        "route": "700",
+        "stopName": "Campo",
+        "walkMinutes": 20
+      },
+      {
+        "mode": "bus",
+        "route": "7007 7005",
+        "stopName": "CSDU",
+        "walkMinutes": 10
+      }
+    ],
+    "taxProfile": {
+      "propertyTransferTaxRate": 0.06,
+      "stampDutyRate": 0.008,
+      "notaryEstimateRate": 0.01
+    },
+    "agentName": "Ирина",
+    "publishedAt": "2026-05-06"
+  },
+  {
     "id": "irina-001",
     "slug": "cascais-ocean-villa-irina-001",
+    "isActive": true,
     "mode": "sale",
     "title": "Вилла с панорамой на океан",
     "city": "Кашкайш",
@@ -26,17 +120,33 @@
       "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80"
     ],
+    "imagePositions": {
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      }
+    },
     "features": [
       "sea_view",
-      "pool",
       "parking",
-      "terrace",
-      "security"
+      "pool",
+      "security",
+      "balcony",
+      "terrace"
     ],
     "details": {
       "propertyType": "villa",
       "usableAreaM2": 248,
       "builtAreaM2": 286,
+      "bathroomsFull": 3,
       "plotAreaM2": 620,
       "floor": "Дом целиком",
       "exterior": true,
@@ -57,7 +167,6 @@
         "запад"
       ],
       "energyRating": "A",
-      "bathroomsFull": 3,
       "guestBathrooms": 1,
       "buildingFloors": 2,
       "monthlyCondoFeeEur": 0
@@ -92,7 +201,8 @@
   },
   {
     "id": "irina-002",
-    "slug": "lisbon-design-apartment-irina-002",
+    "slug": "002",
+    "isActive": true,
     "mode": "sale",
     "title": "Апартаменты в Лиссабоне",
     "city": "Лиссабон",
@@ -111,12 +221,31 @@
     "bedrooms": 2,
     "bathrooms": 2,
     "areaM2": 118,
-    "imageUrl": "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
+    "imageUrl": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
     "imageGallery": [
       "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80"
+      "/mock/room_transformation.gif",
+      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80"
     ],
+    "imagePositions": {
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "/mock/room_transformation.gif": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      }
+    },
     "features": [
       "city_center",
       "parking",
@@ -127,10 +256,12 @@
       "propertyType": "apartment",
       "usableAreaM2": 104,
       "builtAreaM2": 118,
-      "floor": "7 этаж",
+      "bathroomsFull": 2,
+      "plotAreaM2": 0,
+      "floor": "7",
       "exterior": true,
       "elevator": true,
-      "parkingSpaces": 1,
+      "parkingSpaces": 2,
       "storageRoom": true,
       "builtInWardrobes": true,
       "equippedKitchen": true,
@@ -139,29 +270,29 @@
       "terraceCount": 0,
       "condition": "excellent",
       "yearBuilt": 2018,
-      "heating": "central",
+      "heating": "heat_pump",
       "accessibilityAdapted": true,
       "orientation": [
         "восток",
         "юг"
       ],
       "energyRating": "B",
-      "bathroomsFull": 2,
+      "guestBathrooms": 0,
       "buildingFloors": 10,
       "monthlyCondoFeeEur": 145
     },
     "transportAccess": [
       {
-        "mode": "metro",
-        "route": "Azul",
-        "stopName": "São Sebastião",
-        "walkMinutes": 5
-      },
-      {
         "mode": "bus",
         "route": "726",
         "stopName": "Avenidas Novas",
         "walkMinutes": 4
+      },
+      {
+        "mode": "metro",
+        "route": "Azul",
+        "stopName": "São Sebastião",
+        "walkMinutes": 5
       },
       {
         "mode": "train",
@@ -181,6 +312,7 @@
   {
     "id": "irina-003",
     "slug": "porto-riverside-loft-irina-003",
+    "isActive": true,
     "mode": "rent",
     "title": "Лофт у набережной Дору",
     "city": "Порту",
@@ -205,8 +337,23 @@
       "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80"
     ],
+    "imagePositions": {
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      }
+    },
     "features": [
       "city_center",
+      "parking",
       "furnished",
       "balcony"
     ],
@@ -214,6 +361,7 @@
       "propertyType": "loft",
       "usableAreaM2": 78,
       "builtAreaM2": 84,
+      "bathroomsFull": 1,
       "floor": "2 этаж",
       "exterior": true,
       "elevator": false,
@@ -232,7 +380,6 @@
         "запад"
       ],
       "energyRating": "C",
-      "bathroomsFull": 1,
       "buildingFloors": 5,
       "monthlyCondoFeeEur": 90
     },
@@ -262,6 +409,7 @@
   {
     "id": "irina-004",
     "slug": "faro-family-townhouse-irina-004",
+    "isActive": true,
     "mode": "rent",
     "title": "Таунхаус для семьи у побережья",
     "city": "Фару",
@@ -286,16 +434,32 @@
       "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80"
     ],
+    "imagePositions": {
+      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      }
+    },
     "features": [
       "parking",
       "security",
-      "terrace",
-      "furnished"
+      "furnished",
+      "balcony",
+      "terrace"
     ],
     "details": {
       "propertyType": "townhouse",
       "usableAreaM2": 151,
       "builtAreaM2": 172,
+      "bathroomsFull": 3,
       "floor": "Дом целиком",
       "exterior": true,
       "elevator": false,
@@ -314,7 +478,6 @@
         "юг"
       ],
       "energyRating": "B-",
-      "bathroomsFull": 3,
       "guestBathrooms": 1,
       "buildingFloors": 2,
       "monthlyCondoFeeEur": 35
@@ -322,15 +485,15 @@
     "transportAccess": [
       {
         "mode": "bus",
-        "route": "16",
-        "stopName": "Montenegro Centro",
-        "walkMinutes": 5
-      },
-      {
-        "mode": "bus",
         "route": "14",
         "stopName": "Aeroporto",
         "walkMinutes": 9
+      },
+      {
+        "mode": "bus",
+        "route": "16",
+        "stopName": "Montenegro Centro",
+        "walkMinutes": 5
       },
       {
         "mode": "train",
@@ -345,6 +508,7 @@
   {
     "id": "irina-005",
     "slug": "porto-garden-apartment-irina-005",
+    "isActive": true,
     "mode": "sale",
     "title": "Апартаменты с садом в Порту",
     "city": "Порту",
@@ -369,16 +533,31 @@
       "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80"
     ],
+    "imagePositions": {
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      }
+    },
     "features": [
       "city_center",
       "parking",
-      "terrace",
-      "furnished"
+      "furnished",
+      "terrace"
     ],
     "details": {
       "propertyType": "apartment",
       "usableAreaM2": 132,
       "builtAreaM2": 146,
+      "bathroomsFull": 2,
       "plotAreaM2": 64,
       "floor": "1 этаж",
       "exterior": true,
@@ -399,22 +578,21 @@
         "север"
       ],
       "energyRating": "A",
-      "bathroomsFull": 2,
       "buildingFloors": 5,
       "monthlyCondoFeeEur": 120
     },
     "transportAccess": [
       {
-        "mode": "bus",
-        "route": "200",
-        "stopName": "Foz Igreja",
-        "walkMinutes": 4
-      },
-      {
         "mode": "tram",
         "route": "1",
         "stopName": "Passeio Alegre",
         "walkMinutes": 7
+      },
+      {
+        "mode": "bus",
+        "route": "200",
+        "stopName": "Foz Igreja",
+        "walkMinutes": 4
       },
       {
         "mode": "bus",
@@ -434,6 +612,7 @@
   {
     "id": "irina-006",
     "slug": "lagos-sea-view-penthouse-irina-006",
+    "isActive": true,
     "mode": "sale",
     "title": "Пентхаус с видом на море в Лагуше",
     "city": "Лагуш",
@@ -458,16 +637,32 @@
       "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"
     ],
+    "imagePositions": {
+      "https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      }
+    },
     "features": [
       "sea_view",
-      "terrace",
+      "parking",
       "pool",
-      "security"
+      "security",
+      "terrace"
     ],
     "details": {
       "propertyType": "penthouse",
       "usableAreaM2": 121,
       "builtAreaM2": 132,
+      "bathroomsFull": 2,
       "floor": "5 этаж",
       "exterior": true,
       "elevator": true,
@@ -487,7 +682,6 @@
         "восток"
       ],
       "energyRating": "A+",
-      "bathroomsFull": 2,
       "buildingFloors": 5,
       "monthlyCondoFeeEur": 210
     },
@@ -499,16 +693,16 @@
         "walkMinutes": 6
       },
       {
-        "mode": "train",
-        "route": "Linha do Algarve",
-        "stopName": "Lagos",
-        "walkMinutes": 14
-      },
-      {
         "mode": "bus",
         "route": "4",
         "stopName": "Marina",
         "walkMinutes": 9
+      },
+      {
+        "mode": "train",
+        "route": "Linha do Algarve",
+        "stopName": "Lagos",
+        "walkMinutes": 14
       }
     ],
     "taxProfile": {
@@ -522,6 +716,7 @@
   {
     "id": "irina-007",
     "slug": "braga-modern-flat-irina-007",
+    "isActive": true,
     "mode": "rent",
     "title": "Современная квартира в Браге",
     "city": "Брага",
@@ -546,6 +741,20 @@
       "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80"
     ],
+    "imagePositions": {
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      }
+    },
     "features": [
       "city_center",
       "furnished",
@@ -555,6 +764,7 @@
       "propertyType": "apartment",
       "usableAreaM2": 88,
       "builtAreaM2": 96,
+      "bathroomsFull": 2,
       "floor": "3 этаж",
       "exterior": true,
       "elevator": true,
@@ -573,7 +783,6 @@
         "восток"
       ],
       "energyRating": "B",
-      "bathroomsFull": 2,
       "buildingFloors": 6,
       "monthlyCondoFeeEur": 65
     },
@@ -603,6 +812,7 @@
   {
     "id": "irina-008",
     "slug": "coimbra-riverside-duplex-irina-008",
+    "isActive": true,
     "mode": "rent",
     "title": "Дуплекс у реки в Коимбре",
     "city": "Коимбра",
@@ -627,15 +837,31 @@
       "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80"
     ],
+    "imagePositions": {
+      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      },
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": {
+        "x": 50,
+        "y": 50
+      }
+    },
     "features": [
-      "terrace",
+      "parking",
       "furnished",
-      "parking"
+      "balcony",
+      "terrace"
     ],
     "details": {
       "propertyType": "duplex",
       "usableAreaM2": 140,
       "builtAreaM2": 154,
+      "bathroomsFull": 2,
       "floor": "4-5 этаж",
       "exterior": true,
       "elevator": true,
@@ -655,22 +881,21 @@
         "запад"
       ],
       "energyRating": "B-",
-      "bathroomsFull": 2,
       "buildingFloors": 5,
       "monthlyCondoFeeEur": 110
     },
     "transportAccess": [
       {
         "mode": "bus",
-        "route": "7T",
-        "stopName": "Santa Clara",
-        "walkMinutes": 4
-      },
-      {
-        "mode": "bus",
         "route": "103",
         "stopName": "Portugal dos Pequenitos",
         "walkMinutes": 6
+      },
+      {
+        "mode": "bus",
+        "route": "7T",
+        "stopName": "Santa Clara",
+        "walkMinutes": 4
       },
       {
         "mode": "train",

@@ -21,6 +21,8 @@ export const propertyConditionSchema = z.enum([
 export const propertyTypeSchema = z.enum([
   "villa",
   "apartment",
+  "studio",
+  "room",
   "penthouse",
   "townhouse",
   "loft",
@@ -32,6 +34,7 @@ export const heatingTypeSchema = z.enum([
   "underfloor",
   "electric",
   "heat_pump",
+  "gas_boiler",
   "none",
 ]);
 export const energyRatingSchema = z.enum(["A+", "A", "B", "B-", "C", "D"]);
@@ -43,9 +46,15 @@ export const transportModeSchema = z.enum([
   "ferry",
 ]);
 
+const imageUrlSchema = z.union([
+  z.string().url(),
+  z.string().regex(/^\/[^\s]+$/, "Expected an absolute or app-relative image URL"),
+]);
+
 export const propertyListingSchema = z.object({
   id: z.string().min(1),
   slug: z.string().min(1),
+  isActive: z.boolean().optional(),
   mode: listingModeSchema,
   title: z.string().min(1),
   city: z.string().min(1),
@@ -64,8 +73,17 @@ export const propertyListingSchema = z.object({
   bedrooms: z.number().int().nonnegative(),
   bathrooms: z.number().int().nonnegative(),
   areaM2: z.number().nonnegative(),
-  imageUrl: z.string().url(),
-  imageGallery: z.array(z.string().url()).min(1),
+  imageUrl: imageUrlSchema,
+  imageGallery: z.array(imageUrlSchema),
+  imagePositions: z
+    .record(
+      imageUrlSchema,
+      z.object({
+        x: z.number().min(0).max(100),
+        y: z.number().min(0).max(100),
+      })
+    )
+    .optional(),
   features: z.array(listingFeatureSchema),
   details: z.object({
     propertyType: propertyTypeSchema,
