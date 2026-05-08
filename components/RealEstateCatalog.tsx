@@ -4,6 +4,13 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeCityName } from "@/lib/real-estate/city";
+import {
+  propertyTypeTranslations,
+  siteLocales,
+  siteTranslations,
+  type SiteLocale,
+} from "@/lib/i18n/site";
+import { useSiteLocale } from "@/lib/i18n/use-site-locale";
 import { getFeatureLabel } from "@/lib/real-estate/data";
 import {
   getPropertyCoverImage,
@@ -34,12 +41,7 @@ function isAiGeneratedImage(property: PropertyListing, imageUrl: string) {
   return property.imageSources?.[imageUrl] === "ai_generated";
 }
 
-const languageOptions = [
-  { code: "pt", label: "PT" },
-  { code: "en", label: "EN" },
-  { code: "ru", label: "RU" },
-  { code: "uk", label: "UA" },
-] as const;
+const languageOptions = siteLocales;
 
 type CatalogFeatureFilterKey =
   | ListingFeature
@@ -104,21 +106,25 @@ function getPropertyTags(property: PropertyListing): string[] {
   return Array.from(tags);
 }
 
-function getCatalogMetrics(property: PropertyListing) {
-  const typeLabel = propertyTypeLabels[property.details.propertyType];
+function getCatalogMetrics(
+  property: PropertyListing,
+  locale: SiteLocale
+) {
+  const typeLabel = propertyTypeTranslations[locale][property.details.propertyType];
+  const t = siteTranslations[locale];
 
   if (property.details.propertyType === "land") {
     return [
-      { label: "Площадь", value: `${property.areaM2} м²` },
-      { label: "Тип объекта", value: typeLabel },
-      { label: "Состояние", value: "Участок" },
+      { label: t.area, value: `${property.areaM2} м²` },
+      { label: t.propertyType, value: typeLabel },
+      { label: t.condition, value: typeLabel },
     ];
   }
 
   return [
-    { label: "Площадь", value: `${property.areaM2} м²` },
-    { label: "Спальни", value: String(property.bedrooms) },
-    { label: "Тип объекта", value: typeLabel },
+    { label: t.area, value: `${property.areaM2} м²` },
+    { label: t.bedrooms, value: String(property.bedrooms) },
+    { label: t.propertyType, value: typeLabel },
   ];
 }
 
@@ -273,9 +279,7 @@ type CatalogAuthUser = {
 
 export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
   const [mode, setMode] = useState<ListingMode>("sale");
-  const [language, setLanguage] = useState<(typeof languageOptions)[number]["code"]>(
-    "ru"
-  );
+  const [language, setSiteLanguage] = useSiteLocale();
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [bedroomFilter, setBedroomFilter] = useState<string>("all");
@@ -298,6 +302,8 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
   const lastSavedSearchSignatureRef = useRef("");
   const { compareIds, toggleCompare } = useCompareList();
   const { favoriteIds, toggleFavorite } = useFavoritesList();
+  const t = siteTranslations[language];
+  const localizedPropertyTypeLabels = propertyTypeTranslations[language];
 
   useEffect(() => {
     let isCancelled = false;
@@ -593,7 +599,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 }`}
                 aria-pressed={mode === "sale"}
               >
-                Продажа
+                {t.sale}
               </button>
               <button
                 type="button"
@@ -608,7 +614,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 }`}
                 aria-pressed={mode === "rent"}
               >
-                Аренда
+                {t.rent}
               </button>
             </div>
           </div>
@@ -618,7 +624,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
               href="/compare"
               className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
             >
-              <span>Сравнение</span>
+              <span>{t.compare}</span>
               <span className="rounded-full bg-slate-950 px-2 py-1 text-xs text-white">
                 {compareIds.length}
               </span>
@@ -633,7 +639,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                     rel="noreferrer"
                     className="inline-flex h-11 items-center rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-900 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
                   >
-                    Админка
+                    {t.admin}
                   </Link>
                 ) : null}
                 <div className="relative">
@@ -648,7 +654,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
               >
                 <span className="text-base">←</span>
-                <span>Выход</span>
+                    <span>{t.logout}</span>
               </button>
                 </div>
               </>
@@ -658,7 +664,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
               >
                 <span className="text-base">⌂</span>
-                <span>{isAuthLoading ? "..." : "Вход"}</span>
+                <span>{isAuthLoading ? "..." : t.login}</span>
               </Link>
             )}
 
@@ -667,7 +673,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 <button
                   key={item.code}
                   type="button"
-                  onClick={() => setLanguage(item.code)}
+                  onClick={() => setSiteLanguage(item.code)}
                   className={`rounded-[14px] px-3 py-2 text-sm font-semibold transition sm:px-4 sm:py-2.5 ${
                     language === item.code
                       ? "bg-slate-950 text-white"
@@ -690,14 +696,14 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 href="/contact-realtor"
                 className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
               >
-                Написать риэлтору
+                {t.contactRealtor}
               </Link>
             </div>
 
             <div className="grid w-full gap-2 rounded-[24px] border border-slate-200 bg-[#fbfdff] p-3 shadow-sm lg:grid-cols-[1fr_minmax(19rem,1.65fr)_0.75fr_1fr_0.72fr_0.72fr_auto]">
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Город
+                  {t.city}
                 </span>
                 <select
                   value={cityFilter}
@@ -707,7 +713,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   }}
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                 >
-                  <option value="all">Все города</option>
+                  <option value="all">{t.allCities}</option>
                   {cities.map((city) => (
                     <option key={city} value={city}>
                       {city}
@@ -718,14 +724,14 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Цена, €
+                  {t.price}
                 </span>
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     type="number"
                     min="0"
                     inputMode="numeric"
-                    placeholder="От"
+                    placeholder={t.from}
                     value={priceFromInput}
                     onChange={(event) => {
                       setPriceFromInput(event.target.value);
@@ -737,7 +743,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                     type="number"
                     min="0"
                     inputMode="numeric"
-                    placeholder="До"
+                    placeholder={t.to}
                     value={priceToInput}
                     onChange={(event) => {
                       setPriceToInput(event.target.value);
@@ -750,7 +756,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Спальни
+                  {t.bedrooms}
                 </span>
                 <select
                   value={bedroomFilter}
@@ -760,18 +766,18 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   }}
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                 >
-                  <option value="all">Любое число</option>
-                  {mode === "rent" ? <option value="room">Комната</option> : null}
-                  <option value="1">От 1</option>
-                  <option value="2">От 2</option>
-                  <option value="3">От 3</option>
-                  <option value="4">От 4</option>
+                  <option value="all">{t.anyNumber}</option>
+                  {mode === "rent" ? <option value="room">{t.room}</option> : null}
+                  <option value="1">{t.fromBedrooms.replace("{count}", "1")}</option>
+                  <option value="2">{t.fromBedrooms.replace("{count}", "2")}</option>
+                  <option value="3">{t.fromBedrooms.replace("{count}", "3")}</option>
+                  <option value="4">{t.fromBedrooms.replace("{count}", "4")}</option>
                 </select>
               </label>
 
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Тип объекта
+                  {t.propertyType}
                 </span>
                 <select
                   value={propertyTypeFilter}
@@ -781,10 +787,10 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   }}
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                 >
-                  <option value="all">Любой тип</option>
+                  <option value="all">{t.anyType}</option>
                   {propertyTypeOptions.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {localizedPropertyTypeLabels[option.value]}
                     </option>
                   ))}
                 </select>
@@ -792,7 +798,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Локация
+                  {t.location}
                 </span>
                 <select
                   value={locationFilter}
@@ -802,14 +808,14 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   }}
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                 >
-                  <option value="all">Вся карта</option>
-                  <option value="drawn_area">В нарисованной области</option>
+                  <option value="all">{t.wholeMap}</option>
+                  <option value="drawn_area">{t.drawnArea}</option>
                 </select>
               </label>
 
               <label className="grid gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Избранное
+                  {t.favorites}
                 </span>
                 <select
                   value={favoriteFilter}
@@ -819,8 +825,8 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   }}
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                 >
-                  <option value="all">Все объекты</option>
-                  <option value="favorite">Только избранное</option>
+                  <option value="all">{t.allProperties}</option>
+                  <option value="favorite">{t.onlyFavorites}</option>
                 </select>
               </label>
 
@@ -830,14 +836,14 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   onClick={resetFilters}
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-950"
                 >
-                  Сбросить
+                  {t.reset}
                 </button>
               </div>
             </div>
 
             <div className="grid w-full gap-3 rounded-[24px] border border-slate-200 bg-[#fbfdff] p-3 shadow-sm">
               <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                Особенности
+                {t.features}
               </div>
               <div className="flex flex-wrap gap-2">
                 {catalogFeatureOptions.map((option) => {
@@ -868,17 +874,17 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
             <div className="flex w-full flex-col gap-3 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center">
               <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                 <div>
-                  Найдено объектов:{" "}
+                  {t.found}:{" "}
                   <span className="font-semibold text-slate-800">{properties.length}</span>
                 </div>
                 <div>
-                  В сравнении:{" "}
+                  {t.inCompare}:{" "}
                   <span className="font-semibold text-slate-800">
                     {compareIds.length}
                   </span>
                 </div>
                 <div>
-                  В избранном:{" "}
+                  {t.inFavorites}:{" "}
                   <span className="font-semibold text-slate-800">
                     {favoriteIds.length}
                   </span>
@@ -890,7 +896,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   href="/contact-realtor"
                   className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
                 >
-                  Написать риэлтору
+                  {t.contactRealtor}
                 </Link>
               </div>
 
@@ -905,7 +911,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   }`}
                   aria-pressed={viewMode === "list"}
                 >
-                  Список
+                  {t.list}
                 </button>
                 <button
                   type="button"
@@ -917,7 +923,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   }`}
                   aria-pressed={viewMode === "map"}
                 >
-                  Карта
+                  {t.map}
                 </button>
               </div>
             </div>
@@ -931,13 +937,13 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                  Каталог объектов
+                  {t.catalog}
                 </div>
 
                 {viewMode === "list" && (
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="text-sm text-slate-500">
-                      Страница {currentListPage} из {pageCount}
+                      {t.page} {currentListPage} {t.of} {pageCount}
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -947,7 +953,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         disabled={currentListPage === 1}
                         className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        Назад
+                        {t.previous}
                       </button>
 
                       {Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => (
@@ -973,7 +979,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         disabled={currentListPage === pageCount}
                         className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        Далее
+                        {t.next}
                       </button>
                     </div>
                   </div>
@@ -993,7 +999,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   const isCompared = compareIds.includes(property.id);
                   const isFavorite = favoriteIds.includes(property.id);
                   const propertyTags = getPropertyTags(property);
-                  const propertyMetrics = getCatalogMetrics(property);
+                  const propertyMetrics = getCatalogMetrics(property, language);
 
                   return (
                     <article
@@ -1014,7 +1020,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         />
 
                         <div className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 shadow-sm">
-                          {property.mode === "sale" ? "Продажа" : "Аренда"}
+                          {property.mode === "sale" ? t.sale : t.rent}
                         </div>
 
                         {imageCount > 1 && (
@@ -1096,7 +1102,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
                         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
                           <div className="text-xs text-slate-500">
-                            ID объекта:{" "}
+                            {t.propertyId}:{" "}
                             <span className="font-semibold text-slate-700">
                               {getPropertyDisplayId(property)}
                             </span>
@@ -1112,7 +1118,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                                   : "border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800"
                               }`}
                             >
-                              {isFavorite ? "В избранном" : "В избранное"}
+                              {isFavorite ? t.inFavorite : t.addFavorite}
                             </button>
                             <button
                               type="button"
@@ -1124,8 +1130,8 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                               }`}
                             >
                               {isCompared
-                                ? "В списке сравнения"
-                                : "Добавить в сравнение"}
+                                ? t.compared
+                                : t.addCompare}
                             </button>
                             <a
                               href={property.location.googleMapsUrl}
@@ -1133,13 +1139,13 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                               rel="noreferrer"
                               className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
                             >
-                              Карта
+                              {t.map}
                             </a>
                             <Link
                               href={getPropertyPublicPath(property)}
                               className="rounded-xl bg-slate-950 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                             >
-                              Открыть карточку
+                              {t.openCard}
                             </Link>
                           </div>
                         </div>
@@ -1156,7 +1162,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 {properties.map((property) => {
                   const isActive = selectedMapProperty?.id === property.id;
                   const isFavorite = favoriteIds.includes(property.id);
-                  const compactMetrics = getCatalogMetrics(property);
+                  const compactMetrics = getCatalogMetrics(property, language);
 
                   return (
                     <button
@@ -1231,7 +1237,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                               : "border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:text-amber-800"
                           }`}
                         >
-                          {isFavorite ? "Избранное" : "В избранное"}
+                          {isFavorite ? t.favorites : t.addFavorite}
                         </button>
                         <a
                           href={property.location.googleMapsUrl}
@@ -1240,14 +1246,14 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           onClick={(event) => event.stopPropagation()}
                           className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-center text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
                         >
-                          Карта
+                          {t.map}
                         </a>
                         <Link
                           href={getPropertyPublicPath(property)}
                           onClick={(event) => event.stopPropagation()}
                           className="rounded-2xl bg-slate-950 px-3 py-2 text-center text-xs font-semibold text-white transition hover:bg-slate-800"
                         >
-                          Объект
+                          {t.openCard}
                         </Link>
                       </div>
                     </button>
@@ -1259,11 +1265,10 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
                   <div>
                     <div className="text-lg font-semibold text-slate-950">
-                      Карта Португалии
+                      {t.mapTitle}
                     </div>
                     <div className="mt-1 text-sm text-slate-500">
-                      Можно отметить многоугольник и отфильтровать объекты внутри
-                      выбранной области.
+                      {t.mapHelp}
                     </div>
                   </div>
 
@@ -1281,7 +1286,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-800"
                       }`}
                     >
-                      {isDrawingArea ? "Рисование..." : "Нарисовать область"}
+                      {isDrawingArea ? t.drawing : t.drawArea}
                     </button>
 
                     <button
@@ -1290,7 +1295,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                       disabled={draftPolygon.length < 3}
                       className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      Применить область
+                      {t.applyArea}
                     </button>
 
                     <button
@@ -1298,7 +1303,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                       onClick={clearPolygonSelection}
                       className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
                     >
-                      Очистить
+                      {t.clear}
                     </button>
                   </div>
                 </div>
@@ -1313,7 +1318,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                     rel="noreferrer"
                     className="absolute right-6 top-5 z-20 max-w-[calc(100%-3rem)] rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
                   >
-                    Открыть в Google Maps
+                    {t.openGoogleMaps}
                   </a>
 
                   <div className="absolute inset-0">
@@ -1330,7 +1335,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
                   {isDrawingArea && (
                     <div className="pointer-events-none absolute bottom-4 left-4 z-[500] rounded-xl bg-white/90 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm">
-                      Кликайте по карте, чтобы поставить точки области
+                      {t.mapClickHelp}
                     </div>
                   )}
                 </div>
@@ -1338,11 +1343,11 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4 text-sm text-slate-600">
                   <div>
                     {appliedPolygon.length >= 3
-                      ? "Фильтр по нарисованной области активен."
-                      : "Чтобы отбирать объекты по области, нажми «Нарисовать область» и отметь минимум 3 точки."}
+                      ? t.areaFilterActive
+                      : t.areaFilterHelp}
                   </div>
                   <div className="font-semibold text-slate-900">
-                    Точек в области: {(draftPolygon.length > 0 ? draftPolygon : appliedPolygon).length}
+                    {t.areaPoints}: {(draftPolygon.length > 0 ? draftPolygon : appliedPolygon).length}
                   </div>
                 </div>
               </div>
