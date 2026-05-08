@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { saveUploadedPhotosForProperty } from "@/lib/db/spare-gallery";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,10 @@ function sanitizeFileName(fileName: string): string {
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
+    const propertyId =
+      typeof formData.get("propertyId") === "string"
+        ? String(formData.get("propertyId")).trim()
+        : "";
     const files = formData
       .getAll("files")
       .filter((item): item is File => item instanceof File);
@@ -55,6 +60,13 @@ export async function POST(request: Request) {
         };
       })
     );
+
+    if (propertyId) {
+      await saveUploadedPhotosForProperty(
+        propertyId,
+        uploads.map((upload) => ({ url: upload.url }))
+      );
+    }
 
     return NextResponse.json({ uploads });
   } catch {

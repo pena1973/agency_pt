@@ -103,4 +103,13 @@ export type GenerateRoomDesignResult = {
   jobId: string;
   roomAnalysis: RoomAnalysis;
   variants: RoomVariant[];
+  createdAt?: string;
+  usageEstimate?: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    generatedImages: number;
+    estimatedCostUsd: number;
+    note: string;
+  };
 };

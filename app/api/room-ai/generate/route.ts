@@ -1,10 +1,35 @@
 import { NextResponse } from "next/server";
+import {
+  readRoomAiResultsForProperty,
+  saveRoomAiResultForProperty,
+} from "@/lib/db/room-ai-results";
+import { recordGenerationUsage } from "@/lib/db/generation-usage";
 import { RoomAiUserError } from "@/lib/room-ai/errors";
 import { RoomAiService } from "@/lib/room-ai/RoomAiService";
 import type { RoomType } from "@/lib/room-ai/types";
 import { env } from "@/lib/room-ai/utils/env";
 
 export const runtime = "nodejs";
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const propertyId = searchParams.get("propertyId")?.trim();
+
+    if (!propertyId) {
+      return NextResponse.json({ error: "Не передан ID объекта." }, { status: 400 });
+    }
+
+    const result = await readRoomAiResultsForProperty(propertyId);
+
+    return NextResponse.json(result ?? { jobId: "", roomAnalysis: null, variants: [] });
+  } catch {
+    return NextResponse.json(
+      { error: "Не удалось загрузить сохраненные AI-варианты." },
+      { status: 500 }
+    );
+  }
+}
 
 function toNumber(value: FormDataEntryValue | null): number | undefined {
   if (typeof value !== "string") return undefined;
@@ -79,6 +104,10 @@ export async function POST(request: Request) {
       typeof formData.get("palette") === "string"
         ? String(formData.get("palette"))
         : "light";
+    const propertyId =
+      typeof formData.get("propertyId") === "string"
+        ? String(formData.get("propertyId")).trim()
+        : "";
 
     const service = new RoomAiService();
 
@@ -95,6 +124,25 @@ export async function POST(request: Request) {
         palette: palette as never,
       },
     });
+
+    if (propertyId) {
+      const savedResult = await saveRoomAiResultForProperty(propertyId, result, palette);
+
+      if (savedResult.usageEstimate) {
+        recordGenerationUsage({
+          propertyId,
+          kind: "ai_furniture",
+          inputTokens: savedResult.usageEstimate.inputTokens,
+          outputTokens: savedResult.usageEstimate.outputTokens,
+          totalTokens: savedResult.usageEstimate.totalTokens,
+          generatedImages: savedResult.usageEstimate.generatedImages,
+          estimatedCostUsd: savedResult.usageEstimate.estimatedCostUsd,
+          note: savedResult.usageEstimate.note,
+        });
+      }
+
+      return NextResponse.json(savedResult);
+    }
 
     return NextResponse.json(result);
   } catch (error) {

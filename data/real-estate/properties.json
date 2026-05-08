@@ -21,20 +21,24 @@
     "bedrooms": 2,
     "bathrooms": 1,
     "areaM2": 32,
-    "imageUrl": "/uploads/properties/1-1778106029302.png",
+    "imageUrl": "http://localhost:3000/generated/gifs/property-transition-1778239740185.gif",
     "imageGallery": [
-      "/uploads/properties/1-1778106029302.png",
-      "/uploads/properties/photo-1778106029302.png"
+      "http://localhost:3000/generated/gifs/property-transition-1778239740185.gif",
+      "/generated/gifs/property-transition-1778240033560.gif"
     ],
     "imagePositions": {
-      "/uploads/properties/1-1778106029302.png": {
+      "http://localhost:3000/generated/gifs/property-transition-1778239740185.gif": {
         "x": 50,
-        "y": 63
+        "y": 72
       },
-      "/uploads/properties/photo-1778106029302.png": {
+      "/generated/gifs/property-transition-1778240033560.gif": {
         "x": 50,
-        "y": 86
+        "y": 50
       }
+    },
+    "imageSources": {
+      "http://localhost:3000/generated/gifs/property-transition-1778239740185.gif": "original",
+      "/generated/gifs/property-transition-1778240033560.gif": "original"
     },
     "features": [
       "city_center",
@@ -133,6 +137,11 @@
         "x": 50,
         "y": 50
       }
+    },
+    "imageSources": {
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80": "original"
     },
     "features": [
       "sea_view",
@@ -235,7 +244,7 @@
       },
       "/mock/room_transformation.gif": {
         "x": 50,
-        "y": 50
+        "y": 100
       },
       "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80": {
         "x": 50,
@@ -245,6 +254,12 @@
         "x": 50,
         "y": 50
       }
+    },
+    "imageSources": {
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80": "original",
+      "/mock/room_transformation.gif": "original",
+      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": "original"
     },
     "features": [
       "city_center",
@@ -351,6 +366,11 @@
         "y": 50
       }
     },
+    "imageSources": {
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": "original"
+    },
     "features": [
       "city_center",
       "parking",
@@ -447,6 +467,11 @@
         "x": 50,
         "y": 50
       }
+    },
+    "imageSources": {
+      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80": "original"
     },
     "features": [
       "parking",
@@ -546,6 +571,11 @@
         "x": 50,
         "y": 50
       }
+    },
+    "imageSources": {
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80": "original"
     },
     "features": [
       "city_center",
@@ -651,6 +681,11 @@
         "y": 50
       }
     },
+    "imageSources": {
+      "https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80": "original"
+    },
     "features": [
       "sea_view",
       "parking",
@@ -755,6 +790,11 @@
         "y": 50
       }
     },
+    "imageSources": {
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": "original"
+    },
     "features": [
       "city_center",
       "furnished",
@@ -850,6 +890,11 @@
         "x": 50,
         "y": 50
       }
+    },
+    "imageSources": {
+      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": "original"
     },
     "features": [
       "parking",

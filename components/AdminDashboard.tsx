@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, DragEvent, PointerEvent } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   DEFAULT_PROPERTY_COVER_URL,
@@ -41,6 +41,34 @@ type UploadedAdminPhoto = {
   previewUrl: string;
   selectedForAi: boolean;
   roomType: RoomType;
+};
+
+type AiSourcePhoto = {
+  id: string;
+  imageUrl: string;
+  name: string;
+  roomType: RoomType;
+};
+
+type AdminSpareGalleryItem = {
+  id: string;
+  imageUrl: string;
+  title: string;
+  source: "upload" | "ai";
+  createdAt: string;
+};
+
+type GalleryDragSource = "main" | "spare" | "ai-result" | "gif-result";
+type CollapsibleAdminSection = "property" | "photos" | "ai" | "gif";
+type GifImageSlot = "start" | "finish";
+
+type GenerationBalance = {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalTokens: number;
+  totalImages: number;
+  totalCostUsd: number;
+  entriesCount: number;
 };
 
 const roomTypeOptions: Array<{ value: RoomType; label: string }> = [
@@ -199,6 +227,7 @@ function createPropertyTemplate(): PropertyListing {
     areaM2: 0,
     imageUrl: DEFAULT_PROPERTY_COVER_URL,
     imageGallery: [],
+    imageSources: {},
     features: ["city_center"],
     details: {
       propertyType: "apartment",
@@ -244,7 +273,7 @@ function buildPriceLabel(priceAmount: number, mode: PropertyListing["mode"]): st
 }
 
 function buildGeneratedPropertyId() {
-  return `irina-${Date.now()}`;
+  return String(Date.now());
 }
 
 function slugifyValue(value: string) {
@@ -266,6 +295,48 @@ function getPropertyPublicPath(property: PropertyListing) {
   const pathSlug = /^irina-\d+$/.test(property.id) ? generatedIdSlug : property.slug;
 
   return `/properties/${encodeURIComponent(pathSlug)}`;
+}
+
+function getPropertyDisplayId(property: Pick<PropertyListing, "id">) {
+  return property.id.replace(/^irina-/, "");
+}
+
+function formatAiGenerationCost(
+  usageEstimate: GenerateRoomDesignResult["usageEstimate"] | undefined
+) {
+  if (!usageEstimate) {
+    return "";
+  }
+
+  const cost = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  }).format(usageEstimate.estimatedCostUsd);
+
+  return `Примерная стоимость генерации: ${cost}. Токены: ${usageEstimate.totalTokens.toLocaleString("ru-RU")}, изображений: ${usageEstimate.generatedImages}.`;
+}
+
+function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "";
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} КБ`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
+}
+
+function formatUsd(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  }).format(value);
 }
 
 function isGeneratedPropertySlugForId(slug: string, id: string) {
@@ -330,6 +401,14 @@ function normalizePropertyListing(property: PropertyListing): PropertyListing {
       ];
     })
   );
+  const normalizedImageSources: Record<string, "original" | "ai_generated"> = Object.fromEntries(
+    nextGallery.map((imageUrl) => [
+      imageUrl,
+      property.imageSources?.[imageUrl] === "ai_generated"
+        ? "ai_generated"
+        : "original",
+    ])
+  ) as Record<string, "original" | "ai_generated">;
 
   return {
     ...property,
@@ -348,6 +427,7 @@ function normalizePropertyListing(property: PropertyListing): PropertyListing {
     imageGallery: nextGallery,
     imageUrl: normalizedCoverImage,
     imagePositions: normalizedImagePositions,
+    imageSources: normalizedImageSources,
     location: {
       ...property.location,
       addressLabel: property.location.addressLabel.trim() || "Lisbon, Portugal",
@@ -457,6 +537,9 @@ export function AdminDashboard({
   );
   const catalogContentScrollRef = useRef<HTMLDivElement | null>(null);
   const photoFileInputRef = useRef<HTMLInputElement | null>(null);
+  const imageNudgeIntervalRef = useRef<number | null>(null);
+  const dragAutoScrollFrameRef = useRef<number | null>(null);
+  const dragAutoScrollSpeedRef = useRef(0);
 
   useLayoutEffect(() => {
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -490,13 +573,39 @@ export function AdminDashboard({
   const [statusMessage, setStatusMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedAdminPhoto[]>([]);
+  const [aiSourcePhotos, setAiSourcePhotos] = useState<AiSourcePhoto[]>([]);
   const [aiPalette, setAiPalette] =
     useState<(typeof paletteOptions)[number]["value"]>("light");
   const [aiResult, setAiResult] = useState<GenerateRoomDesignResult | null>(null);
+  const [freshAiResultUrls, setFreshAiResultUrls] = useState<string[]>([]);
   const [aiStatus, setAiStatus] = useState("");
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [spareGalleryItems, setSpareGalleryItems] = useState<AdminSpareGalleryItem[]>([]);
   const [isJsonEditorOpen, setIsJsonEditorOpen] = useState(false);
   const [jsonEditorValue, setJsonEditorValue] = useState("");
+  const [collapsedSections, setCollapsedSections] = useState<
+    Record<CollapsibleAdminSection, boolean>
+  >({
+    property: false,
+    photos: false,
+    ai: false,
+    gif: false,
+  });
+  const [gifStartImageUrl, setGifStartImageUrl] = useState("");
+  const [gifFinishImageUrl, setGifFinishImageUrl] = useState("");
+  const [gifStartSeconds, setGifStartSeconds] = useState(1);
+  const [gifTransitionSeconds, setGifTransitionSeconds] = useState(2);
+  const [gifFinishSeconds, setGifFinishSeconds] = useState(1);
+  const [gifStatus, setGifStatus] = useState("");
+  const [gifResult, setGifResult] = useState<{
+    gifUrl: string;
+    sizeBytes: number;
+    estimatedCostUsd: number;
+    note: string;
+  } | null>(null);
+  const [isGeneratingGif, setIsGeneratingGif] = useState(false);
+  const [generationBalance, setGenerationBalance] =
+    useState<GenerationBalance | null>(null);
   const [catalogModeFilter, setCatalogModeFilter] =
     useState<AdminCatalogModeFilter>("all");
   const [catalogIdQuery, setCatalogIdQuery] = useState("");
@@ -547,12 +656,19 @@ export function AdminDashboard({
   const featureGridClass = showsCompactLayout
     ? "mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6"
     : "mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4";
-  const removedGalleryImages =
-    originalPropertyDraft && propertyDraft
-      ? originalPropertyDraft.imageGallery.filter(
-          (imageUrl) => !propertyDraft.imageGallery.includes(imageUrl)
-        )
-      : [];
+  const visibleAiVariants = (aiResult?.variants ?? []).filter((variant) => {
+    if (freshAiResultUrls.includes(variant.photoImageUrl)) {
+      return true;
+    }
+
+    const isInMainGallery =
+      propertyDraft?.imageGallery.includes(variant.photoImageUrl) ?? false;
+    const isInSpareGallery = spareGalleryItems.some(
+      (item) => item.imageUrl === variant.photoImageUrl
+    );
+
+    return !isInMainGallery && !isInSpareGallery;
+  });
   const hasUnsavedChanges =
     propertyDraft !== null &&
     originalPropertyDraft !== null &&
@@ -572,6 +688,28 @@ export function AdminDashboard({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
+  useEffect(() => {
+    if (!selectedId) {
+      setAiResult(null);
+      setSpareGalleryItems([]);
+      return;
+    }
+
+    void loadSavedAiResults(selectedId);
+    void loadSpareGallery(selectedId);
+  }, [selectedId]);
+
+  useEffect(() => {
+    return () => {
+      stopImageNudge();
+      stopDragAutoScroll();
+    };
+  }, []);
+
+  useEffect(() => {
+    void loadGenerationBalance();
+  }, []);
+
   function openPhotoPicker() {
     const fileInput = photoFileInputRef.current;
 
@@ -585,6 +723,98 @@ export function AdminDashboard({
     }
 
     fileInput.click();
+  }
+
+  function toggleAdminSection(section: CollapsibleAdminSection) {
+    setCollapsedSections((currentSections) => ({
+      ...currentSections,
+      [section]: !currentSections[section],
+    }));
+  }
+
+  function isSectionCollapsed(section: CollapsibleAdminSection) {
+    return collapsedSections[section];
+  }
+
+  function renderCollapseButton(section: CollapsibleAdminSection) {
+    const isCollapsed = isSectionCollapsed(section);
+
+    return (
+      <button
+        type="button"
+        onClick={() => toggleAdminSection(section)}
+        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-emerald-300 hover:text-emerald-800"
+      >
+        {isCollapsed ? "Развернуть" : "Свернуть"}
+      </button>
+    );
+  }
+
+  async function loadGenerationBalance() {
+    try {
+      const response = await fetch("/api/admin/generation-balance", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      setGenerationBalance((await response.json()) as GenerationBalance);
+    } catch {
+      // Balance is informational; the editor can continue without it.
+    }
+  }
+
+  function stopDragAutoScroll() {
+    dragAutoScrollSpeedRef.current = 0;
+
+    if (dragAutoScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragAutoScrollFrameRef.current);
+      dragAutoScrollFrameRef.current = null;
+    }
+  }
+
+  function runDragAutoScroll() {
+    const scrollContainer = catalogContentScrollRef.current;
+    const speed = dragAutoScrollSpeedRef.current;
+
+    if (!scrollContainer || speed === 0) {
+      dragAutoScrollFrameRef.current = null;
+      return;
+    }
+
+    scrollContainer.scrollTop += speed;
+    dragAutoScrollFrameRef.current = window.requestAnimationFrame(runDragAutoScroll);
+  }
+
+  function updateDragAutoScroll(event: DragEvent<HTMLElement>) {
+    const scrollContainer = catalogContentScrollRef.current;
+
+    if (!scrollContainer) {
+      return;
+    }
+
+    const rect = scrollContainer.getBoundingClientRect();
+    const edgeSize = Math.min(140, rect.height / 3);
+    let nextSpeed = 0;
+
+    if (event.clientY < rect.top + edgeSize) {
+      nextSpeed = -Math.ceil(((rect.top + edgeSize - event.clientY) / edgeSize) * 18);
+    } else if (event.clientY > rect.bottom - edgeSize) {
+      nextSpeed = Math.ceil(((event.clientY - (rect.bottom - edgeSize)) / edgeSize) * 18);
+    }
+
+    dragAutoScrollSpeedRef.current = nextSpeed;
+
+    if (nextSpeed !== 0 && dragAutoScrollFrameRef.current === null) {
+      dragAutoScrollFrameRef.current = window.requestAnimationFrame(runDragAutoScroll);
+    }
+
+    if (nextSpeed === 0 && dragAutoScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragAutoScrollFrameRef.current);
+      dragAutoScrollFrameRef.current = null;
+    }
   }
 
   async function handleAdminLogout() {
@@ -665,6 +895,14 @@ export function AdminDashboard({
     );
   }
 
+  function isAiGeneratedImage(imageUrl: string) {
+    return (
+      propertyDraft?.imageSources?.[imageUrl] === "ai_generated" ||
+      spareGalleryItems.some((item) => item.imageUrl === imageUrl && item.source === "ai") ||
+      (aiResult?.variants ?? []).some((variant) => variant.photoImageUrl === imageUrl)
+    );
+  }
+
   function applySelectedProperty(property: PropertyListing) {
     const normalizedProperty = normalizePropertyListing(property);
     setSelectedId(normalizedProperty.id);
@@ -674,7 +912,11 @@ export function AdminDashboard({
     setGeocodeMessage("");
     setAiStatus("");
     setAiResult(null);
+    setFreshAiResultUrls([]);
     setUploadedPhotos([]);
+    setAiSourcePhotos([]);
+    void loadSavedAiResults(normalizedProperty.id);
+    void loadSpareGallery(normalizedProperty.id);
   }
 
   function applyCreatePropertyTemplate() {
@@ -684,7 +926,10 @@ export function AdminDashboard({
     setPropertyDraft(cloneProperty(template));
     setOriginalPropertyDraft(cloneProperty(template));
     setUploadedPhotos([]);
+    setAiSourcePhotos([]);
     setAiResult(null);
+    setFreshAiResultUrls([]);
+    setSpareGalleryItems([]);
     setAiStatus("");
   }
 
@@ -1120,7 +1365,10 @@ export function AdminDashboard({
     setOriginalPropertyDraft(nextSelected ? cloneProperty(nextSelected) : null);
     setGeocodeMessage("");
     setUploadedPhotos([]);
+    setAiSourcePhotos([]);
     setAiResult(null);
+    setFreshAiResultUrls([]);
+    setSpareGalleryItems([]);
     setStatusMessage("Объект удален.");
     setIsSaving(false);
   }
@@ -1161,7 +1409,7 @@ export function AdminDashboard({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${propertyDraft.id}.json`;
+    link.download = `${getPropertyDisplayId(propertyDraft)}.json`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -1232,7 +1480,14 @@ export function AdminDashboard({
       return;
     }
 
+    if (!propertyDraft?.id || !selectedId) {
+      setAiStatus("Сначала сохраните объект, затем загружайте фото в запасную галерею.");
+      event.target.value = "";
+      return;
+    }
+
     const formData = new FormData();
+    formData.append("propertyId", propertyDraft.id);
 
     for (const file of files) {
       formData.append("files", file);
@@ -1264,6 +1519,7 @@ export function AdminDashboard({
     }));
 
     setUploadedPhotos((currentPhotos) => [...currentPhotos, ...nextPhotos]);
+    await loadSpareGallery(propertyDraft.id);
     setAiStatus("Фотографии загружены. Можно выбрать кадры для AI-обработки.");
     event.target.value = "";
   }
@@ -1304,6 +1560,10 @@ export function AdminDashboard({
           ...currentDraft.imagePositions,
           [imageUrl]: currentDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 },
         };
+        const nextImageSources = {
+          ...currentDraft.imageSources,
+          [imageUrl]: isAiGeneratedImage(imageUrl) ? "ai_generated" as const : "original" as const,
+        };
 
         return {
           ...currentDraft,
@@ -1313,12 +1573,15 @@ export function AdminDashboard({
               : currentDraft.imageUrl,
           imageGallery: nextGallery,
           imagePositions: nextImagePositions,
+          imageSources: nextImageSources,
         };
       }
 
       const nextGallery = currentDraft.imageGallery.filter((item) => item !== imageUrl);
       const nextImagePositions = { ...currentDraft.imagePositions };
+      const nextImageSources = { ...currentDraft.imageSources };
       delete nextImagePositions[imageUrl];
+      delete nextImageSources[imageUrl];
 
       return {
         ...currentDraft,
@@ -1328,7 +1591,383 @@ export function AdminDashboard({
             : currentDraft.imageUrl,
         imageGallery: nextGallery,
         imagePositions: nextImagePositions,
+        imageSources: nextImageSources,
       };
+    });
+  }
+
+  async function addImageFromSpareToGallery(imageUrl: string) {
+    const nextDraft = applyGalleryInclusion(propertyDraft, imageUrl, true);
+
+    if (!nextDraft) {
+      return;
+    }
+
+    setPropertyDraft(nextDraft);
+    setSpareGalleryItems((currentItems) =>
+      currentItems.filter((item) => item.imageUrl !== imageUrl)
+    );
+    await persistImmediateGalleryChange(nextDraft, "Фото добавлено в основную галерею.");
+  }
+
+  function applyGalleryInclusion(
+    currentDraft: PropertyListing | null,
+    imageUrl: string,
+    shouldInclude: boolean
+  ) {
+    if (!currentDraft) {
+      return null;
+    }
+
+    if (shouldInclude) {
+      const nextGallery = currentDraft.imageGallery.includes(imageUrl)
+        ? currentDraft.imageGallery
+        : [...currentDraft.imageGallery, imageUrl];
+    const nextImagePositions = {
+      ...currentDraft.imagePositions,
+      [imageUrl]: currentDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 },
+    };
+    const nextImageSources = {
+      ...currentDraft.imageSources,
+      [imageUrl]: isAiGeneratedImage(imageUrl) ? "ai_generated" as const : "original" as const,
+    };
+
+    return {
+        ...currentDraft,
+        imageUrl:
+          currentDraft.imageUrl === DEFAULT_PROPERTY_COVER_URL || !currentDraft.imageUrl
+            ? imageUrl
+            : currentDraft.imageUrl,
+      imageGallery: nextGallery,
+      imagePositions: nextImagePositions,
+      imageSources: nextImageSources,
+    };
+  }
+
+  const nextGallery = currentDraft.imageGallery.filter((item) => item !== imageUrl);
+  const nextImagePositions = { ...currentDraft.imagePositions };
+  const nextImageSources = { ...currentDraft.imageSources };
+  delete nextImagePositions[imageUrl];
+  delete nextImageSources[imageUrl];
+
+    return {
+      ...currentDraft,
+      imageUrl:
+        currentDraft.imageUrl === imageUrl
+          ? nextGallery[0] ?? DEFAULT_PROPERTY_COVER_URL
+          : currentDraft.imageUrl,
+    imageGallery: nextGallery,
+    imagePositions: nextImagePositions,
+    imageSources: nextImageSources,
+  };
+}
+
+  async function persistImmediateGalleryChange(
+    nextDraft: PropertyListing,
+    successMessage: string
+  ) {
+    const saved = await persistProperty(normalizePropertyListing(nextDraft), selectedId ?? nextDraft.id);
+
+    if (saved) {
+      setStatusMessage(successMessage);
+    }
+
+    return saved;
+  }
+
+  function writeGalleryDragData(
+    event: DragEvent<HTMLElement>,
+    imageUrl: string,
+    source: GalleryDragSource
+  ) {
+    stopDragAutoScroll();
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData(
+      "application/x-admin-gallery-image",
+      JSON.stringify({ imageUrl, source })
+    );
+    event.dataTransfer.setData("text/plain", imageUrl);
+  }
+
+  function readGalleryDragData(event: DragEvent<HTMLElement>) {
+    const rawData =
+      event.dataTransfer.getData("application/x-admin-gallery-image") ||
+      event.dataTransfer.getData("text/plain");
+
+    if (!rawData) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(rawData) as {
+        imageUrl?: string;
+        source?: GalleryDragSource;
+      };
+
+      return parsed.imageUrl
+        ? { imageUrl: parsed.imageUrl, source: parsed.source ?? "main" }
+        : null;
+    } catch {
+      return { imageUrl: rawData, source: "main" as const };
+    }
+  }
+
+  async function reorderMainGallery(draggedImageUrl: string, targetImageUrl: string) {
+    if (!propertyDraft || draggedImageUrl === targetImageUrl) {
+      return;
+    }
+
+    const draggedIndex = propertyDraft.imageGallery.indexOf(draggedImageUrl);
+    const targetIndex = propertyDraft.imageGallery.indexOf(targetImageUrl);
+
+    if (draggedIndex < 0 || targetIndex < 0) {
+      return;
+    }
+
+    const nextGallery = [...propertyDraft.imageGallery];
+    const [draggedImage] = nextGallery.splice(draggedIndex, 1);
+    nextGallery.splice(targetIndex, 0, draggedImage);
+    const nextDraft = {
+      ...propertyDraft,
+      imageGallery: nextGallery,
+    };
+
+    setPropertyDraft(nextDraft);
+    await persistImmediateGalleryChange(nextDraft, "Порядок фотографий сохранен.");
+  }
+
+  async function handleMainGalleryDrop(
+    event: DragEvent<HTMLElement>,
+    targetImageUrl?: string
+  ) {
+    event.preventDefault();
+
+    const dragData = readGalleryDragData(event);
+
+    if (!dragData) {
+      return;
+    }
+
+    if (
+      dragData.source === "spare" ||
+      dragData.source === "ai-result" ||
+      dragData.source === "gif-result"
+    ) {
+      await addImageFromSpareToGallery(dragData.imageUrl);
+      return;
+    }
+
+    if (targetImageUrl) {
+      await reorderMainGallery(dragData.imageUrl, targetImageUrl);
+    }
+  }
+
+  async function handleSpareGalleryDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+
+    const dragData = readGalleryDragData(event);
+
+    if (!dragData) {
+      return;
+    }
+
+    if (dragData.source === "main") {
+      await moveImageFromMainToSpare(dragData.imageUrl);
+      return;
+    }
+
+    if (
+      (dragData.source === "ai-result" || dragData.source === "gif-result") &&
+      propertyDraft?.id
+    ) {
+      await ensureImageInSpareGallery(dragData.imageUrl);
+    }
+  }
+
+  function removeAiResultVariant(imageUrl: string) {
+    setFreshAiResultUrls((currentUrls) =>
+      currentUrls.filter((currentUrl) => currentUrl !== imageUrl)
+    );
+    setAiResult((currentResult) => {
+      if (!currentResult) {
+        return currentResult;
+      }
+
+      const nextVariants = currentResult.variants.filter(
+        (variant) => variant.photoImageUrl !== imageUrl
+      );
+
+      return nextVariants.length > 0
+        ? { ...currentResult, variants: nextVariants }
+        : null;
+    });
+  }
+
+  async function ensureImageInSpareGallery(imageUrl: string) {
+    if (!propertyDraft?.id) {
+      return;
+    }
+
+    const response = await fetch("/api/admin/spare-gallery", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ propertyId: propertyDraft.id, imageUrl }),
+    });
+    const payload = (await response.json()) as {
+      error?: string;
+      items?: AdminSpareGalleryItem[];
+    };
+
+    if (!response.ok) {
+      setStatusMessage(payload.error ?? "Не удалось добавить фото в запасную галерею.");
+      return;
+    }
+
+    await loadSpareGallery(propertyDraft.id);
+    removeAiResultVariant(imageUrl);
+    if (gifResult?.gifUrl === imageUrl) {
+      setGifResult(null);
+    }
+    setStatusMessage("Фотография добавлена в запасную галерею.");
+  }
+
+  function addAiSourcePhoto(imageUrl: string) {
+    const spareItem = spareGalleryItems.find((item) => item.imageUrl === imageUrl);
+    const mainIndex = propertyDraft?.imageGallery.indexOf(imageUrl) ?? -1;
+    const name =
+      spareItem?.title ??
+      (mainIndex >= 0 ? `Фото ${mainIndex + 1} из основной галереи` : "Исходное фото");
+
+    setAiSourcePhotos((currentPhotos) => {
+      if (currentPhotos.some((photo) => photo.imageUrl === imageUrl)) {
+        return currentPhotos;
+      }
+
+      return [
+        ...currentPhotos,
+        {
+          id: `${Date.now()}-${currentPhotos.length + 1}`,
+          imageUrl,
+          name,
+          roomType: "living_room",
+        },
+      ];
+    });
+    setAiStatus("Фото добавлено как исходник для генерации.");
+  }
+
+  function handleAiSourceDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+
+    const dragData = readGalleryDragData(event);
+
+    if (!dragData) {
+      return;
+    }
+
+    addAiSourcePhoto(dragData.imageUrl);
+  }
+
+  function handleGifImageDrop(event: DragEvent<HTMLElement>, slot: GifImageSlot) {
+    event.preventDefault();
+
+    const dragData = readGalleryDragData(event);
+
+    if (!dragData) {
+      return;
+    }
+
+    if (slot === "start") {
+      setGifStartImageUrl(dragData.imageUrl);
+    } else {
+      setGifFinishImageUrl(dragData.imageUrl);
+    }
+
+    setGifStatus("");
+  }
+
+  async function generateTransitionGif() {
+    if (!gifStartImageUrl || !gifFinishImageUrl) {
+      setGifStatus("Добавьте стартовое и финальное фото.");
+      return;
+    }
+
+    setIsGeneratingGif(true);
+    setGifStatus("");
+    setGifResult(null);
+
+    try {
+      const response = await fetch("/api/admin/gif", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startImageUrl: gifStartImageUrl,
+          finishImageUrl: gifFinishImageUrl,
+          startSeconds: gifStartSeconds,
+          transitionSeconds: gifTransitionSeconds,
+          finishSeconds: gifFinishSeconds,
+          propertyId: propertyDraft?.id,
+        }),
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        gifUrl?: string;
+        sizeBytes?: number;
+        estimatedCostUsd?: number;
+        note?: string;
+      };
+
+      if (!response.ok || !payload.gifUrl) {
+        setGifStatus(payload.error ?? "Не удалось сгенерировать GIF.");
+        return;
+      }
+
+      setGifResult({
+        gifUrl: payload.gifUrl,
+        sizeBytes: payload.sizeBytes ?? 0,
+        estimatedCostUsd: payload.estimatedCostUsd ?? 0,
+        note: payload.note ?? "GIF собрана локально через sharp, OpenAI не используется.",
+      });
+      setGifStatus(
+        `GIF готов${payload.sizeBytes ? `, размер ${formatBytes(payload.sizeBytes)}` : ""}. Стоимость генерации: ${formatUsd(payload.estimatedCostUsd ?? 0)}.`
+      );
+      await loadGenerationBalance();
+    } catch {
+      setGifStatus("Не удалось сгенерировать GIF.");
+    } finally {
+      setIsGeneratingGif(false);
+    }
+  }
+
+  function removeAiSourcePhoto(imageUrl: string) {
+    setAiSourcePhotos((currentPhotos) =>
+      currentPhotos.filter((photo) => photo.imageUrl !== imageUrl)
+    );
+  }
+
+  function setAiSourceRoomType(photoId: string, roomType: RoomType) {
+    setAiSourcePhotos((currentPhotos) =>
+      currentPhotos.map((photo) =>
+        photo.id === photoId ? { ...photo, roomType } : photo
+      )
+    );
+  }
+
+  async function fetchImageAsFile(imageUrl: string, fileName: string) {
+    const absoluteUrl = new URL(imageUrl, window.location.origin).toString();
+    const response = await fetch(absoluteUrl);
+
+    if (!response.ok) {
+      throw new Error("Image fetch failed");
+    }
+
+    const blob = await response.blob();
+    return new File([blob], fileName, {
+      type: blob.type || "image/jpeg",
     });
   }
 
@@ -1348,34 +1987,10 @@ export function AdminDashboard({
     setStatusMessage("Обложка выбрана. Сохраните объект, чтобы закрепить изменение.");
   }
 
-  function moveGalleryImage(index: number, direction: -1 | 1) {
-    setPropertyDraft((currentDraft) => {
-      if (!currentDraft) {
-        return currentDraft;
-      }
-
-      const nextIndex = index + direction;
-
-      if (nextIndex < 0 || nextIndex >= currentDraft.imageGallery.length) {
-        return currentDraft;
-      }
-
-      const nextGallery = [...currentDraft.imageGallery];
-      const currentImage = nextGallery[index];
-      nextGallery[index] = nextGallery[nextIndex];
-      nextGallery[nextIndex] = currentImage;
-
-      return {
-        ...currentDraft,
-        imageGallery: nextGallery,
-      };
-    });
-  }
-
-  function setGalleryImagePosition(
+  function nudgeGalleryImagePosition(
     imageUrl: string,
     axis: "x" | "y",
-    value: number
+    delta: number
   ) {
     setPropertyDraft((currentDraft) => {
       if (!currentDraft || !currentDraft.imageGallery.includes(imageUrl)) {
@@ -1390,11 +2005,34 @@ export function AdminDashboard({
           ...currentDraft.imagePositions,
           [imageUrl]: {
             ...currentPosition,
-            [axis]: clampPercentage(value),
+            [axis]: clampPercentage(currentPosition[axis] + delta),
           },
         },
       };
     });
+  }
+
+  function stopImageNudge() {
+    if (imageNudgeIntervalRef.current) {
+      window.clearInterval(imageNudgeIntervalRef.current);
+      imageNudgeIntervalRef.current = null;
+    }
+  }
+
+  function startImageNudge(
+    event: PointerEvent<HTMLButtonElement>,
+    imageUrl: string,
+    axis: "x" | "y",
+    delta: number
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    stopImageNudge();
+    nudgeGalleryImagePosition(imageUrl, axis, delta);
+    imageNudgeIntervalRef.current = window.setInterval(() => {
+      nudgeGalleryImagePosition(imageUrl, axis, delta);
+    }, 90);
   }
 
   async function downloadImageToComputer(imageUrl: string, fileName: string) {
@@ -1418,39 +2056,77 @@ export function AdminDashboard({
     }
   }
 
-  function removeImageFromGallery(imageUrl: string) {
+  async function moveImageFromMainToSpare(imageUrl: string) {
     if (!propertyDraft) {
       return;
     }
 
-    setPropertyDraft((currentDraft) => {
-      if (!currentDraft) {
-        return currentDraft;
-      }
-
-      const nextGallery = currentDraft.imageGallery.filter((item) => item !== imageUrl);
-      const nextImagePositions = { ...currentDraft.imagePositions };
-      delete nextImagePositions[imageUrl];
-
-      return {
-        ...currentDraft,
-        imageUrl:
-          currentDraft.imageUrl === imageUrl
-            ? nextGallery[0] ?? DEFAULT_PROPERTY_COVER_URL
-            : currentDraft.imageUrl,
-        imageGallery: nextGallery,
-        imagePositions: nextImagePositions,
+    if (propertyDraft.id) {
+      const response = await fetch("/api/admin/spare-gallery", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ propertyId: propertyDraft.id, imageUrl }),
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        items?: AdminSpareGalleryItem[];
       };
+
+      if (!response.ok) {
+        setStatusMessage(payload.error ?? "Не удалось перенести фото в запасную галерею.");
+        return;
+      }
+    }
+
+    const nextDraft = applyGalleryInclusion(propertyDraft, imageUrl, false);
+
+    if (!nextDraft) {
+      return;
+    }
+
+    setPropertyDraft(nextDraft);
+    const saved = await persistImmediateGalleryChange(
+      nextDraft,
+      "Фотография перенесена из основной галереи в запасную."
+    );
+
+    if (saved && nextDraft.id) {
+      await loadSpareGallery(nextDraft.id);
+    }
+  }
+
+  async function deleteImageFromSpareGallery(imageUrl: string) {
+    const response = await fetch("/api/admin/spare-gallery", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ imageUrl }),
     });
 
-    setStatusMessage("Фотография убрана из галереи. Сохраните объект, чтобы закрепить изменение.");
+    const payload = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      setStatusMessage(payload.error ?? "Не удалось удалить фото из запасной галереи.");
+      return;
+    }
+
+    setSpareGalleryItems((currentItems) =>
+      currentItems.filter((item) => item.imageUrl !== imageUrl)
+    );
+    setStatusMessage("Фотография удалена из запасной галереи.");
   }
 
   async function generateAiVariants() {
-    const selectedPhotos = uploadedPhotos.filter((photo) => photo.selectedForAi);
+    if (aiSourcePhotos.length === 0) {
+      setAiStatus("Перетащите хотя бы одно фото в поле исходников для AI.");
+      return;
+    }
 
-    if (selectedPhotos.length === 0) {
-      setAiStatus("Нужно отметить хотя бы одно фото для AI-обработки.");
+    if (!selectedId || !propertyDraft?.id) {
+      setAiStatus("Сначала сохраните объект, затем запускайте AI-генерацию.");
       return;
     }
 
@@ -1458,35 +2134,126 @@ export function AdminDashboard({
     setAiStatus("");
 
     try {
-      const formData = new FormData();
-      const roomType = selectedPhotos[0]?.roomType ?? "living_room";
+      const generatedResults: GenerateRoomDesignResult[] = [];
 
-      for (const photo of selectedPhotos) {
-        formData.append("photos", photo.file, photo.name);
+      for (const photo of aiSourcePhotos) {
+        const sourceFile = await fetchImageAsFile(
+          photo.imageUrl,
+          `${photo.id}.jpg`
+        );
+        const formData = new FormData();
+        formData.append("photos", sourceFile, sourceFile.name);
+        formData.append("roomType", photo.roomType);
+        formData.append("palette", aiPalette);
+        formData.append("propertyId", propertyDraft.id);
+
+        const response = await fetch("/api/room-ai/generate", {
+          method: "POST",
+          body: formData,
+        });
+        const payload = (await response.json()) as GenerateRoomDesignResult & {
+          error?: string;
+        };
+
+        if (!response.ok) {
+          setAiStatus(payload.error ?? `Ошибка генерации для фото ${photo.name}.`);
+          return;
+        }
+
+        generatedResults.push(payload);
       }
 
-      formData.append("roomType", roomType);
-      formData.append("palette", aiPalette);
-
-      const response = await fetch("/api/room-ai/generate", {
-        method: "POST",
-        body: formData,
-      });
-      const payload = (await response.json()) as GenerateRoomDesignResult & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        setAiStatus(payload.error ?? "Ошибка генерации вариантов.");
-        return;
-      }
-
-      setAiResult(payload);
-      setAiStatus("ИИ сгенерировал варианты. Можно отобрать лучшие и добавить в карточку.");
+      await loadSavedAiResults(propertyDraft.id);
+      await loadSpareGallery(propertyDraft.id);
+      setFreshAiResultUrls(
+        generatedResults.flatMap((result) =>
+          result.variants.map((variant) => variant.photoImageUrl)
+        )
+      );
+      const totalUsage = generatedResults.reduce<
+        NonNullable<GenerateRoomDesignResult["usageEstimate"]>
+      >(
+        (total, result) => ({
+          inputTokens: total.inputTokens + (result.usageEstimate?.inputTokens ?? 0),
+          outputTokens: total.outputTokens + (result.usageEstimate?.outputTokens ?? 0),
+          totalTokens: total.totalTokens + (result.usageEstimate?.totalTokens ?? 0),
+          generatedImages:
+            total.generatedImages + (result.usageEstimate?.generatedImages ?? 0),
+          estimatedCostUsd:
+            total.estimatedCostUsd + (result.usageEstimate?.estimatedCostUsd ?? 0),
+          note:
+            "Оценка: текстовые токены взяты из usage, стоимость изображения рассчитана по текущему прайсу для 1536x1024 medium.",
+        }),
+        {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          generatedImages: 0,
+          estimatedCostUsd: 0,
+          note:
+            "Оценка: текстовые токены взяты из usage, стоимость изображения рассчитана по текущему прайсу для 1536x1024 medium.",
+        }
+      );
+      setAiResult((currentResult) =>
+        currentResult
+          ? { ...currentResult, usageEstimate: totalUsage }
+          : generatedResults[generatedResults.length - 1] ?? null
+      );
+      setAiStatus(
+        `AI сгенерировал и сохранил ${aiSourcePhotos.length} ${
+          aiSourcePhotos.length === 1 ? "вариант" : "варианта"
+        }. ${formatAiGenerationCost(totalUsage)}`
+      );
+      await loadGenerationBalance();
     } catch {
       setAiStatus("Ошибка генерации вариантов.");
     } finally {
       setIsGeneratingAi(false);
+    }
+  }
+
+  async function loadSavedAiResults(propertyId: string) {
+    try {
+      const response = await fetch(
+        `/api/room-ai/generate?propertyId=${encodeURIComponent(propertyId)}`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as GenerateRoomDesignResult & {
+        error?: string;
+      };
+
+      setAiResult(payload.variants.length > 0 ? payload : null);
+      if (payload.variants.length > 0) {
+        setAiStatus("Загружены сохраненные AI-варианты для этого объекта.");
+      }
+    } catch {
+      // Saved AI results are optional; the editor can continue without them.
+    }
+  }
+
+  async function loadSpareGallery(propertyId: string) {
+    try {
+      const response = await fetch(
+        `/api/admin/spare-gallery?propertyId=${encodeURIComponent(propertyId)}`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as {
+        items?: AdminSpareGalleryItem[];
+      };
+
+      setSpareGalleryItems(payload.items ?? []);
+    } catch {
+      // Spare gallery is optional; the editor can continue without it.
     }
   }
 
@@ -1728,7 +2495,7 @@ export function AdminDashboard({
                           </span>
                         </div>
                         <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">
-                          {property.id}
+                          {getPropertyDisplayId(property)}
                         </div>
                         <div className="mt-2 text-sm text-slate-500">
                           {property.city} · {property.mode === "sale" ? "Продажа" : "Аренда"}
@@ -1746,15 +2513,24 @@ export function AdminDashboard({
 
               <div
                 ref={catalogContentScrollRef}
+                onDragOver={updateDragAutoScroll}
+                onDragEnd={stopDragAutoScroll}
+                onDrop={stopDragAutoScroll}
+                onDragLeave={(event) => {
+                  if (event.currentTarget === event.target) {
+                    stopDragAutoScroll();
+                  }
+                }}
                 className="h-full min-h-0 overflow-y-auto pr-1"
               >
                 <section className="grid gap-6 pb-6">
                 <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="text-lg font-semibold text-slate-950">Форма объекта</div>
+                      <div className="text-lg font-semibold text-slate-950">Объект недвижимости</div>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      {renderCollapseButton("property")}
                       {propertyDraft ? (
                         <>
                           <button
@@ -1811,7 +2587,8 @@ export function AdminDashboard({
                     </div>
                   </div>
 
-                  {propertyDraft ? (
+                  {!isSectionCollapsed("property") ? (
+                  propertyDraft ? (
                     <div className="admin-form-shell grid gap-5">
                       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.7fr)_minmax(180px,0.78fr)_minmax(120px,0.56fr)_minmax(150px,0.72fr)_minmax(140px,0.62fr)]">
                         <label className="min-w-0 grid gap-2">
@@ -1883,7 +2660,7 @@ export function AdminDashboard({
                             ID
                           </span>
                           <input
-                            value={propertyDraft.id}
+                            value={getPropertyDisplayId(propertyDraft)}
                             readOnly
                             placeholder="После сохранения"
                             className="h-11 w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 px-4 text-sm text-slate-500 outline-none"
@@ -1963,55 +2740,59 @@ export function AdminDashboard({
                             />
                           </div>
                         </label>
-                        <div className="min-w-0 grid gap-2">
-                          <span className="text-sm font-semibold text-transparent">.</span>
-                          <button
-                            type="button"
-                            onClick={fillCoordinatesFromAddress}
-                            disabled={isGeocodingAddress}
-                            title="Заполнить координаты по адресу"
-                            className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 disabled:opacity-60"
-                          >
-                            {isGeocodingAddress ? "..." : "⌖"}
-                          </button>
-                        </div>
-                        <label className="min-w-0 grid gap-2">
-                          <div className="grid gap-1">
-                            {geocodeMessage ? (
-                              <span className="text-xs text-slate-500">{geocodeMessage}</span>
-                            ) : null}
-                            <span className="text-sm font-semibold text-slate-800">
-                              Широта
-                            </span>
+                        <div className="relative min-w-0 md:col-span-2 2xl:col-span-3">
+                          {geocodeMessage ? (
+                            <div className="absolute -top-5 left-[64px] text-xs text-slate-500">
+                              {geocodeMessage}
+                            </div>
+                          ) : null}
+                          <div className="grid grid-cols-[48px_minmax(0,1fr)_minmax(0,1fr)] items-end gap-4">
+                            <div className="min-w-0 grid gap-2">
+                              <span className="text-sm font-semibold text-transparent">.</span>
+                              <button
+                                type="button"
+                                onClick={fillCoordinatesFromAddress}
+                                disabled={isGeocodingAddress}
+                                title="Заполнить координаты по адресу"
+                                className="h-11 w-11 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 disabled:opacity-60"
+                              >
+                                {isGeocodingAddress ? "..." : "⌖"}
+                              </button>
+                            </div>
+                            <label className="min-w-0 grid gap-2">
+                              <span className="text-sm font-semibold text-slate-800">
+                                Широта
+                              </span>
+                              <input
+                                value={displayDraftNumberValue(propertyDraft.location.latitude, isNewPropertyDraft)}
+                                onChange={(event) =>
+                                  setDraftLocationValue("latitude", toNumber(event.target.value))
+                                }
+                                placeholder="0"
+                                className={withChangedFieldClass(
+                                  "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
+                                  "location.latitude"
+                                )}
+                              />
+                            </label>
+                            <label className="min-w-0 grid gap-2">
+                              <span className="text-sm font-semibold text-slate-800">
+                                Долгота
+                              </span>
+                              <input
+                                value={displayDraftNumberValue(propertyDraft.location.longitude, isNewPropertyDraft)}
+                                onChange={(event) =>
+                                  setDraftLocationValue("longitude", toNumber(event.target.value))
+                                }
+                                placeholder="0"
+                                className={withChangedFieldClass(
+                                  "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
+                                  "location.longitude"
+                                )}
+                              />
+                            </label>
                           </div>
-                          <input
-                            value={displayDraftNumberValue(propertyDraft.location.latitude, isNewPropertyDraft)}
-                            onChange={(event) =>
-                              setDraftLocationValue("latitude", toNumber(event.target.value))
-                            }
-                            placeholder="0"
-                            className={withChangedFieldClass(
-                              "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
-                              "location.latitude"
-                            )}
-                          />
-                        </label>
-                        <label className="min-w-0 grid gap-2">
-                          <span className="text-sm font-semibold text-slate-800">
-                            Долгота
-                          </span>
-                          <input
-                            value={displayDraftNumberValue(propertyDraft.location.longitude, isNewPropertyDraft)}
-                            onChange={(event) =>
-                              setDraftLocationValue("longitude", toNumber(event.target.value))
-                            }
-                            placeholder="0"
-                            className={withChangedFieldClass(
-                              "w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500",
-                              "location.longitude"
-                            )}
-                          />
-                        </label>
+                        </div>
                         {!showsCompactLayout ? <div className="min-w-0" /> : null}
                       </div>
 
@@ -2167,8 +2948,8 @@ export function AdminDashboard({
                           <div
                             className={
                               showsCompactAttachedLandLayout
-                                ? "grid gap-4 md:grid-cols-2 2xl:grid-cols-[120px_88px_88px_96px_110px_110px_minmax(180px,0.9fr)]"
-                                : "grid gap-4 md:grid-cols-2 2xl:grid-cols-[120px_88px_88px_96px_110px_minmax(180px,0.95fr)]"
+                                ? "grid gap-4 md:grid-cols-2 2xl:grid-cols-[160px_82px_82px_92px_104px_104px_minmax(130px,0.7fr)]"
+                                : "grid gap-4 md:grid-cols-2 2xl:grid-cols-[160px_82px_82px_92px_104px_minmax(130px,0.7fr)]"
                             }
                           >
                             <label className="min-w-0 grid gap-2">
@@ -2820,27 +3601,43 @@ export function AdminDashboard({
                         </div>
                       ) : null}
 
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-sm font-semibold text-slate-900">
-                          Текущие фотографии объекта
-                        </div>
-                        {removedGalleryImages.length > 0 ? (
-                          <div className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-2 ring-amber-100">
-                            Удалено из галереи: {removedGalleryImages.length}. Сохраните объект,
-                            чтобы удалить эти фото из базы.
+                      <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-slate-900">
+                              Текущие фотографии объекта
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              Перетащите, чтобы изменить порядок или убрать в запасные.
+                            </div>
                           </div>
-                        ) : null}
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                          {renderCollapseButton("photos")}
+                        </div>
+                        {!isSectionCollapsed("photos") ? (
+                        <>
+                        <div
+                          className="mt-3 flex max-w-full gap-3 overflow-x-auto pb-3"
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={(event) => {
+                            void handleMainGalleryDrop(event);
+                          }}
+                        >
                           {propertyDraft.imageGallery.length > 0 ? (
                             propertyDraft.imageGallery.map((imageUrl, index) => {
-                              const imagePosition =
-                                propertyDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 };
-
                               return (
                               <div
                                 key={imageUrl}
+                                draggable
+                                onDragStart={(event) =>
+                                  writeGalleryDragData(event, imageUrl, "main")
+                                }
+                                onDragOver={(event) => event.preventDefault()}
+                                onDrop={(event) => {
+                                  event.stopPropagation();
+                                  void handleMainGalleryDrop(event, imageUrl);
+                                }}
                                 className={withChangedBlockClass(
-                                  `overflow-hidden rounded-2xl border bg-white ${
+                                  `w-[280px] shrink-0 cursor-grab overflow-hidden rounded-2xl border bg-white active:cursor-grabbing sm:w-[300px] ${
                                     propertyDraft.imageUrl === imageUrl
                                       ? "border-amber-400 ring-2 ring-amber-200"
                                       : "border-slate-200"
@@ -2868,65 +3665,84 @@ export function AdminDashboard({
                                       Обложка
                                     </div>
                                   ) : null}
+                                  {isAiGeneratedImage(imageUrl) ? (
+                                    <div className="absolute bottom-2 left-2 rounded-full bg-slate-950/80 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                                      AI
+                                    </div>
+                                  ) : null}
+                                  <div className="absolute bottom-2 left-1/2 grid -translate-x-1/2 grid-cols-3 gap-0.5 rounded-xl bg-slate-950/20 p-1 text-white opacity-45 shadow-sm transition hover:bg-slate-950/45 hover:opacity-100">
+                                    <span />
+                                    <button
+                                      type="button"
+                                      draggable={false}
+                                      title="Сдвинуть фото вверх"
+                                      aria-label="Сдвинуть фото вверх"
+                                      onPointerDown={(event) =>
+                                        startImageNudge(event, imageUrl, "y", -2)
+                                      }
+                                      onPointerUp={stopImageNudge}
+                                      onPointerCancel={stopImageNudge}
+                                      onPointerLeave={stopImageNudge}
+                                      onClick={(event) => event.preventDefault()}
+                                      className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
+                                    >
+                                      ↑
+                                    </button>
+                                    <span />
+                                    <button
+                                      type="button"
+                                      draggable={false}
+                                      title="Сдвинуть фото влево"
+                                      aria-label="Сдвинуть фото влево"
+                                      onPointerDown={(event) =>
+                                        startImageNudge(event, imageUrl, "x", -2)
+                                      }
+                                      onPointerUp={stopImageNudge}
+                                      onPointerCancel={stopImageNudge}
+                                      onPointerLeave={stopImageNudge}
+                                      onClick={(event) => event.preventDefault()}
+                                      className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
+                                    >
+                                      ←
+                                    </button>
+                                    <span className="h-6 w-6" />
+                                    <button
+                                      type="button"
+                                      draggable={false}
+                                      title="Сдвинуть фото вправо"
+                                      aria-label="Сдвинуть фото вправо"
+                                      onPointerDown={(event) =>
+                                        startImageNudge(event, imageUrl, "x", 2)
+                                      }
+                                      onPointerUp={stopImageNudge}
+                                      onPointerCancel={stopImageNudge}
+                                      onPointerLeave={stopImageNudge}
+                                      onClick={(event) => event.preventDefault()}
+                                      className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
+                                    >
+                                      →
+                                    </button>
+                                    <span />
+                                    <button
+                                      type="button"
+                                      draggable={false}
+                                      title="Сдвинуть фото вниз"
+                                      aria-label="Сдвинуть фото вниз"
+                                      onPointerDown={(event) =>
+                                        startImageNudge(event, imageUrl, "y", 2)
+                                      }
+                                      onPointerUp={stopImageNudge}
+                                      onPointerCancel={stopImageNudge}
+                                      onPointerLeave={stopImageNudge}
+                                      onClick={(event) => event.preventDefault()}
+                                      className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
+                                    >
+                                      ↓
+                                    </button>
+                                    <span />
+                                  </div>
                                 </div>
                                 <div className="p-3">
-                                  <div className="mb-3 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                      Позиция фото
-                                    </div>
-                                    <label className="grid gap-1 text-xs font-semibold text-slate-600">
-                                      Горизонтально: {imagePosition.x}%
-                                      <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        value={imagePosition.x}
-                                        onChange={(event) =>
-                                          setGalleryImagePosition(
-                                            imageUrl,
-                                            "x",
-                                            Number(event.target.value)
-                                          )
-                                        }
-                                        className="accent-emerald-700"
-                                      />
-                                    </label>
-                                    <label className="grid gap-1 text-xs font-semibold text-slate-600">
-                                      Вертикально: {imagePosition.y}%
-                                      <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        value={imagePosition.y}
-                                        onChange={(event) =>
-                                          setGalleryImagePosition(
-                                            imageUrl,
-                                            "y",
-                                            Number(event.target.value)
-                                          )
-                                        }
-                                        className="accent-emerald-700"
-                                      />
-                                    </label>
-                                  </div>
-                                  <div className="mb-2 flex flex-wrap gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => moveGalleryImage(index, -1)}
-                                      disabled={index === 0}
-                                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 disabled:opacity-40"
-                                    >
-                                      Выше
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => moveGalleryImage(index, 1)}
-                                      disabled={index === propertyDraft.imageGallery.length - 1}
-                                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 disabled:opacity-40"
-                                    >
-                                      Ниже
-                                    </button>
-                                  </div>
                                   <div className="flex flex-wrap gap-2">
                                     <button
                                       type="button"
@@ -2941,82 +3757,236 @@ export function AdminDashboard({
                                         ? "Текущая обложка"
                                         : "Сделать обложкой"}
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => removeImageFromGallery(imageUrl)}
-                                      className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50"
-                                    >
-                                      Удалить
-                                    </button>
                                   </div>
                                 </div>
                               </div>
                               );
                             })
                           ) : (
-                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
+                            <div className="min-w-[260px] rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
                               У объекта пока нет фотографий.
                             </div>
                           )}
                         </div>
+                        <div
+                          className="mt-4 min-w-0 border-t border-slate-200 pt-4"
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={(event) => {
+                            void handleSpareGalleryDrop(event);
+                          }}
+                        >
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <div className="text-sm font-semibold text-slate-900">
+                              Запасная галерея
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              Перетащите сюда из основной или перетащите фото обратно в основную
+                            </div>
+                          </div>
+                          {spareGalleryItems.length > 0 ? (
+                            <div className="flex max-w-full gap-3 overflow-x-auto pb-2">
+                              {spareGalleryItems.map((item) => (
+                                <div
+                                  key={item.id}
+                                  draggable
+                                  onDragStart={(event) =>
+                                    writeGalleryDragData(event, item.imageUrl, "spare")
+                                  }
+                                  className="group w-[108px] shrink-0 cursor-grab overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-emerald-400 hover:ring-2 hover:ring-emerald-200 active:cursor-grabbing"
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      void addImageFromSpareToGallery(item.imageUrl);
+                                    }}
+                                    title="Перенести в основную галерею"
+                                    className="relative block h-[66px] w-full cursor-grab active:cursor-grabbing"
+                                  >
+                                    {item.source === "ai" ? (
+                                      <span className="absolute bottom-1 left-1 rounded-full bg-slate-950/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+                                        AI
+                                      </span>
+                                    ) : null}
+                                    <img
+                                      src={item.imageUrl}
+                                      alt={item.title}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </button>
+                                  <div className="flex justify-center gap-2 px-1 py-1.5">
+                                    <button
+                                      type="button"
+                                      title="Скачать"
+                                      aria-label="Скачать"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        void downloadImageToComputer(item.imageUrl, `${item.id}.jpg`);
+                                      }}
+                                      className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                                    >
+                                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden="true">
+                                        <path
+                                          d="M12 3v10.2m0 0 3.6-3.6M12 13.2 8.4 9.6M5 16.5V20h14v-3.5"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth="2"
+                                        />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      title="Удалить"
+                                      aria-label="Удалить"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        void deleteImageFromSpareGallery(item.imageUrl);
+                                      }}
+                                      className="grid h-7 w-7 place-items-center rounded-full border border-red-200 bg-white text-red-700 transition hover:bg-red-50"
+                                    >
+                                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden="true">
+                                        <path
+                                          d="M4 7h16M10 11v6m4-6v6M9 7l.5-3h5L15 7m-8 0 1 13h8l1-13"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth="2"
+                                        />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-500">
+                              Запасная галерея пока пустая.
+                            </div>
+                          )}
+                          <label className="mt-4 grid gap-2">
+                            <span className="text-sm font-semibold text-slate-800">
+                              Загрузка фотографий
+                            </span>
+                            <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-5">
+                              <div className="flex flex-wrap items-center gap-4">
+                                <button
+                                  type="button"
+                                  onMouseDown={(event) => {
+                                    event.preventDefault();
+                                  }}
+                                  onClick={() => {
+                                    openPhotoPicker();
+                                  }}
+                                  className="inline-flex rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                                >
+                                  Выбрать файлы
+                                </button>
+                                <span className="text-sm text-slate-600">
+                                  {uploadedPhotos.length > 0
+                                    ? `Загружено фото: ${uploadedPhotos.length}`
+                                    : "Можно загрузить одно или несколько фото"}
+                                </span>
+                                <input
+                                  ref={photoFileInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  onChange={handlePhotoUpload}
+                                  tabIndex={-1}
+                                  aria-hidden="true"
+                                  className="pointer-events-none fixed left-0 top-0 h-px w-px opacity-0"
+                                />
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                        </>
+                        ) : null}
                       </div>
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
                       Выберите объект слева или создайте новый.
                     </div>
-                  )}
+                  )
+                  ) : null}
                 </div>
 
                 <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="mb-4">
-                    <div className="text-sm font-semibold text-slate-950">
-                      Фотографии и AI-варианты
+                  <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950">
+                        Фотографии и AI-варианты
+                      </div>
+                      <div className="mt-1 text-sm text-slate-500">
+                        Загружайте фото, отмечайте нужные кадры для очистки и генерации,
+                        затем переносите лучшие варианты в фотографии объекта.
+                      </div>
                     </div>
-                    <div className="mt-1 text-sm text-slate-500">
-                      Загружайте фото, отмечайте нужные кадры для очистки и генерации,
-                      затем переносите лучшие варианты в фотографии объекта.
-                    </div>
+                    {renderCollapseButton("ai")}
                   </div>
 
+                  {!isSectionCollapsed("ai") ? (
                   <div className="grid items-start gap-5 lg:grid-cols-[1fr_1fr]">
                     <div className="grid self-start gap-4">
-                      <label className="grid gap-2">
-                        <span className="text-sm font-semibold text-slate-800">
-                          Загрузка фотографий
-                        </span>
-                        <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5">
-                          <div className="flex flex-wrap items-center gap-4">
-                              <button
-                                type="button"
-                                onMouseDown={(event) => {
-                                  event.preventDefault();
-                                }}
-                                onClick={() => {
-                                  openPhotoPicker();
-                                }}
-                                className="inline-flex rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                              >
-                              Выбрать файлы
-                            </button>
-                            <span className="text-sm text-slate-600">
-                              {uploadedPhotos.length > 0
-                                ? `Загружено фото: ${uploadedPhotos.length}`
-                                : "Можно загрузить одно или несколько фото"}
-                            </span>
-                            <input
-                              ref={photoFileInputRef}
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={handlePhotoUpload}
-                              tabIndex={-1}
-                              aria-hidden="true"
-                              className="pointer-events-none fixed left-0 top-0 h-px w-px opacity-0"
-                            />
-                          </div>
+                      <div className="grid gap-2">
+                        <div className="text-sm font-semibold text-slate-800">
+                          Исходники для AI
                         </div>
-                      </label>
+                        <div
+                          className="min-h-[132px] rounded-3xl border border-dashed border-emerald-300 bg-emerald-50/50 p-4"
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={handleAiSourceDrop}
+                        >
+                          {aiSourcePhotos.length > 0 ? (
+                            <div className="flex gap-3 overflow-x-auto pb-1">
+                              {aiSourcePhotos.map((photo) => (
+                                <div
+                                  key={photo.id}
+                                  className="w-[132px] shrink-0 overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm"
+                                >
+                                  <img
+                                    src={photo.imageUrl}
+                                    alt={photo.name}
+                                    className="h-20 w-full object-cover"
+                                  />
+                                  <div className="grid gap-2 p-2">
+                                    <select
+                                      value={photo.roomType}
+                                      onChange={(event) =>
+                                        setAiSourceRoomType(
+                                          photo.id,
+                                          event.target.value as RoomType
+                                        )
+                                      }
+                                      className="h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs outline-none focus:border-emerald-500"
+                                    >
+                                      {roomTypeOptions.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeAiSourcePhoto(photo.imageUrl)}
+                                      className="rounded-xl border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 transition hover:border-red-200 hover:text-red-700"
+                                    >
+                                      Убрать
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex h-full min-h-[96px] items-center justify-center text-center text-sm text-slate-500">
+                              Перетащите сюда фото из основной или запасной галереи
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
                       <div className="grid gap-4 lg:grid-cols-1">
                         <label className="grid gap-2">
@@ -3048,13 +4018,26 @@ export function AdminDashboard({
                         className="rounded-2xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                       >
                         {isGeneratingAi
-                          ? "Генерируем варианты..."
-                          : "Очистить фото и сгенерировать варианты"}
+                          ? "Генерируем вариант..."
+                          : "Сгенерировать мебель"}
                       </button>
 
                       {aiStatus ? (
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                           {aiStatus}
+                        </div>
+                      ) : null}
+
+                      {generationBalance ? (
+                        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950">
+                          <div className="font-semibold">
+                            Накопленный баланс генераций: {formatUsd(generationBalance.totalCostUsd)}
+                          </div>
+                          <div className="mt-1 text-xs text-emerald-900/80">
+                            Токены: {generationBalance.totalTokens.toLocaleString("ru-RU")}
+                            {" "}· Изображений: {generationBalance.totalImages}
+                            {" "}· Записей: {generationBalance.entriesCount}
+                          </div>
                         </div>
                       ) : null}
 
@@ -3093,26 +4076,9 @@ export function AdminDashboard({
                                   </select>
                                 </label>
                                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-                                  <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                                    <input
-                                      type="checkbox"
-                                      checked={photo.selectedForAi}
-                                      onChange={() => togglePhotoForAi(photo.id)}
-                                      className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
-                                    />
-                                    Использовать для AI
-                                  </label>
-                                  <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                                    <input
-                                      type="checkbox"
-                                      checked={propertyDraft?.imageGallery.includes(photo.previewUrl) ?? false}
-                                      onChange={(event) =>
-                                        togglePhotoInGallery(photo.previewUrl, event.target.checked)
-                                      }
-                                      className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
-                                    />
-                                    В галерею объекта
-                                  </label>
+                                  <div className="text-sm text-slate-600">
+                                    Фото сохранено в запасную галерею. Перетащите его в поле исходников для AI или в основную галерею.
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -3122,41 +4088,48 @@ export function AdminDashboard({
                     </div>
 
                     <div className="grid self-start gap-3">
-                      {aiResult ? (
-                        aiResult.variants.map((variant) => (
-                          <article
-                            key={variant.id}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-                          >
-                            <img
-                              src={variant.photoImageUrl}
-                              alt={variant.title}
-                              className="h-44 w-full rounded-2xl object-cover"
-                            />
-                            <div className="mt-3 flex items-start justify-between gap-3">
-                              <div>
-                                <div className="text-base font-semibold text-slate-950">
-                                  {variant.title}
-                                </div>
-                                <div className="mt-1 text-sm text-slate-600">
-                                  {variant.description}
-                                </div>
+                      <div className="text-sm font-semibold text-slate-800">
+                        Сгенерированный вариант
+                      </div>
+                      {visibleAiVariants.length > 0 ? (
+                        <div className="grid gap-4">
+                          {visibleAiVariants.map((variant) => (
+                            <article
+                              key={variant.id}
+                              draggable
+                              onDragStart={(event) =>
+                                writeGalleryDragData(event, variant.photoImageUrl, "ai-result")
+                              }
+                              className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm cursor-grab active:cursor-grabbing"
+                            >
+                              <div className="relative">
+                                <span className="absolute bottom-3 left-3 z-10 rounded-full bg-slate-950/80 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                                  AI
+                                </span>
+                                <img
+                                  src={variant.photoImageUrl}
+                                  alt={variant.title}
+                                  draggable={false}
+                                  onDragStart={(event) => {
+                                    event.preventDefault();
+                                  }}
+                                  className="h-[320px] w-full cursor-grab object-cover active:cursor-grabbing"
+                                />
                               </div>
-                              <div className="flex shrink-0 flex-col gap-2">
-                                <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                                  <input
-                                    type="checkbox"
-                                    checked={propertyDraft?.imageGallery.includes(variant.photoImageUrl) ?? false}
-                                    onChange={(event) =>
-                                      togglePhotoInGallery(
-                                        variant.photoImageUrl,
-                                        event.target.checked
-                                      )
-                                    }
-                                    className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
-                                  />
-                                  В галерею объекта
-                                </label>
+                              <div className="grid gap-3 p-4">
+                                <div>
+                                  <div className="text-base font-semibold text-slate-950">
+                                    {variant.title}
+                                  </div>
+                                  <div className="mt-1 text-sm text-slate-600">
+                                    Перетащите изображение в основную галерею, если вариант подходит.
+                                  </div>
+                                </div>
+                                {aiResult?.usageEstimate ? (
+                                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                                    {formatAiGenerationCost(aiResult.usageEstimate)}
+                                  </div>
+                                ) : null}
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -3165,21 +4138,188 @@ export function AdminDashboard({
                                       `${variant.id}.jpg`
                                     )
                                   }
-                                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                                  className="w-fit rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
                                 >
-                                  Сохранить
+                                  Скачать
                                 </button>
                               </div>
-                            </div>
-                          </article>
-                        ))
+                            </article>
+                          ))}
+                        </div>
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                          Здесь появятся AI-варианты после генерации.
+                        <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                          Здесь появится крупный результат генерации. Его можно будет перетащить в основную галерею.
                         </div>
                       )}
                     </div>
                   </div>
+                  ) : null}
+                </div>
+
+                <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950">
+                        GIF превращения объекта
+                      </div>
+                      <div className="mt-1 text-sm text-slate-500">
+                        Соберите лёгкую GIF-анимацию: исходный вид, плавное превращение и финальный AI-результат.
+                      </div>
+                    </div>
+                    {renderCollapseButton("gif")}
+                  </div>
+
+                  {!isSectionCollapsed("gif") ? (
+                    <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+                      <div className="grid gap-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {([
+                            ["start", "Стартовое фото", gifStartImageUrl],
+                            ["finish", "Финальное фото", gifFinishImageUrl],
+                          ] as Array<[GifImageSlot, string, string]>).map(
+                            ([slot, label, imageUrl]) => (
+                              <div key={slot} className="grid gap-2">
+                                <div className="text-sm font-semibold text-slate-800">
+                                  {label}
+                                </div>
+                                <div
+                                  onDragOver={(event) => event.preventDefault()}
+                                  onDrop={(event) => handleGifImageDrop(event, slot)}
+                                  className="flex min-h-[210px] items-center justify-center overflow-hidden rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-center text-sm text-slate-500"
+                                >
+                                  {imageUrl ? (
+                                    <img
+                                      src={imageUrl}
+                                      alt={label}
+                                      className="h-full min-h-[210px] w-full object-cover"
+                                    />
+                                  ) : (
+                                    <span className="px-5">
+                                      Перетащите сюда фото из основной, запасной или AI-галереи
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <label className="grid gap-2">
+                            <span className="text-sm font-semibold text-slate-800">
+                              Показ исходника, сек.
+                            </span>
+                            <input
+                              type="number"
+                              min="0.2"
+                              max="10"
+                              step="0.1"
+                              value={gifStartSeconds}
+                              onChange={(event) =>
+                                setGifStartSeconds(Number(event.target.value))
+                              }
+                              className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                            />
+                          </label>
+                          <label className="grid gap-2">
+                            <span className="text-sm font-semibold text-slate-800">
+                              Превращение, сек.
+                            </span>
+                            <input
+                              type="number"
+                              min="0.2"
+                              max="10"
+                              step="0.1"
+                              value={gifTransitionSeconds}
+                              onChange={(event) =>
+                                setGifTransitionSeconds(Number(event.target.value))
+                              }
+                              className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                            />
+                          </label>
+                          <label className="grid gap-2">
+                            <span className="text-sm font-semibold text-slate-800">
+                              Показ результата, сек.
+                            </span>
+                            <input
+                              type="number"
+                              min="0.2"
+                              max="10"
+                              step="0.1"
+                              value={gifFinishSeconds}
+                              onChange={(event) =>
+                                setGifFinishSeconds(Number(event.target.value))
+                              }
+                              className="rounded-2xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                            />
+                          </label>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={generateTransitionGif}
+                          disabled={isGeneratingGif}
+                          className="rounded-2xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                        >
+                          {isGeneratingGif ? "Генерируем GIF..." : "Сгенерировать GIF"}
+                        </button>
+
+                        {gifStatus ? (
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                            {gifStatus}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="grid self-start gap-3">
+                        <div className="text-sm font-semibold text-slate-800">
+                          Готовая GIF
+                        </div>
+                        {gifResult ? (
+                          <div
+                            draggable
+                            onDragStart={(event) =>
+                              writeGalleryDragData(event, gifResult.gifUrl, "gif-result")
+                            }
+                            className="cursor-grab overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm active:cursor-grabbing"
+                          >
+                            <img
+                              src={gifResult.gifUrl}
+                              alt="GIF превращения объекта"
+                              draggable={false}
+                              onDragStart={(event) => {
+                                event.preventDefault();
+                              }}
+                              className="h-[320px] w-full object-cover"
+                            />
+                            <div className="grid gap-3 p-4">
+                              <div className="text-sm text-slate-600">
+                                <div>Размер: {formatBytes(gifResult.sizeBytes)}</div>
+                                <div>Стоимость генерации: {formatUsd(gifResult.estimatedCostUsd)}</div>
+                                <div className="text-xs text-slate-500">{gifResult.note}</div>
+                              </div>
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="text-xs text-slate-500">
+                                  Перетащите GIF в основную или запасную галерею.
+                                </div>
+                                <a
+                                  href={gifResult.gifUrl}
+                                  download
+                                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                                >
+                                  Скачать GIF
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                            Здесь появится готовая GIF для сайта агентства.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </section>
             </div>
@@ -3530,7 +4670,7 @@ export function AdminDashboard({
                     JSON редактор объекта
                   </div>
                   <div className="mt-1 text-sm text-slate-500">
-                    Редактируется только текущий объект: {propertyDraft.id}
+                    Редактируется только текущий объект: {getPropertyDisplayId(propertyDraft)}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">

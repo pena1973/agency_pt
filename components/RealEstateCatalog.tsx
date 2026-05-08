@@ -26,6 +26,14 @@ function getPropertyPublicPath(property: PropertyListing) {
   return `/properties/${encodeURIComponent(pathSlug)}`;
 }
 
+function getPropertyDisplayId(property: Pick<PropertyListing, "id">) {
+  return property.id.replace(/^irina-/, "");
+}
+
+function isAiGeneratedImage(property: PropertyListing, imageUrl: string) {
+  return property.imageSources?.[imageUrl] === "ai_generated";
+}
+
 const languageOptions = [
   { code: "pt", label: "PT" },
   { code: "en", label: "EN" },
@@ -941,6 +949,11 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                       className="group overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-[0_18px_36px_rgba(15,23,42,0.08)]"
                     >
                       <div className="relative">
+                        {isAiGeneratedImage(property, currentImage) ? (
+                          <div className="absolute bottom-4 left-4 z-10 rounded-full bg-slate-950/80 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                            AI
+                          </div>
+                        ) : null}
                         <img
                           src={currentImage}
                           alt={property.title}
@@ -1033,7 +1046,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           <div className="text-xs text-slate-500">
                             ID объекта:{" "}
                             <span className="font-semibold text-slate-700">
-                              {property.id}
+                              {getPropertyDisplayId(property)}
                             </span>
                           </div>
 
@@ -1105,17 +1118,24 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                       }`}
                     >
                       <div className="flex gap-3">
-                        <img
-                          src={getPropertyCoverImage(property)}
-                          alt={property.title}
-                          className="h-24 w-24 shrink-0 rounded-[18px] object-cover"
-                          style={{
-                            objectPosition: getPropertyImagePosition(
-                              property,
-                              getPropertyCoverImage(property)
-                            ),
-                          }}
-                        />
+                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px]">
+                          {isAiGeneratedImage(property, getPropertyCoverImage(property)) ? (
+                            <span className="absolute bottom-1 left-1 z-10 rounded-full bg-slate-950/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+                              AI
+                            </span>
+                          ) : null}
+                          <img
+                            src={getPropertyCoverImage(property)}
+                            alt={property.title}
+                            className="h-full w-full object-cover"
+                            style={{
+                              objectPosition: getPropertyImagePosition(
+                                property,
+                                getPropertyCoverImage(property)
+                              ),
+                            }}
+                          />
+                        </div>
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">

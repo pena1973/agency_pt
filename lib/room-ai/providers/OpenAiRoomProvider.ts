@@ -36,8 +36,21 @@ type RefineVariantFromPhotoInput = {
   variant: RoomVariant;
 };
 
+type TokenUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  generatedImages: number;
+};
+
 export class OpenAiRoomProvider {
   private client: OpenAI;
+  private usage: TokenUsage = {
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    generatedImages: 0,
+  };
 
   constructor() {
     this.client = new OpenAI({
@@ -70,6 +83,7 @@ export class OpenAiRoomProvider {
         },
       ],
     });
+    this.recordUsage(response);
 
     const text = response.output_text;
 
@@ -101,6 +115,7 @@ export class OpenAiRoomProvider {
         },
       ],
     });
+    this.recordUsage(response);
 
     const text = response.output_text;
 
@@ -141,6 +156,8 @@ export class OpenAiRoomProvider {
       prompt,
       size: "1536x1024",
     } as never);
+    this.recordUsage(result);
+    this.usage.generatedImages += 1;
 
     const imageBase64 = result.data?.[0]?.b64_json;
 
@@ -177,6 +194,7 @@ export class OpenAiRoomProvider {
         },
       ],
     });
+    this.recordUsage(response);
 
     const text = response.output_text;
 
@@ -223,6 +241,29 @@ export class OpenAiRoomProvider {
     }
   }
 
+  getUsage(): TokenUsage {
+    return { ...this.usage };
+  }
+
+  private recordUsage(response: unknown) {
+    const usage = (response as { usage?: Record<string, unknown> }).usage;
+
+    if (!usage) {
+      return;
+    }
+
+    const inputTokens =
+      Number(usage.input_tokens ?? usage.prompt_tokens ?? 0) || 0;
+    const outputTokens =
+      Number(usage.output_tokens ?? usage.completion_tokens ?? 0) || 0;
+    const totalTokens =
+      Number(usage.total_tokens ?? inputTokens + outputTokens) || 0;
+
+    this.usage.inputTokens += inputTokens;
+    this.usage.outputTokens += outputTokens;
+    this.usage.totalTokens += totalTokens;
+  }
+
   private parseLayoutVariants(rawText: string): RoomVariant[] {
     try {
       const cleaned = rawText
@@ -238,7 +279,7 @@ export class OpenAiRoomProvider {
         throw new Error("Missing variants array.");
       }
 
-      return parsed.variants.slice(0, 3).map((variant, index) => {
+      return parsed.variants.slice(0, 1).map((variant, index) => {
         const variantNumber = index + 1;
 
         return {
@@ -399,7 +440,8 @@ export class OpenAiRoomProvider {
 
 Задача:
 - очистить помещение от лишних вещей и визуального шума;
-- сохранить архитектуру комнаты, пропорции, окно, дверь, стены, пол и перспективу максимально близко к исходному фото;
+- сохранить архитектуру комнаты, пропорции, окно, дверь и перспективу максимально близко к исходному фото;
+- стены, пол и потолок можно перекрасить или визуально обновить при необходимости, если это помогает стилю, свету и мебели;
 - обставить комнату мебелью строго по описанию варианта;
 - сделать реалистичный интерьерный рендер, как фотография;
 - стиль спокойный, современный, аккуратный;

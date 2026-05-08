@@ -81,6 +81,10 @@ function getListingModeLabel(mode: PropertyListing["mode"]) {
   return mode === "rent" ? "Аренда" : "Продажа";
 }
 
+function isAiGeneratedImage(property: PropertyListing, imageUrl: string) {
+  return property.imageSources?.[imageUrl] === "ai_generated";
+}
+
 function buildContactMessage(property: PropertyListing) {
   return `Здравствуйте! Меня интересует объект ${getPropertyPublicReference(property)} — ${property.title}/${getListingModeLabel(property.mode)}`;
 }
@@ -489,13 +493,21 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               Открыть на карте
             </a>
             <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              ID: {property.id}
+              ID: {getPropertyPublicReference(property)}
             </div>
           </div>
         </div>
 
         <article className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
           <div className="relative">
+            {isAiGeneratedImage(
+              property,
+              property.imageGallery[activeImageIndex] ?? getPropertyCoverImage(property)
+            ) ? (
+              <div className="absolute bottom-4 left-4 z-10 rounded-full bg-slate-950/80 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                AI
+              </div>
+            ) : null}
             <img
               src={property.imageGallery[activeImageIndex] ?? getPropertyCoverImage(property)}
               alt={`${property.title} — фото ${activeImageIndex + 1}`}
@@ -544,12 +556,17 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                   key={`${image}-${index}`}
                   type="button"
                   onClick={() => setActiveImageIndex(index)}
-                  className={`overflow-hidden rounded-2xl border ${
+                  className={`relative overflow-hidden rounded-2xl border ${
                     index === activeImageIndex
                       ? "border-emerald-500 ring-2 ring-emerald-100"
                       : "border-slate-200"
                   }`}
                 >
+                  {isAiGeneratedImage(property, image) ? (
+                    <span className="absolute bottom-1 left-1 z-10 rounded-full bg-slate-950/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+                      AI
+                    </span>
+                  ) : null}
                   <img
                     src={image}
                     alt={`${property.title} — миниатюра ${index + 1}`}

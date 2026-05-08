@@ -112,6 +112,7 @@ export type PropertyListing = {
   imageUrl: string;
   imageGallery: string[];
   imagePositions?: Record<string, { x: number; y: number }>;
+  imageSources?: Record<string, "original" | "ai_generated">;
   features: ListingFeature[];
   details: PropertyDetails;
   transportAccess: TransportRoute[];

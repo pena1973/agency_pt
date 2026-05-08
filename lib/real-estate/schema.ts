@@ -84,6 +84,9 @@ export const propertyListingSchema = z.object({
       })
     )
     .optional(),
+  imageSources: z
+    .record(imageUrlSchema, z.enum(["original", "ai_generated"]))
+    .optional(),
   features: z.array(listingFeatureSchema),
   details: z.object({
     propertyType: propertyTypeSchema,

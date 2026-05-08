@@ -36,7 +36,7 @@ export class RoomAiService {
       input,
       roomAnalysis,
       await this.getLayoutVariants(input, roomAnalysis)
-    );
+    ).slice(0, 1);
 
     const variantsWithImages = await this.generatePhotosForVariants(
       input,
@@ -54,11 +54,61 @@ export class RoomAiService {
       )
     );
 
+    const usageEstimate = this.buildUsageEstimate();
+
     return {
       jobId,
       roomAnalysis,
       variants: await this.persistGeneratedVariantPhotos(jobId, photoAlignedVariants),
+      usageEstimate,
     };
+  }
+
+  private buildUsageEstimate(): GenerateRoomDesignResult["usageEstimate"] {
+    const usage = this.ai.getUsage();
+    const imageUnitCostUsd = this.getImageUnitCostUsd(env.OPENAI_IMAGE_MODEL);
+    const textCostUsd = this.estimateTextCostUsd(env.OPENAI_VISION_MODEL, usage);
+    const estimatedCostUsd =
+      textCostUsd + usage.generatedImages * imageUnitCostUsd;
+
+    return {
+      ...usage,
+      estimatedCostUsd,
+      note:
+        "Оценка: текстовые токены взяты из usage, стоимость изображения рассчитана по текущему прайсу для 1536x1024 medium.",
+    };
+  }
+
+  private getImageUnitCostUsd(model: string) {
+    if (model.includes("gpt-image-1-mini")) {
+      return 0.015;
+    }
+
+    return 0.063;
+  }
+
+  private estimateTextCostUsd(
+    model: string,
+    usage: { inputTokens: number; outputTokens: number }
+  ) {
+    const rates = model.includes("gpt-5.4-mini")
+      ? { input: 0.75, output: 4.5 }
+      : model.includes("gpt-5.4")
+        ? { input: 2.5, output: 15 }
+        : model.includes("gpt-5.5")
+          ? { input: 5, output: 30 }
+          : model.includes("gpt-5")
+            ? { input: 1.25, output: 10 }
+            : null;
+
+    if (!rates) {
+      return 0;
+    }
+
+    return (
+      (usage.inputTokens / 1_000_000) * rates.input +
+      (usage.outputTokens / 1_000_000) * rates.output
+    );
   }
 
   private async persistGeneratedVariantPhotos(
@@ -66,7 +116,7 @@ export class RoomAiService {
     variants: RoomVariant[]
   ): Promise<RoomVariant[]> {
     return Promise.all(
-      variants.map(async (variant, index) => {
+      variants.slice(0, 1).map(async (variant, index) => {
         if (!variant.photoImageUrl.startsWith("data:image/")) {
           return variant;
         }
@@ -206,18 +256,18 @@ export class RoomAiService {
     roomAnalysis: RoomAnalysis
   ): Promise<RoomVariant[]> {
     try {
-      return await this.ai.generateLayoutVariants({
+      return (await this.ai.generateLayoutVariants({
         photos: input.photos,
         roomType: input.roomType,
         roomAnalysis,
         roomDimensions: input.roomDimensions,
         peopleCount: input.peopleCount,
         palette: input.style?.palette,
-      });
+      })).slice(0, 1);
     } catch (error) {
       throwIfRoomAiUserError(error);
       console.error("OpenAI layout variants failed:", error);
-      return this.createMockVariants(input.roomType);
+      return this.createMockVariants(input.roomType).slice(0, 1);
     }
   }
 

@@ -1,6 +1,8 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
+  aiGenerationJobs,
+  aiGenerationResults,
   properties,
   propertyDetails,
   propertyImages,
@@ -118,6 +120,9 @@ export async function readPropertyListingsFromDb(): Promise<PropertyListing[]> {
         },
       ])
     );
+    const imageSources = Object.fromEntries(
+      propertyImageRows.map((image) => [image.imageUrl, image.sourceType])
+    );
 
     return {
       id: row.id,
@@ -144,6 +149,7 @@ export async function readPropertyListingsFromDb(): Promise<PropertyListing[]> {
       imageUrl: coverImage,
       imageGallery: propertyImageRows.map((image) => image.imageUrl),
       imagePositions,
+      imageSources,
       features: featureListFromRow(row),
       details: {
         propertyType: row.propertyType,
@@ -333,11 +339,27 @@ export async function upsertPropertyListingInDb(property: PropertyListing): Prom
   const coverImageUrl = property.imageGallery.includes(property.imageUrl)
     ? property.imageUrl
     : property.imageGallery[0];
+  const aiJobRows = await db
+    .select({ id: aiGenerationJobs.id })
+    .from(aiGenerationJobs)
+    .where(eq(aiGenerationJobs.propertyId, property.id));
+  const aiJobIds = aiJobRows.map((job) => job.id);
+  const aiImageRows =
+    aiJobIds.length > 0
+      ? await db
+          .select({ imageUrl: aiGenerationResults.imageUrl })
+          .from(aiGenerationResults)
+          .where(inArray(aiGenerationResults.jobId, aiJobIds))
+      : [];
+  const aiImageUrls = new Set(aiImageRows.map((row) => row.imageUrl));
   const propertyImageValues = property.imageGallery.map((imageUrl, index) => ({
       id: `${property.id}-image-${index + 1}`,
       propertyId: property.id,
       imageUrl,
-      sourceType: imageUrl.includes("/generated/") ? ("ai_generated" as const) : ("original" as const),
+      sourceType:
+        property.imageSources?.[imageUrl] === "ai_generated" || aiImageUrls.has(imageUrl)
+          ? ("ai_generated" as const)
+          : ("original" as const),
       roomType: null,
       isCover: imageUrl === coverImageUrl,
       sortOrder: index,

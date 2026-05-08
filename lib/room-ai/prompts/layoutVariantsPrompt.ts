@@ -35,7 +35,7 @@ export function buildLayoutVariantsPrompt(input: BuildLayoutVariantsPromptInput)
   return `
 Ты — практичный интерьерный планировщик.
 
-На основе анализа помещения предложи 3 разных варианта расстановки мебели.
+На основе анализа помещения предложи 1 готовый вариант расстановки мебели.
 
 Назначение комнаты: ${roomTypeLabels[input.roomType]}
 Количество людей: ${input.peopleCount ?? "не указано"}
@@ -50,7 +50,7 @@ ${JSON.stringify(input.roomAnalysis, null, 2)}
 
 Правила:
 - Отвечай на русском языке.
-- Нужно предложить ровно 3 варианта.
+- Нужно предложить ровно 1 вариант.
 - Каждый вариант должен быть реалистичным.
 - Не блокируй двери, окна, батареи, вентиляцию, розетки и проходы.
 - Координаты мебели задавай примерно в метрах от левого верхнего угла комнаты на плане сверху.
@@ -128,26 +128,6 @@ ${JSON.stringify(input.roomAnalysis, null, 2)}
           "color": "string"
         }
       ]
-    },
-    {
-      "id": "variant_2",
-      "title": "string",
-      "description": "string",
-      "palette": ["#hex", "#hex", "#hex"],
-      "pros": ["string"],
-      "cons": ["string"],
-      "openings": [],
-      "furniture": []
-    },
-    {
-      "id": "variant_3",
-      "title": "string",
-      "description": "string",
-      "palette": ["#hex", "#hex", "#hex"],
-      "pros": ["string"],
-      "cons": ["string"],
-      "openings": [],
-      "furniture": []
     }
   ]
 }
