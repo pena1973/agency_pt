@@ -62,6 +62,29 @@ function mapSavedSearchProfile(
   };
 }
 
+function isMeaningfulSavedSearch(row: typeof savedSearches.$inferSelect) {
+  return Boolean(
+    row.mode === "rent" ||
+      row.city ||
+      row.propertyType ||
+      typeof row.priceFrom === "number" ||
+      typeof row.priceTo === "number" ||
+      row.bedrooms ||
+      row.hasSeaView ||
+      row.hasCityCenter ||
+      row.hasParking ||
+      row.hasPool ||
+      row.hasSecurity ||
+      row.hasFurnished ||
+      row.hasBalcony ||
+      row.hasTerrace ||
+      row.hasStorageRoom ||
+      row.hasElevator ||
+      row.hasEquippedKitchen ||
+      row.hasBuiltInWardrobes
+  );
+}
+
 export async function readRegisteredUsersFromDb(): Promise<RegisteredUser[]> {
   const dbUsers = await db.select().from(users).orderBy(desc(users.createdAt));
 
@@ -102,7 +125,7 @@ export async function readRegisteredUsersFromDb(): Promise<RegisteredUser[]> {
 
   const latestSavedSearchByUserId = new Map<string, typeof savedSearches.$inferSelect>();
   for (const row of latestSavedSearchRows) {
-    if (!latestSavedSearchByUserId.has(row.userId)) {
+    if (!latestSavedSearchByUserId.has(row.userId) && isMeaningfulSavedSearch(row)) {
       latestSavedSearchByUserId.set(row.userId, row);
     }
   }

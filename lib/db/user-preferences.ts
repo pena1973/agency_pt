@@ -84,6 +84,29 @@ function mapSavedSearch(row: typeof savedSearches.$inferSelect | undefined) {
   } satisfies SearchPreferencesPayload;
 }
 
+function isMeaningfulSavedSearch(row: typeof savedSearches.$inferSelect) {
+  return Boolean(
+    row.mode === "rent" ||
+      row.city ||
+      row.propertyType ||
+      typeof row.priceFrom === "number" ||
+      typeof row.priceTo === "number" ||
+      row.bedrooms ||
+      row.hasSeaView ||
+      row.hasCityCenter ||
+      row.hasParking ||
+      row.hasPool ||
+      row.hasSecurity ||
+      row.hasFurnished ||
+      row.hasBalcony ||
+      row.hasTerrace ||
+      row.hasStorageRoom ||
+      row.hasElevator ||
+      row.hasEquippedKitchen ||
+      row.hasBuiltInWardrobes
+  );
+}
+
 function normalizeSearchProfile(
   searchProfile: SearchPreferencesPayload
 ): SearchPreferencesPayload {
@@ -130,13 +153,16 @@ export async function readUserPreferencesFromDb(
       .from(savedSearches)
       .where(eq(savedSearches.userId, userId))
       .orderBy(desc(savedSearches.createdAt))
-      .limit(1),
+      .limit(25),
   ]);
+  const latestMeaningfulSavedSearch = savedSearchRows.find((row) =>
+    isMeaningfulSavedSearch(row)
+  );
 
   return {
     favoriteIds: favoriteRows.map((row) => row.propertyId),
     compareIds: compareRows.map((row) => row.propertyId),
-    searchProfile: mapSavedSearch(savedSearchRows[0]),
+    searchProfile: mapSavedSearch(latestMeaningfulSavedSearch),
   };
 }
 

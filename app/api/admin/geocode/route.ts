@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdminApiAccess } from "@/lib/auth/admin-access";
 
 type GeocodeRequest = {
   address?: string;
@@ -11,6 +12,9 @@ type NominatimResult = {
 };
 
 export async function POST(request: Request) {
+  const forbiddenResponse = await requireAdminApiAccess();
+  if (forbiddenResponse) return forbiddenResponse;
+
   const payload = (await request.json()) as GeocodeRequest;
   const address = payload.address?.trim();
   const city = payload.city?.trim();

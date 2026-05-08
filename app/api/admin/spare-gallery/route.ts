@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdminApiAccess } from "@/lib/auth/admin-access";
 import {
   deleteSpareGalleryItem,
   ensureSpareImageForProperty,
@@ -9,6 +10,9 @@ export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   try {
+    const forbiddenResponse = await requireAdminApiAccess();
+    if (forbiddenResponse) return forbiddenResponse;
+
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get("propertyId")?.trim();
 
@@ -29,6 +33,9 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const forbiddenResponse = await requireAdminApiAccess();
+    if (forbiddenResponse) return forbiddenResponse;
+
     const payload = (await request.json()) as { imageUrl?: string };
 
     if (!payload.imageUrl) {
@@ -48,6 +55,9 @@ export async function DELETE(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const forbiddenResponse = await requireAdminApiAccess();
+    if (forbiddenResponse) return forbiddenResponse;
+
     const payload = (await request.json()) as {
       propertyId?: string;
       imageUrl?: string;

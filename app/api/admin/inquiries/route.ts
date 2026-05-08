@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
+import { requireAdminApiAccess } from "@/lib/auth/admin-access";
 import {
   readInquiriesFromDb,
   updateInquiryStatusInDb,
 } from "@/lib/db/inquiries";
 
 export async function GET() {
+  const forbiddenResponse = await requireAdminApiAccess();
+  if (forbiddenResponse) return forbiddenResponse;
+
   const inquiries = await readInquiriesFromDb();
   return NextResponse.json({ inquiries });
 }
 
 export async function PATCH(request: Request) {
   try {
+    const forbiddenResponse = await requireAdminApiAccess();
+    if (forbiddenResponse) return forbiddenResponse;
+
     const payload = (await request.json()) as {
       id?: string;
       status?: "new" | "reviewed";

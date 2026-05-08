@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { NextResponse } from "next/server";
+import { requireAdminApiAccess } from "@/lib/auth/admin-access";
 import { recordGenerationUsage } from "@/lib/db/generation-usage";
 
 export const runtime = "nodejs";
@@ -10,9 +11,17 @@ type GifPayload = {
   startImageUrl?: string;
   finishImageUrl?: string;
   propertyId?: string;
+  startFrame?: GifFrameSettings;
+  finishFrame?: GifFrameSettings;
   startSeconds?: number;
   transitionSeconds?: number;
   finishSeconds?: number;
+};
+
+type GifFrameSettings = {
+  scale?: number;
+  x?: number;
+  y?: number;
 };
 
 const OUTPUT_WIDTH = 720;
@@ -27,6 +36,24 @@ function clampSeconds(value: unknown, fallback: number) {
   }
 
   return Math.max(0.2, Math.min(10, parsed));
+}
+
+function clampNumber(value: unknown, fallback: number, min: number, max: number) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.max(min, Math.min(max, parsed));
+}
+
+function normalizeFrameSettings(settings?: GifFrameSettings) {
+  return {
+    scale: clampNumber(settings?.scale, 1, 0.7, 2.5),
+    x: clampNumber(settings?.x, 50, 0, 100),
+    y: clampNumber(settings?.y, 50, 0, 100),
+  };
 }
 
 function getPublicFilePath(imageUrl: string) {
@@ -63,12 +90,67 @@ async function readImageBuffer(imageUrl: string, requestUrl: string) {
   return Buffer.from(await response.arrayBuffer());
 }
 
-async function normalizeImage(image: Buffer) {
-  return sharp(image)
-    .resize(OUTPUT_WIDTH, OUTPUT_HEIGHT, {
-      fit: "cover",
-      position: "center",
+async function normalizeImage(image: Buffer, settings?: GifFrameSettings) {
+  const frameSettings = normalizeFrameSettings(settings);
+  const metadata = await sharp(image).metadata();
+  const sourceWidth = metadata.width ?? OUTPUT_WIDTH;
+  const sourceHeight = metadata.height ?? OUTPUT_HEIGHT;
+  const coverScale =
+    Math.max(OUTPUT_WIDTH / sourceWidth, OUTPUT_HEIGHT / sourceHeight) *
+    frameSettings.scale;
+  const resizedWidth = Math.max(1, Math.round(sourceWidth * coverScale));
+  const resizedHeight = Math.max(1, Math.round(sourceHeight * coverScale));
+  const left = Math.round((OUTPUT_WIDTH - resizedWidth) * (frameSettings.x / 100));
+  const top = Math.round((OUTPUT_HEIGHT - resizedHeight) * (frameSettings.y / 100));
+  const cropLeft = Math.max(0, -left);
+  const cropTop = Math.max(0, -top);
+  const compositeLeft = Math.max(0, left);
+  const compositeTop = Math.max(0, top);
+  const visibleWidth = Math.max(
+    1,
+    Math.min(resizedWidth - cropLeft, OUTPUT_WIDTH - compositeLeft)
+  );
+  const visibleHeight = Math.max(
+    1,
+    Math.min(resizedHeight - cropTop, OUTPUT_HEIGHT - compositeTop)
+  );
+  const resizedImage = await sharp(image)
+    .resize(resizedWidth, resizedHeight, {
+      fit: "fill",
     })
+    .removeAlpha()
+    .ensureAlpha()
+    .toBuffer();
+  const visibleImage =
+    cropLeft > 0 ||
+    cropTop > 0 ||
+    visibleWidth < resizedWidth ||
+    visibleHeight < resizedHeight
+      ? await sharp(resizedImage)
+          .extract({
+            left: cropLeft,
+            top: cropTop,
+            width: visibleWidth,
+            height: visibleHeight,
+          })
+          .toBuffer()
+      : resizedImage;
+
+  return sharp({
+    create: {
+      width: OUTPUT_WIDTH,
+      height: OUTPUT_HEIGHT,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+    },
+  })
+    .composite([
+      {
+        input: visibleImage,
+        left: compositeLeft,
+        top: compositeTop,
+      },
+    ])
     .removeAlpha()
     .ensureAlpha()
     .raw()
@@ -95,6 +177,9 @@ function repeatedFrames(frame: Buffer, count: number) {
 
 export async function POST(request: Request) {
   try {
+    const forbiddenResponse = await requireAdminApiAccess();
+    if (forbiddenResponse) return forbiddenResponse;
+
     const payload = (await request.json()) as GifPayload;
 
     if (!payload.startImageUrl || !payload.finishImageUrl) {
@@ -113,8 +198,8 @@ export async function POST(request: Request) {
       readImageBuffer(payload.finishImageUrl, request.url),
     ]);
     const [startFrame, finishFrame] = await Promise.all([
-      normalizeImage(startImage),
-      normalizeImage(finishImage),
+      normalizeImage(startImage, payload.startFrame),
+      normalizeImage(finishImage, payload.finishFrame),
     ]);
 
     const startFrameCount = Math.max(1, Math.round(startSeconds * FPS));

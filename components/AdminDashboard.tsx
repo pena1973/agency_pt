@@ -61,6 +61,10 @@ type AdminSpareGalleryItem = {
 type GalleryDragSource = "main" | "spare" | "ai-result" | "gif-result";
 type CollapsibleAdminSection = "property" | "photos" | "ai" | "gif";
 type GifImageSlot = "start" | "finish";
+type GifFrameSettings = {
+  x: number;
+  y: number;
+};
 
 type GenerationBalance = {
   totalInputTokens: number;
@@ -86,6 +90,11 @@ const paletteOptions = [
   { value: "pastel", label: "Пастельная" },
   { value: "scandinavian", label: "Скандинавская" },
 ] as const;
+
+const defaultGifFrameSettings: GifFrameSettings = {
+  x: 50,
+  y: 50,
+};
 
 const extendedPropertyTypeOptions: Array<{ value: PropertyType; label: string }> = [
   { value: "apartment", label: "Квартира" },
@@ -593,6 +602,10 @@ export function AdminDashboard({
   });
   const [gifStartImageUrl, setGifStartImageUrl] = useState("");
   const [gifFinishImageUrl, setGifFinishImageUrl] = useState("");
+  const [gifStartFrame, setGifStartFrame] =
+    useState<GifFrameSettings>(defaultGifFrameSettings);
+  const [gifFinishFrame, setGifFinishFrame] =
+    useState<GifFrameSettings>(defaultGifFrameSettings);
   const [gifStartSeconds, setGifStartSeconds] = useState(1);
   const [gifTransitionSeconds, setGifTransitionSeconds] = useState(2);
   const [gifFinishSeconds, setGifFinishSeconds] = useState(1);
@@ -743,9 +756,11 @@ export function AdminDashboard({
       <button
         type="button"
         onClick={() => toggleAdminSection(section)}
-        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-emerald-300 hover:text-emerald-800"
+        title={isCollapsed ? "Развернуть" : "Свернуть"}
+        aria-label={isCollapsed ? "Развернуть" : "Свернуть"}
+        className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 bg-white text-xl font-semibold leading-none text-slate-600 transition hover:border-emerald-300 hover:text-emerald-800"
       >
-        {isCollapsed ? "Развернуть" : "Свернуть"}
+        {isCollapsed ? "▾" : "▴"}
       </button>
     );
   }
@@ -1881,11 +1896,62 @@ export function AdminDashboard({
 
     if (slot === "start") {
       setGifStartImageUrl(dragData.imageUrl);
+      setGifStartFrame(defaultGifFrameSettings);
     } else {
       setGifFinishImageUrl(dragData.imageUrl);
+      setGifFinishFrame(defaultGifFrameSettings);
     }
 
     setGifStatus("");
+  }
+
+  function getGifFrameSettings(slot: GifImageSlot) {
+    return slot === "start" ? gifStartFrame : gifFinishFrame;
+  }
+
+  function updateGifFrameSetting(
+    slot: GifImageSlot,
+    key: keyof GifFrameSettings,
+    value: number
+  ) {
+    const setter = slot === "start" ? setGifStartFrame : setGifFinishFrame;
+    setter((currentSettings) => ({
+      ...currentSettings,
+      [key]: value,
+    }));
+  }
+
+  function resetGifFrameSettings(slot: GifImageSlot) {
+    const setter = slot === "start" ? setGifStartFrame : setGifFinishFrame;
+    setter(defaultGifFrameSettings);
+  }
+
+  function nudgeGifFramePosition(
+    slot: GifImageSlot,
+    axis: keyof GifFrameSettings,
+    delta: number
+  ) {
+    const setter = slot === "start" ? setGifStartFrame : setGifFinishFrame;
+    setter((currentSettings) => ({
+      ...currentSettings,
+      [axis]: clampPercentage(currentSettings[axis] + delta),
+    }));
+  }
+
+  function startGifFrameNudge(
+    event: PointerEvent<HTMLButtonElement>,
+    slot: GifImageSlot,
+    axis: keyof GifFrameSettings,
+    delta: number
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    stopImageNudge();
+    nudgeGifFramePosition(slot, axis, delta);
+    imageNudgeIntervalRef.current = window.setInterval(() => {
+      nudgeGifFramePosition(slot, axis, delta);
+    }, 90);
   }
 
   async function generateTransitionGif() {
@@ -1907,6 +1973,8 @@ export function AdminDashboard({
         body: JSON.stringify({
           startImageUrl: gifStartImageUrl,
           finishImageUrl: gifFinishImageUrl,
+          startFrame: gifStartFrame,
+          finishFrame: gifFinishFrame,
           startSeconds: gifStartSeconds,
           transitionSeconds: gifTransitionSeconds,
           finishSeconds: gifFinishSeconds,
@@ -2310,6 +2378,20 @@ export function AdminDashboard({
       .join(", ");
   }
 
+  function formatUserSearchMode(
+    mode?: NonNullable<RegisteredUser["searchProfile"]>["mode"]
+  ) {
+    if (mode === "sale") {
+      return "Покупка";
+    }
+
+    if (mode === "rent") {
+      return "Аренда";
+    }
+
+    return "Не указана";
+  }
+
   return (
     <main className="site-page-background h-[100dvh] overflow-hidden px-6 text-slate-950">
       <div className="mx-auto flex h-full min-h-0 max-w-[1520px] flex-col py-8">
@@ -2529,8 +2611,7 @@ export function AdminDashboard({
                     <div>
                       <div className="text-lg font-semibold text-slate-950">Объект недвижимости</div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {renderCollapseButton("property")}
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                       {propertyDraft ? (
                         <>
                           <button
@@ -2584,6 +2665,7 @@ export function AdminDashboard({
                           ) : null}
                         </>
                       ) : null}
+                      {renderCollapseButton("property")}
                     </div>
                   </div>
 
@@ -4022,11 +4104,7 @@ export function AdminDashboard({
                           : "Сгенерировать мебель"}
                       </button>
 
-                      {aiStatus ? (
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                          {aiStatus}
-                        </div>
-                      ) : null}
+                     
 
                       {generationBalance ? (
                         <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950">
@@ -4148,7 +4226,7 @@ export function AdminDashboard({
                         </div>
                       ) : (
                         <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                          Здесь появится крупный результат генерации. Его можно будет перетащить в основную галерею.
+                          Здесь появится результат генерации мебели. Его можно будет перетащить в основную или запасную галерею.
                         </div>
                       )}
                     </div>
@@ -4177,30 +4255,134 @@ export function AdminDashboard({
                             ["start", "Стартовое фото", gifStartImageUrl],
                             ["finish", "Финальное фото", gifFinishImageUrl],
                           ] as Array<[GifImageSlot, string, string]>).map(
-                            ([slot, label, imageUrl]) => (
-                              <div key={slot} className="grid gap-2">
-                                <div className="text-sm font-semibold text-slate-800">
-                                  {label}
+                            ([slot, label, imageUrl]) => {
+                              const frameSettings = getGifFrameSettings(slot);
+
+                              return (
+                                <div key={slot} className="grid gap-2">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="text-sm font-semibold text-slate-800">
+                                      {label}
+                                    </div>
+                                    {imageUrl ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => resetGifFrameSettings(slot)}
+                                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 transition hover:border-emerald-300 hover:text-emerald-800"
+                                      >
+                                        Сбросить
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                  <div
+                                    onDragOver={(event) => event.preventDefault()}
+                                    onDrop={(event) => handleGifImageDrop(event, slot)}
+                                    className="relative flex aspect-[3/2] min-h-[210px] items-center justify-center overflow-hidden rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-center text-sm text-slate-500"
+                                  >
+                                    {imageUrl ? (
+                                      <>
+                                        <img
+                                          src={imageUrl}
+                                          alt={label}
+                                          draggable={false}
+                                          className="h-full w-full object-cover"
+                                          style={{
+                                            objectPosition: `${frameSettings.x}% ${frameSettings.y}%`,
+                                          }}
+                                        />
+                                        <div className="absolute right-2 top-2 grid grid-cols-3 gap-1 rounded-xl bg-slate-950/10 p-1 text-white">
+                                          <span />
+                                          <button
+                                            type="button"
+                                            draggable={false}
+                                            title="Сдвинуть фото вверх"
+                                            aria-label="Сдвинуть фото вверх"
+                                            onPointerDown={(event) =>
+                                              startGifFrameNudge(event, slot, "y", -2)
+                                            }
+                                            onPointerUp={stopImageNudge}
+                                            onPointerCancel={stopImageNudge}
+                                            onPointerLeave={stopImageNudge}
+                                            onClick={(event) => event.preventDefault()}
+                                            className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
+                                          >
+                                            ↑
+                                          </button>
+                                          <span />
+                                          <button
+                                            type="button"
+                                            draggable={false}
+                                            title="Сдвинуть фото влево"
+                                            aria-label="Сдвинуть фото влево"
+                                            onPointerDown={(event) =>
+                                              startGifFrameNudge(event, slot, "x", -2)
+                                            }
+                                            onPointerUp={stopImageNudge}
+                                            onPointerCancel={stopImageNudge}
+                                            onPointerLeave={stopImageNudge}
+                                            onClick={(event) => event.preventDefault()}
+                                            className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
+                                          >
+                                            ←
+                                          </button>
+                                          <button
+                                            type="button"
+                                            draggable={false}
+                                            title="Сбросить позицию"
+                                            aria-label="Сбросить позицию"
+                                            onClick={(event) => {
+                                              event.preventDefault();
+                                              resetGifFrameSettings(slot);
+                                            }}
+                                            className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-[10px] font-bold transition hover:bg-white/35"
+                                          >
+                                            •
+                                          </button>
+                                          <button
+                                            type="button"
+                                            draggable={false}
+                                            title="Сдвинуть фото вправо"
+                                            aria-label="Сдвинуть фото вправо"
+                                            onPointerDown={(event) =>
+                                              startGifFrameNudge(event, slot, "x", 2)
+                                            }
+                                            onPointerUp={stopImageNudge}
+                                            onPointerCancel={stopImageNudge}
+                                            onPointerLeave={stopImageNudge}
+                                            onClick={(event) => event.preventDefault()}
+                                            className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
+                                          >
+                                            →
+                                          </button>
+                                          <span />
+                                          <button
+                                            type="button"
+                                            draggable={false}
+                                            title="Сдвинуть фото вниз"
+                                            aria-label="Сдвинуть фото вниз"
+                                            onPointerDown={(event) =>
+                                              startGifFrameNudge(event, slot, "y", 2)
+                                            }
+                                            onPointerUp={stopImageNudge}
+                                            onPointerCancel={stopImageNudge}
+                                            onPointerLeave={stopImageNudge}
+                                            onClick={(event) => event.preventDefault()}
+                                            className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
+                                          >
+                                            ↓
+                                          </button>
+                                          <span />
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <span className="px-5">
+                                        Перетащите сюда фото из основной или запасной галереи
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                <div
-                                  onDragOver={(event) => event.preventDefault()}
-                                  onDrop={(event) => handleGifImageDrop(event, slot)}
-                                  className="flex min-h-[210px] items-center justify-center overflow-hidden rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-center text-sm text-slate-500"
-                                >
-                                  {imageUrl ? (
-                                    <img
-                                      src={imageUrl}
-                                      alt={label}
-                                      className="h-full min-h-[210px] w-full object-cover"
-                                    />
-                                  ) : (
-                                    <span className="px-5">
-                                      Перетащите сюда фото из основной, запасной или AI-галереи
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )
+                              );
+                            }
                           )}
                         </div>
 
@@ -4313,8 +4495,8 @@ export function AdminDashboard({
                             </div>
                           </div>
                         ) : (
-                          <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                            Здесь появится готовая GIF для сайта агентства.
+                          <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">                            
+                            Здесь появится результат анимации изменения объекта. Его можно будет перетащить в основную или запасную галерею.
                           </div>
                         )}
                       </div>
@@ -4543,7 +4725,15 @@ export function AdminDashboard({
                     <div className="text-lg font-semibold text-slate-950">
                       Что искал пользователь
                     </div>
-                    <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                          Сделка
+                        </div>
+                        <div className="mt-2 text-sm leading-6 text-slate-700">
+                          {formatUserSearchMode(selectedUser.searchProfile?.mode)}
+                        </div>
+                      </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                           Города

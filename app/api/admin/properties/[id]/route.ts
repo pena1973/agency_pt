@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdminApiAccess } from "@/lib/auth/admin-access";
 import { propertyListingSchema } from "@/lib/real-estate/schema";
 import { readPropertyListings, writePropertyListings } from "@/lib/real-estate/storage";
 
@@ -8,6 +9,9 @@ type PropertyRouteContext = {
 
 export async function PATCH(request: Request, context: PropertyRouteContext) {
   try {
+    const forbiddenResponse = await requireAdminApiAccess();
+    if (forbiddenResponse) return forbiddenResponse;
+
     const { id } = await context.params;
     const payload = await request.json();
     const property = propertyListingSchema.parse(payload);
@@ -44,6 +48,9 @@ export async function PATCH(request: Request, context: PropertyRouteContext) {
 }
 
 export async function DELETE(_request: Request, context: PropertyRouteContext) {
+  const forbiddenResponse = await requireAdminApiAccess();
+  if (forbiddenResponse) return forbiddenResponse;
+
   const { id } = await context.params;
   const properties = await readPropertyListings();
   const nextProperties = properties.filter((item) => item.id !== id);

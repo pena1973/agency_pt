@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { requireAdminApiAccess } from "@/lib/auth/admin-access";
 import { saveUploadedPhotosForProperty } from "@/lib/db/spare-gallery";
 
 export const runtime = "nodejs";
@@ -21,6 +22,9 @@ function sanitizeFileName(fileName: string): string {
 
 export async function POST(request: Request) {
   try {
+    const forbiddenResponse = await requireAdminApiAccess();
+    if (forbiddenResponse) return forbiddenResponse;
+
     const formData = await request.formData();
     const propertyId =
       typeof formData.get("propertyId") === "string"

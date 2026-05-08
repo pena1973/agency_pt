@@ -50,6 +50,7 @@
       "propertyType": "room",
       "usableAreaM2": 45,
       "builtAreaM2": 50,
+      "bathroomsFull": 1,
       "plotAreaM2": 0,
       "floor": "2 этаж",
       "exterior": true,
@@ -69,7 +70,6 @@
         "юг"
       ],
       "energyRating": "A",
-      "bathroomsFull": 1,
       "guestBathrooms": 0,
       "buildingFloors": 5,
       "monthlyCondoFeeEur": 0
@@ -95,118 +95,6 @@
     },
     "agentName": "Ирина",
     "publishedAt": "2026-05-06"
-  },
-  {
-    "id": "irina-001",
-    "slug": "cascais-ocean-villa-irina-001",
-    "isActive": true,
-    "mode": "sale",
-    "title": "Вилла с панорамой на океан",
-    "city": "Кашкайш",
-    "district": "Guia",
-    "country": "Португалия",
-    "location": {
-      "addressLabel": "Guia, Cascais, Portugal",
-      "latitude": 38.6998,
-      "longitude": -9.4212,
-      "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=38.6998,-9.4212"
-    },
-    "priceAmount": 1850000,
-    "priceLabel": "€1 850 000",
-    "shortDescription": "4 спальни, приватный сад и терраса для клиентов, которые ищут спокойный адрес рядом с океаном.",
-    "fullDescription": "Современная вилла в тихом жилом квартале Кашкайша. Подходит для постоянного проживания или семейной резиденции у океана. Просторная дневная зона открывается на террасу и бассейн, а приватный блок спален ориентирован на утреннее солнце.",
-    "bedrooms": 4,
-    "bathrooms": 3,
-    "areaM2": 286,
-    "imageUrl": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-    "imageGallery": [
-      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80"
-    ],
-    "imagePositions": {
-      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80": {
-        "x": 50,
-        "y": 50
-      },
-      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80": {
-        "x": 50,
-        "y": 50
-      },
-      "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80": {
-        "x": 50,
-        "y": 50
-      }
-    },
-    "imageSources": {
-      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80": "original",
-      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80": "original",
-      "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80": "original"
-    },
-    "features": [
-      "sea_view",
-      "parking",
-      "pool",
-      "security",
-      "balcony",
-      "terrace"
-    ],
-    "details": {
-      "propertyType": "villa",
-      "usableAreaM2": 248,
-      "builtAreaM2": 286,
-      "bathroomsFull": 3,
-      "plotAreaM2": 620,
-      "floor": "Дом целиком",
-      "exterior": true,
-      "elevator": false,
-      "parkingSpaces": 2,
-      "storageRoom": true,
-      "builtInWardrobes": true,
-      "equippedKitchen": true,
-      "furnished": false,
-      "balconyCount": 1,
-      "terraceCount": 2,
-      "condition": "excellent",
-      "yearBuilt": 2021,
-      "heating": "underfloor",
-      "accessibilityAdapted": false,
-      "orientation": [
-        "юг",
-        "запад"
-      ],
-      "energyRating": "A",
-      "guestBathrooms": 1,
-      "buildingFloors": 2,
-      "monthlyCondoFeeEur": 0
-    },
-    "transportAccess": [
-      {
-        "mode": "bus",
-        "route": "1623",
-        "stopName": "Guia Centro",
-        "walkMinutes": 6
-      },
-      {
-        "mode": "bus",
-        "route": "417",
-        "stopName": "Casa da Guia",
-        "walkMinutes": 8
-      },
-      {
-        "mode": "train",
-        "route": "Linha de Cascais",
-        "stopName": "Cascais",
-        "walkMinutes": 18
-      }
-    ],
-    "taxProfile": {
-      "propertyTransferTaxRate": 0.065,
-      "stampDutyRate": 0.008,
-      "notaryEstimateRate": 0.012
-    },
-    "agentName": "Ирина",
-    "publishedAt": "2026-04-25"
   },
   {
     "id": "irina-002",
@@ -750,7 +638,7 @@
   },
   {
     "id": "irina-007",
-    "slug": "braga-modern-flat-irina-007",
+    "slug": "007",
     "isActive": true,
     "mode": "rent",
     "title": "Современная квартира в Браге",
@@ -764,7 +652,7 @@
       "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=41.5504,-8.4195"
     },
     "priceAmount": 1850,
-    "priceLabel": "€1 850 / месяц",
+    "priceLabel": "€1 850 / месяц",
     "shortDescription": "2 спальни, свежий ремонт и удобная локация рядом с историческим центром и университетом.",
     "fullDescription": "Квартира после обновления с хорошей отделкой, полноценной кухней и уютной гостиной. Подойдет для пары, семьи или специалиста, кому важны удобство города и спокойный жилой район Браги.",
     "bedrooms": 2,
@@ -773,27 +661,27 @@
     "imageUrl": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
     "imageGallery": [
       "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80"
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80"
     ],
     "imagePositions": {
       "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": {
         "x": 50,
         "y": 50
       },
-      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80": {
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": {
         "x": 50,
         "y": 50
       },
-      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": {
+      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80": {
         "x": 50,
         "y": 50
       }
     },
     "imageSources": {
       "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80": "original",
-      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80": "original",
-      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": "original"
+      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": "original",
+      "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1200&q=80": "original"
     },
     "features": [
       "city_center",
@@ -805,6 +693,7 @@
       "usableAreaM2": 88,
       "builtAreaM2": 96,
       "bathroomsFull": 2,
+      "plotAreaM2": 0,
       "floor": "3 этаж",
       "exterior": true,
       "elevator": true,
@@ -823,6 +712,7 @@
         "восток"
       ],
       "energyRating": "B",
+      "guestBathrooms": 0,
       "buildingFloors": 6,
       "monthlyCondoFeeEur": 65
     },

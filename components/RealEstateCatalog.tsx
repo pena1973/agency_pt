@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeCityName } from "@/lib/real-estate/city";
 import { getFeatureLabel } from "@/lib/real-estate/data";
 import {
@@ -134,6 +134,30 @@ type SearchPreferencesPayload = {
   bedrooms?: string;
   features?: CatalogFeatureFilterKey[];
 };
+
+function hasMeaningfulSearchProfile(searchProfile: SearchPreferencesPayload) {
+  return Boolean(
+    searchProfile.mode === "rent" ||
+      searchProfile.city ||
+      searchProfile.propertyType ||
+      typeof searchProfile.priceFrom === "number" ||
+      typeof searchProfile.priceTo === "number" ||
+      searchProfile.bedrooms ||
+      (searchProfile.features && searchProfile.features.length > 0)
+  );
+}
+
+function getCatalogUserRoleLabel(role: CatalogAuthUser["role"]) {
+  if (role === "admin") {
+    return "Админ";
+  }
+
+  if (role === "realtor") {
+    return "Риэлтор";
+  }
+
+  return "Клиент";
+}
 
 function matchesCatalogFeature(
   property: PropertyListing,
@@ -271,6 +295,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
   const [imageIndexes, setImageIndexes] = useState<Record<string, number>>({});
   const [currentUser, setCurrentUser] = useState<CatalogAuthUser | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const lastSavedSearchSignatureRef = useRef("");
   const { compareIds, toggleCompare } = useCompareList();
   const { favoriteIds, toggleFavorite } = useFavoritesList();
 
@@ -329,6 +354,16 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
         features: selectedFeatures.length > 0 ? selectedFeatures : undefined,
         ...priceRange,
       };
+      const searchSignature = JSON.stringify(searchProfile);
+
+      if (
+        !hasMeaningfulSearchProfile(searchProfile) ||
+        lastSavedSearchSignatureRef.current === searchSignature
+      ) {
+        return;
+      }
+
+      lastSavedSearchSignatureRef.current = searchSignature;
 
       void fetch("/api/user/preferences", {
         method: "PATCH",
@@ -590,6 +625,21 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
             </Link>
 
             {currentUser ? (
+              <>
+                {currentUser.role === "admin" ? (
+                  <Link
+                    href="/admin"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-11 items-center rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-900 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
+                  >
+                    Админка
+                  </Link>
+                ) : null}
+                <div className="relative">
+                  <div className="absolute -top-4 left-1 max-w-[130px] truncate text-[11px] font-semibold leading-none text-slate-500">
+                    {currentUser.email}
+                  </div>
               <button
                 type="button"
                 onClick={() => {
@@ -600,6 +650,8 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 <span className="text-base">←</span>
                 <span>Выход</span>
               </button>
+                </div>
+              </>
             ) : (
               <Link
                 href="/login"

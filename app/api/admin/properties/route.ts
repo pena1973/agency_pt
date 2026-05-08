@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
+import { requireAdminApiAccess } from "@/lib/auth/admin-access";
 import { propertyListingSchema, propertyListingsSchema } from "@/lib/real-estate/schema";
 import { readPropertyListings, writePropertyListings } from "@/lib/real-estate/storage";
 
 export async function GET() {
+  const forbiddenResponse = await requireAdminApiAccess();
+  if (forbiddenResponse) return forbiddenResponse;
+
   const properties = await readPropertyListings();
   return NextResponse.json({ properties });
 }
 
 export async function POST(request: Request) {
+  const forbiddenResponse = await requireAdminApiAccess();
+  if (forbiddenResponse) return forbiddenResponse;
+
   const payload = await request.json();
   const property = propertyListingSchema.parse(payload);
   const properties = await readPropertyListings();
@@ -27,6 +34,9 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const forbiddenResponse = await requireAdminApiAccess();
+  if (forbiddenResponse) return forbiddenResponse;
+
   const payload = await request.json();
   const properties = propertyListingsSchema.parse(payload);
   await writePropertyListings(properties);
