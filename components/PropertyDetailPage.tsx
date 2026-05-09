@@ -174,7 +174,7 @@ function CompareIcon() {
 
 export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [showTaxCalculator, setShowTaxCalculator] = useState(false);
+  const [showTaxCalculator, setShowTaxCalculator] = useState(true);
   const [showContactForm, setShowContactForm] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const [contactName, setContactName] = useState("");
@@ -198,13 +198,18 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   }, [property]);
 
   const taxEstimate = useMemo(() => {
-    if (property.mode !== "sale" || !property.taxProfile) {
+    if (property.mode !== "sale") {
       return null;
     }
 
-    const transferTax = property.priceAmount * property.taxProfile.propertyTransferTaxRate;
-    const stampDuty = property.priceAmount * property.taxProfile.stampDutyRate;
-    const notaryCosts = property.priceAmount * property.taxProfile.notaryEstimateRate;
+    const taxProfile = property.taxProfile ?? {
+      propertyTransferTaxRate: 0.06,
+      stampDutyRate: 0.008,
+      notaryEstimateRate: 0.01,
+    };
+    const transferTax = property.priceAmount * taxProfile.propertyTransferTaxRate;
+    const stampDuty = property.priceAmount * taxProfile.stampDutyRate;
+    const notaryCosts = property.priceAmount * taxProfile.notaryEstimateRate;
 
     return {
       transferTax,
@@ -445,21 +450,21 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   }
 
   return (
-    <main className="site-page-background min-h-screen px-5 py-6 text-slate-950 md:py-8">
+    <main className="site-page-background min-h-screen px-4 py-5 text-slate-950 sm:px-5 md:py-8">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-4 grid justify-items-center gap-3 md:flex md:flex-wrap md:items-center md:justify-between">
           <Link
             href="/"
-            className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+            className="w-full max-w-[360px] rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:w-fit"
           >
             Вернуться в каталог
           </Link>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full max-w-[360px] grid-cols-2 gap-2 md:flex md:max-w-none md:w-auto md:flex-wrap md:items-center">
             <button
               type="button"
               onClick={() => toggleCompare(property.id)}
-              className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
+              className={`col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-3 text-sm font-semibold transition md:col-span-1 md:h-auto md:px-4 md:py-2.5 ${
                 isCompared
                   ? "border border-emerald-300 bg-emerald-50 text-emerald-900"
                   : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:text-emerald-800"
@@ -471,7 +476,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
             <button
               type="button"
               onClick={handleCopyLink}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+              className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:col-span-1 md:h-auto md:px-4 md:py-2.5"
             >
               <CopyIcon />
               {copyState === "copied" ? "Ссылка скопирована" : "Копировать ссылку"}
@@ -479,7 +484,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
             <button
               type="button"
               onClick={handleShare}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:h-auto md:px-4 md:py-2.5"
             >
               <ShareIcon />
               Поделиться
@@ -488,11 +493,11 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               href={property.location.googleMapsUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:h-auto md:px-4 md:py-2.5"
             >
               Открыть на карте
             </a>
-            <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <div className="col-span-2 justify-self-start rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 md:col-span-1">
               ID: {getPropertyPublicReference(property)}
             </div>
           </div>

@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeCityName } from "@/lib/real-estate/city";
 import {
+  featureTranslations,
   propertyTypeTranslations,
   siteLocales,
   siteTranslations,
+  type SiteFeatureKey,
   type SiteLocale,
 } from "@/lib/i18n/site";
 import { useSiteLocale } from "@/lib/i18n/use-site-locale";
-import { getFeatureLabel } from "@/lib/real-estate/data";
 import {
   getPropertyCoverImage,
   getPropertyImagePosition,
@@ -41,31 +42,35 @@ function isAiGeneratedImage(property: PropertyListing, imageUrl: string) {
   return property.imageSources?.[imageUrl] === "ai_generated";
 }
 
+function getLocalizedPropertyContent(property: PropertyListing, locale: SiteLocale) {
+  const translation = property.translations?.[locale];
+
+  return {
+    title: translation?.title || property.title,
+    city: translation?.city || property.city,
+    shortDescription: translation?.shortDescription || property.shortDescription,
+  };
+}
+
 const languageOptions = siteLocales;
 
-type CatalogFeatureFilterKey =
-  | ListingFeature
-  | "storageRoom"
-  | "elevator"
-  | "equippedKitchen"
-  | "builtInWardrobes";
+type CatalogFeatureFilterKey = SiteFeatureKey;
 
 const catalogFeatureOptions: Array<{
   value: CatalogFeatureFilterKey;
-  label: string;
 }> = [
-  { value: "sea_view", label: "Вид на море" },
-  { value: "city_center", label: "Центр города" },
-  { value: "parking", label: "Паркинг" },
-  { value: "pool", label: "Бассейн" },
-  { value: "security", label: "Охрана" },
-  { value: "furnished", label: "С мебелью" },
-  { value: "balcony", label: "Балкон" },
-  { value: "terrace", label: "Терраса" },
-  { value: "storageRoom", label: "Кладовая" },
-  { value: "elevator", label: "Лифт" },
-  { value: "equippedKitchen", label: "Обор. кухня" },
-  { value: "builtInWardrobes", label: "Встр. шкафы" },
+  { value: "sea_view" },
+  { value: "city_center" },
+  { value: "parking" },
+  { value: "pool" },
+  { value: "security" },
+  { value: "furnished" },
+  { value: "balcony" },
+  { value: "terrace" },
+  { value: "storageRoom" },
+  { value: "elevator" },
+  { value: "equippedKitchen" },
+  { value: "builtInWardrobes" },
 ];
 
 const propertyTypeLabels: Record<PropertyType, string> = {
@@ -92,16 +97,19 @@ const propertyTypeOptions: Array<{ value: PropertyType; label: string }> = [
   { value: "villa", label: "Вилла" },
 ];
 
-function getPropertyTags(property: PropertyListing): string[] {
-  const tags = new Set<string>(property.features.map((feature) => getFeatureLabel(feature)));
+function getPropertyTags(property: PropertyListing, locale: SiteLocale): string[] {
+  const featureLabels = featureTranslations[locale];
+  const tags = new Set<string>(
+    property.features.map((feature) => featureLabels[feature])
+  );
 
-  if (property.details.storageRoom) tags.add("Кладовая");
-  if (property.details.elevator) tags.add("Лифт");
-  if (property.details.equippedKitchen) tags.add("Оснащенная кухня");
-  if (property.details.builtInWardrobes) tags.add("Встроенные шкафы");
-  if (property.details.parkingSpaces > 0) tags.add("Паркинг");
-  if (property.details.balconyCount > 0) tags.add("Балкон");
-  if (property.details.terraceCount > 0) tags.add("Терраса");
+  if (property.details.storageRoom) tags.add(featureLabels.storageRoom);
+  if (property.details.elevator) tags.add(featureLabels.elevator);
+  if (property.details.equippedKitchen) tags.add(featureLabels.equippedKitchen);
+  if (property.details.builtInWardrobes) tags.add(featureLabels.builtInWardrobes);
+  if (property.details.parkingSpaces > 0) tags.add(featureLabels.parking);
+  if (property.details.balconyCount > 0) tags.add(featureLabels.balcony);
+  if (property.details.terraceCount > 0) tags.add(featureLabels.terrace);
 
   return Array.from(tags);
 }
@@ -567,10 +575,15 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
   return (
     <main className="site-page-background flex min-h-screen flex-col text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1380px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
-          <Link href="/" className="-my-4 flex items-center overflow-visible lg:-my-5">
-            <AgencyLogo priority className="h-[76px] w-auto object-contain sm:h-[88px]" />
+      <header className="relative border-b border-slate-200 bg-white">
+        {currentUser ? (
+          <div className="absolute right-3 top-1 max-w-[180px] truncate text-[11px] font-semibold leading-none text-slate-500 sm:right-6 lg:hidden">
+            {currentUser.email}
+          </div>
+        ) : null}
+        <div className="mx-auto flex max-w-[1380px] flex-col items-center gap-3 px-3 pb-4 pt-5 sm:px-6 lg:flex-row lg:justify-between lg:gap-4 lg:px-8 lg:py-5">
+          <Link href="/" className="order-1 -my-1 flex items-center overflow-visible sm:-my-3 lg:order-none lg:-my-5">
+            <AgencyLogo priority className="h-[56px] w-auto object-contain sm:h-[76px] lg:h-[88px]" />
             <div className="hidden flex h-12 w-12 items-center justify-center rounded-[18px] bg-emerald-900 text-sm font-semibold text-white shadow-sm">
               И
             </div>
@@ -584,7 +597,27 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
             </div>
           </Link>
 
-          <div className="order-3 flex w-full justify-center lg:order-none lg:w-auto">
+          <div className="order-2 flex w-full justify-center lg:order-none lg:w-auto">
+            <div className="flex items-center rounded-[18px] border border-slate-200 bg-white p-1 shadow-sm">
+              {languageOptions.map((item) => (
+                <button
+                  key={item.code}
+                  type="button"
+                  onClick={() => setSiteLanguage(item.code)}
+                  className={`rounded-[14px] px-2.5 py-1.5 text-xs font-semibold transition sm:px-4 sm:py-2.5 sm:text-sm ${
+                    language === item.code
+                      ? "bg-slate-950 text-white"
+                      : "text-slate-600 hover:text-slate-950"
+                  }`}
+                  aria-pressed={language === item.code}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="order-4 flex w-full justify-center lg:order-none lg:w-auto">
             <div className="inline-flex rounded-[20px] border border-slate-200 bg-white p-1.5 shadow-sm">
               <button
                 type="button"
@@ -592,7 +625,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   setMode("sale");
                   setCurrentPage(1);
                 }}
-                className={`rounded-2xl px-9 py-3 text-[1.05rem] font-semibold transition ${
+                className={`rounded-2xl px-5 py-2.5 text-sm font-semibold transition sm:px-9 sm:py-3 sm:text-[1.05rem] ${
                   mode === "sale"
                     ? "bg-slate-950 text-white shadow-sm"
                     : "text-slate-600 hover:text-slate-950"
@@ -607,7 +640,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   setMode("rent");
                   setCurrentPage(1);
                 }}
-                className={`rounded-2xl px-9 py-3 text-[1.05rem] font-semibold transition ${
+                className={`rounded-2xl px-5 py-2.5 text-sm font-semibold transition sm:px-9 sm:py-3 sm:text-[1.05rem] ${
                   mode === "rent"
                     ? "bg-slate-950 text-white shadow-sm"
                     : "text-slate-600 hover:text-slate-950"
@@ -619,10 +652,10 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+          <div className="order-3 flex w-full flex-wrap items-center justify-center gap-2 sm:gap-3 lg:order-none lg:w-auto lg:justify-end">
             <Link
               href="/compare"
-              className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
+              className="inline-flex h-9 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800 sm:h-11 sm:px-4 sm:text-sm"
             >
               <span>{t.compare}</span>
               <span className="rounded-full bg-slate-950 px-2 py-1 text-xs text-white">
@@ -637,13 +670,13 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                     href="/admin"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-11 items-center rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-900 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100"
+                    className="inline-flex h-9 items-center rounded-[18px] border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-900 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-100 sm:h-11 sm:px-4 sm:text-sm"
                   >
                     {t.admin}
                   </Link>
                 ) : null}
                 <div className="relative">
-                  <div className="absolute -top-4 left-1 max-w-[130px] truncate text-[11px] font-semibold leading-none text-slate-500">
+                  <div className="absolute -top-4 left-1 hidden max-w-[130px] truncate text-[11px] font-semibold leading-none text-slate-500 lg:block">
                     {currentUser.email}
                   </div>
               <button
@@ -651,7 +684,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                 onClick={() => {
                   void handleCatalogLogout();
                 }}
-                className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
+                    className="inline-flex h-9 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800 sm:h-11 sm:px-4 sm:text-sm"
               >
                 <span className="text-base">←</span>
                     <span>{t.logout}</span>
@@ -661,35 +694,18 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
             ) : (
               <Link
                 href="/login"
-                className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800"
+                className="inline-flex h-9 items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800 sm:h-11 sm:px-4 sm:text-sm"
               >
                 <span className="text-base">⌂</span>
                 <span>{isAuthLoading ? "..." : t.login}</span>
               </Link>
             )}
 
-            <div className="flex items-center rounded-[18px] border border-slate-200 bg-white p-1 shadow-sm">
-              {languageOptions.map((item) => (
-                <button
-                  key={item.code}
-                  type="button"
-                  onClick={() => setSiteLanguage(item.code)}
-                  className={`rounded-[14px] px-3 py-2 text-sm font-semibold transition sm:px-4 sm:py-2.5 ${
-                    language === item.code
-                      ? "bg-slate-950 text-white"
-                      : "text-slate-600 hover:text-slate-950"
-                  }`}
-                  aria-pressed={language === item.code}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1380px] px-8 py-5">
+      <div className="mx-auto max-w-[1380px] px-4 py-4 sm:px-8 sm:py-5">
         <div className="flex flex-col items-center gap-3">
             <div className="hidden w-full justify-end">
               <Link
@@ -864,7 +880,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         onChange={() => toggleFeatureFilter(option.value)}
                         className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
                       />
-                      <span>{option.label}</span>
+                      <span>{featureTranslations[language][option.value]}</span>
                     </label>
                   );
                 })}
@@ -931,8 +947,8 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
         </div>
       </div>
 
-      <section id="catalog" className="mx-auto flex-1 max-w-[1380px] px-8 pb-16 pt-8">
-        <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+      <section id="catalog" className="mx-auto flex-1 max-w-[1380px] px-4 pb-16 pt-6 sm:px-8 sm:pt-8">
+        <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:rounded-[32px] sm:p-6">
           <div className="border-b border-slate-100 pb-4">
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -998,8 +1014,9 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   const currentImageIndex = imageIndexes[property.id] ?? 0;
                   const isCompared = compareIds.includes(property.id);
                   const isFavorite = favoriteIds.includes(property.id);
-                  const propertyTags = getPropertyTags(property);
+                  const propertyTags = getPropertyTags(property, language);
                   const propertyMetrics = getCatalogMetrics(property, language);
+                  const localizedProperty = getLocalizedPropertyContent(property, language);
 
                   return (
                     <article
@@ -1014,7 +1031,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         ) : null}
                         <img
                           src={currentImage}
-                          alt={property.title}
+                          alt={localizedProperty.title}
                           className="h-60 w-full object-cover md:h-64"
                           style={{ objectPosition: getPropertyImagePosition(property, currentImage) }}
                         />
@@ -1061,10 +1078,10 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div>
                             <h3 className="text-[1.25rem] font-semibold leading-tight tracking-tight text-slate-950">
-                              {property.title}
+                              {localizedProperty.title}
                             </h3>
                             <p className="mt-1 text-sm text-slate-500">
-                              {property.city}, {property.district}, {property.country}
+                              {localizedProperty.city}, {property.district}, {property.country}
                             </p>
                           </div>
                           <div className="rounded-2xl bg-[#eef6f4] px-4 py-2 text-sm font-semibold leading-tight text-emerald-900">
@@ -1073,7 +1090,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         </div>
 
                         <p className="text-sm leading-5 text-slate-600">
-                          {property.shortDescription}
+                          {localizedProperty.shortDescription}
                         </p>
 
                         <div className="flex flex-wrap gap-2">
@@ -1163,13 +1180,21 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   const isActive = selectedMapProperty?.id === property.id;
                   const isFavorite = favoriteIds.includes(property.id);
                   const compactMetrics = getCatalogMetrics(property, language);
+                  const localizedProperty = getLocalizedPropertyContent(property, language);
 
                   return (
-                    <button
+                    <article
                       key={property.id}
-                      type="button"
                       onClick={() => setSelectedMapPropertyId(property.id)}
-                      className={`w-full max-w-[360px] self-start rounded-[24px] border p-3 text-left transition ${
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedMapPropertyId(property.id);
+                        }
+                      }}
+                      className={`w-full max-w-[360px] cursor-pointer self-start rounded-[24px] border p-3 text-left transition ${
                         isActive
                           ? "border-emerald-400 bg-emerald-50/60 shadow-sm"
                           : "border-slate-200 bg-white hover:border-slate-300"
@@ -1184,7 +1209,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           ) : null}
                           <img
                             src={getPropertyCoverImage(property)}
-                            alt={property.title}
+                            alt={localizedProperty.title}
                             className="h-full w-full object-cover"
                             style={{
                               objectPosition: getPropertyImagePosition(
@@ -1199,7 +1224,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="line-clamp-2 text-base font-semibold leading-tight text-slate-950">
-                                {property.title}
+                                {localizedProperty.title}
                               </div>
                               <div className="mt-1 line-clamp-1 text-sm text-slate-500">
                                 {property.location.addressLabel}
@@ -1211,7 +1236,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           </div>
 
                           <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-600">
-                            {property.shortDescription}
+                            {localizedProperty.shortDescription}
                           </p>
 
                           <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
@@ -1256,7 +1281,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           {t.openCard}
                         </Link>
                       </div>
-                    </button>
+                    </article>
                   );
                 })}
               </div>

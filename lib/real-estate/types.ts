@@ -92,10 +92,22 @@ export type PropertyTaxProfile = {
   notaryEstimateRate: number;
 };
 
+export type PropertyContentLocale = "pt" | "en" | "ru" | "uk";
+
+export type PropertyContentTranslation = {
+  title: string;
+  city: string;
+  shortDescription: string;
+  fullDescription: string;
+  orientation: string[];
+};
+
 export type PropertyListing = {
   id: string;
   slug: string;
   isActive?: boolean;
+  sourceLocale?: PropertyContentLocale;
+  translations?: Partial<Record<PropertyContentLocale, PropertyContentTranslation>>;
   mode: ListingMode;
   title: string;
   city: string;

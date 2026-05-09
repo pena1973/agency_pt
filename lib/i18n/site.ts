@@ -1,4 +1,4 @@
-import type { PropertyType } from "@/lib/real-estate/types";
+import type { ListingFeature, PropertyType } from "@/lib/real-estate/types";
 
 export type SiteLocale = "pt" | "en" | "ru" | "uk";
 
@@ -62,6 +62,75 @@ export const propertyTypeTranslations: Record<
     studio: "Студія",
     townhouse: "Таунхаус",
     villa: "Вілла",
+  },
+};
+
+export type SiteFeatureKey =
+  | ListingFeature
+  | "storageRoom"
+  | "elevator"
+  | "equippedKitchen"
+  | "builtInWardrobes";
+
+export const featureTranslations: Record<
+  SiteLocale,
+  Record<SiteFeatureKey, string>
+> = {
+  pt: {
+    sea_view: "Vista para o mar",
+    city_center: "Centro da cidade",
+    parking: "Estacionamento",
+    pool: "Piscina",
+    security: "Seguranca",
+    furnished: "Mobilado",
+    balcony: "Varanda",
+    terrace: "Terraco",
+    storageRoom: "Arrecadacao",
+    elevator: "Elevador",
+    equippedKitchen: "Cozinha equipada",
+    builtInWardrobes: "Roupeiros embutidos",
+  },
+  en: {
+    sea_view: "Sea view",
+    city_center: "City center",
+    parking: "Parking",
+    pool: "Pool",
+    security: "Security",
+    furnished: "Furnished",
+    balcony: "Balcony",
+    terrace: "Terrace",
+    storageRoom: "Storage room",
+    elevator: "Elevator",
+    equippedKitchen: "Equipped kitchen",
+    builtInWardrobes: "Built-in wardrobes",
+  },
+  ru: {
+    sea_view: "Вид на море",
+    city_center: "Центр города",
+    parking: "Паркинг",
+    pool: "Бассейн",
+    security: "Охрана",
+    furnished: "С мебелью",
+    balcony: "Балкон",
+    terrace: "Терраса",
+    storageRoom: "Кладовая",
+    elevator: "Лифт",
+    equippedKitchen: "Оснащенная кухня",
+    builtInWardrobes: "Встроенные шкафы",
+  },
+  uk: {
+    sea_view: "Вид на море",
+    city_center: "Центр міста",
+    parking: "Паркінг",
+    pool: "Басейн",
+    security: "Охорона",
+    furnished: "З меблями",
+    balcony: "Балкон",
+    terrace: "Тераса",
+    storageRoom: "Комора",
+    elevator: "Ліфт",
+    equippedKitchen: "Обладнана кухня",
+    builtInWardrobes: "Вбудовані шафи",
   },
 };
 

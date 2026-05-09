@@ -9,6 +9,10 @@ import {
   propertyTaxProfiles,
   propertyTransport,
 } from "@/lib/db/schema";
+import {
+  readPropertyTranslationsForPropertyIds,
+  replacePropertyTranslations,
+} from "@/lib/db/property-translations";
 import type {
   ListingFeature,
   PropertyListing,
@@ -91,6 +95,7 @@ export async function readPropertyListingsFromDb(): Promise<PropertyListing[]> {
   const imagesByPropertyId = new Map<string, Array<typeof propertyImages.$inferSelect>>();
   const transportByPropertyId = new Map<string, Array<typeof propertyTransport.$inferSelect>>();
   const taxByPropertyId = new Map(taxRows.map((row) => [row.propertyId, row] as const));
+  const translationsByPropertyId = readPropertyTranslationsForPropertyIds(propertyIds);
 
   for (const row of imageRows) {
     const current = imagesByPropertyId.get(row.propertyId) ?? [];
@@ -123,11 +128,14 @@ export async function readPropertyListingsFromDb(): Promise<PropertyListing[]> {
     const imageSources = Object.fromEntries(
       propertyImageRows.map((image) => [image.imageUrl, image.sourceType])
     );
+    const storedTranslations = translationsByPropertyId.get(row.id);
 
     return {
       id: row.id,
       slug: row.slug,
       isActive: row.isActive,
+      sourceLocale: storedTranslations?.sourceLocale,
+      translations: storedTranslations?.translations,
       mode: row.mode,
       title: row.title,
       city: normalizeCityName(row.city),
@@ -397,6 +405,8 @@ export async function upsertPropertyListingInDb(property: PropertyListing): Prom
       notaryEstimateRate: property.taxProfile.notaryEstimateRate,
     });
   }
+
+  replacePropertyTranslations(property.id, property.sourceLocale, property.translations);
 }
 
 export async function replacePropertyListingsInDb(listings: PropertyListing[]): Promise<void> {

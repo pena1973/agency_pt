@@ -52,6 +52,7 @@ const roomTypes = [
 ] as const;
 const palettes = ["light", "warm", "dark", "pastel", "scandinavian"] as const;
 const aiJobStatuses = ["queued", "processing", "completed", "failed"] as const;
+const contentLocales = ["pt", "en", "ru", "uk"] as const;
 
 export const users = sqliteTable(
   "users",
@@ -219,6 +220,28 @@ export const propertyTaxProfiles = sqliteTable("property_tax_profiles", {
   stampDutyRate: real("stamp_duty_rate"),
   notaryEstimateRate: real("notary_estimate_rate"),
 });
+
+export const propertyTranslations = sqliteTable(
+  "property_translations",
+  {
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    locale: text("locale", { enum: contentLocales }).notNull(),
+    sourceLocale: text("source_locale", { enum: contentLocales }).notNull(),
+    title: text("title").notNull().default(""),
+    city: text("city").notNull().default(""),
+    shortDescription: text("short_description").notNull().default(""),
+    fullDescription: text("full_description").notNull().default(""),
+    orientation: text("orientation").notNull().default("[]"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.propertyId, table.locale] }),
+    index("property_translations_property_id_idx").on(table.propertyId),
+  ]
+);
 
 export const favorites = sqliteTable(
   "favorites",
@@ -399,3 +422,4 @@ export type ImageSourceType = (typeof imageSourceTypes)[number];
 export type RoomType = (typeof roomTypes)[number];
 export type Palette = (typeof palettes)[number];
 export type AiJobStatus = (typeof aiJobStatuses)[number];
+export type ContentLocale = (typeof contentLocales)[number];

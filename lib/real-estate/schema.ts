@@ -45,6 +45,7 @@ export const transportModeSchema = z.enum([
   "train",
   "ferry",
 ]);
+export const contentLocaleSchema = z.enum(["pt", "en", "ru", "uk"]);
 
 const imageUrlSchema = z.union([
   z.string().url(),
@@ -55,6 +56,19 @@ export const propertyListingSchema = z.object({
   id: z.string().min(1),
   slug: z.string().min(1),
   isActive: z.boolean().optional(),
+  sourceLocale: contentLocaleSchema.optional(),
+  translations: z
+    .partialRecord(
+      contentLocaleSchema,
+      z.object({
+        title: z.string(),
+        city: z.string(),
+        shortDescription: z.string(),
+        fullDescription: z.string(),
+        orientation: z.array(z.string()),
+      })
+    )
+    .optional(),
   mode: listingModeSchema,
   title: z.string().min(1),
   city: z.string().min(1),

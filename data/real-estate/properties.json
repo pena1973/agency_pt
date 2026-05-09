@@ -3,6 +3,45 @@
     "id": "irina-1778062918727",
     "slug": "1778062918727",
     "isActive": true,
+    "sourceLocale": "ru",
+    "translations": {
+      "ru": {
+        "title": "Комната",
+        "city": "Гандра",
+        "shortDescription": "Комната в 2 комнатной квартире",
+        "fullDescription": "Комната в 2 комнатной квартире",
+        "orientation": [
+          "юг"
+        ]
+      },
+      "pt": {
+        "title": "Quarto",
+        "city": "Gandra",
+        "shortDescription": "Quarto em apartamento de 2 quartos",
+        "fullDescription": "Quarto em apartamento de 2 quartos, lado solar, segundo andar, permite animais, há rampa para pessoas com deficiência",
+        "orientation": [
+          "sul"
+        ]
+      },
+      "en": {
+        "title": "Room",
+        "city": "Gandra",
+        "shortDescription": "Room in a 2-room apartment",
+        "fullDescription": "Room in a 2-room apartment, sunny side, second floor, pets allowed, there is a ramp for people with disabilities",
+        "orientation": [
+          "south"
+        ]
+      },
+      "uk": {
+        "title": "Кімната",
+        "city": "Гандра",
+        "shortDescription": "Кімната в 2-кімнатній квартирі",
+        "fullDescription": "Кімната в 2-кімнатній квартирі",
+        "orientation": [
+          "південь"
+        ]
+      }
+    },
     "mode": "rent",
     "title": "Комната",
     "city": "Гандра",
@@ -16,8 +55,8 @@
     },
     "priceAmount": 450,
     "priceLabel": "€450 / месяц",
-    "shortDescription": "Комната в 2 комнатной квартире",
-    "fullDescription": "Комната в 2 комнатной квартире",
+    "shortDescription": "Комната в 2 комнатной квартире ",
+    "fullDescription": "Комната в 2 комнатной квартире, солнечная сторона, второй этаж, можно животные, есть пандус для  инвалидов ",
     "bedrooms": 2,
     "bathrooms": 1,
     "areaM2": 32,
@@ -50,7 +89,6 @@
       "propertyType": "room",
       "usableAreaM2": 45,
       "builtAreaM2": 50,
-      "bathroomsFull": 1,
       "plotAreaM2": 0,
       "floor": "2 этаж",
       "exterior": true,
@@ -70,6 +108,7 @@
         "юг"
       ],
       "energyRating": "A",
+      "bathroomsFull": 1,
       "guestBathrooms": 0,
       "buildingFloors": 5,
       "monthlyCondoFeeEur": 0
