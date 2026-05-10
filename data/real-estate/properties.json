@@ -89,6 +89,7 @@
       "propertyType": "room",
       "usableAreaM2": 45,
       "builtAreaM2": 50,
+      "bathroomsFull": 1,
       "plotAreaM2": 0,
       "floor": "2 этаж",
       "exterior": true,
@@ -108,7 +109,6 @@
         "юг"
       ],
       "energyRating": "A",
-      "bathroomsFull": 1,
       "guestBathrooms": 0,
       "buildingFloors": 5,
       "monthlyCondoFeeEur": 0
@@ -139,6 +139,19 @@
     "id": "irina-002",
     "slug": "002",
     "isActive": true,
+    "sourceLocale": "ru",
+    "translations": {
+      "pt": {
+        "title": "Apartamentos em Lisboa",
+        "city": "Lisboa",
+        "shortDescription": "2 quartos, andar alto, sala de estar luminosa e localização conveniente para viver ou investir.",
+        "fullDescription": "Apartamentos renovados com planta bem distribuída, arrumação embutida e sala de estar ensolarada. A zona é bem adequada para atividade empresarial, arrendamento de longa duração e uma vida urbana confortável.",
+        "orientation": [
+          "leste",
+          "sul"
+        ]
+      }
+    },
     "mode": "sale",
     "title": "Апартаменты в Лиссабоне",
     "city": "Лиссабон",
@@ -198,7 +211,6 @@
       "propertyType": "apartment",
       "usableAreaM2": 104,
       "builtAreaM2": 118,
-      "bathroomsFull": 2,
       "plotAreaM2": 0,
       "floor": "7",
       "exterior": true,
@@ -219,6 +231,7 @@
         "юг"
       ],
       "energyRating": "B",
+      "bathroomsFull": 2,
       "guestBathrooms": 0,
       "buildingFloors": 10,
       "monthlyCondoFeeEur": 145

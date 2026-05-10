@@ -117,6 +117,7 @@ const adminTranslations = {
     shortDescription: "Descricao curta",
     fullDescription: "Descricao completa",
     city: "Cidade",
+    location: "Localizacao",
     address: "Endereco",
     fillCoordinates: "Preencher coordenadas pelo endereco",
     latitude: "Latitude",
@@ -159,6 +160,76 @@ const adminTranslations = {
     stop: "Paragem",
     walkTime: "5 min a pe",
     noRoutes: "Ainda nao ha rotas.",
+    defaultBadge: "default",
+    currentPhotos: "Fotografias atuais do imovel",
+    reorderPhotosHelp: "Arraste para alterar a ordem ou mover para a reserva.",
+    cover: "Capa",
+    currentCover: "Capa atual",
+    makeCover: "Definir como capa",
+    noPhotos: "O imovel ainda nao tem fotografias.",
+    spareGallery: "Galeria de reserva",
+    spareGalleryHelp: "Arraste para ca da galeria principal ou devolva a foto para a principal",
+    spareGalleryEmpty: "A galeria de reserva esta vazia.",
+    uploadedCount: "Fotografias carregadas",
+    uploadHelp: "Pode carregar uma ou varias fotografias",
+    photosAiTitle: "Fotografias e variantes AI",
+    photosAiHelp: "Carregue fotos, marque os enquadramentos para limpeza e geracao, depois mova as melhores variantes para as fotografias do imovel.",
+    aiSources: "Fontes para AI",
+    aiDropSource: "Arraste para ca uma foto da galeria principal ou de reserva",
+    generatedVariant: "Variante gerada",
+    aiResultPlaceholder: "O resultado da geracao de mobiliario aparecera aqui. Podera arrasta-lo para a galeria principal ou de reserva.",
+    palette: "Paleta",
+    generateFurniture: "Gerar mobiliario",
+    generatingVariant: "A gerar variante...",
+    generationBalance: "Saldo acumulado das geracoes",
+    tokens: "Tokens",
+    images: "Imagens",
+    records: "Registos",
+    remove: "Remover",
+    roomType: "Tipo de divisao",
+    photoSavedToSpare: "Foto guardada na galeria de reserva. Arraste-a para as fontes AI ou para a galeria principal.",
+    dragImageToGallery: "Arraste a imagem para a galeria principal, se gostar da variante.",
+    download: "Descarregar",
+    gifTitle: "GIF de transformacao do imovel",
+    gifHelp: "Crie uma GIF leve: vista inicial, transformacao suave e resultado AI final.",
+    startPhoto: "Foto inicial",
+    finishPhoto: "Foto final",
+    readyGif: "GIF pronta",
+    reset: "Repor",
+    startSeconds: "Mostrar inicial, seg.",
+    transitionSeconds: "Transformacao, seg.",
+    finishSeconds: "Mostrar resultado, seg.",
+    generateGif: "Gerar GIF",
+    generatingGif: "A gerar GIF...",
+    gifPlaceholder: "Aqui aparecera o resultado da animacao. Podera arrasta-lo para a galeria principal ou de reserva.",
+    inquiriesHelp: "Aqui aparecem todos os pedidos enviados pelo formulario geral e pelas fichas dos imoveis.",
+    propertyInquiry: "Pedido sobre imovel",
+    generalInquiry: "Pedido geral de selecao",
+    openUser: "Abrir utilizador",
+    markReviewed: "Marcar como visto",
+    returnToNew: "Voltar a novo",
+    phone: "Telefone",
+    messengers: "Mensageiros",
+    name: "Nome",
+    user: "Utilizador",
+    property: "Imovel",
+    areaTypology: "Area e tipologia",
+    need: "Necessidade",
+    message: "Mensagem",
+    noInquiries: "Ainda nao ha pedidos do site.",
+    registration: "Registo",
+    siteUser: "Utilizador do site",
+    lastActivity: "Ultima atividade",
+    userSearchTitle: "O que o utilizador procurou",
+    deal: "Negocio",
+    purchase: "Compra",
+    notSpecified: "Nao indicado",
+    cities: "Cidades",
+    budget: "Orcamento",
+    mustHave: "Preferencias principais",
+    favorites: "Favoritos",
+    compareList: "Lista de comparacao",
+    openCard: "Abrir ficha",
     titlePlaceholder: "Ex.: villa junto ao oceano",
     savedLater: "Depois de guardar",
     shortDescriptionPlaceholder: "Descreva brevemente o imovel",
@@ -199,6 +270,7 @@ const adminTranslations = {
     shortDescription: "Short description",
     fullDescription: "Full description",
     city: "City",
+    location: "Location",
     address: "Address",
     fillCoordinates: "Fill coordinates from address",
     latitude: "Latitude",
@@ -241,6 +313,76 @@ const adminTranslations = {
     stop: "Stop",
     walkTime: "5 min walk",
     noRoutes: "No routes yet.",
+    defaultBadge: "default",
+    currentPhotos: "Current property photos",
+    reorderPhotosHelp: "Drag to change order or move to spare.",
+    cover: "Cover",
+    currentCover: "Current cover",
+    makeCover: "Make cover",
+    noPhotos: "This property has no photos yet.",
+    spareGallery: "Spare gallery",
+    spareGalleryHelp: "Drag here from the main gallery or drag a photo back to the main gallery",
+    spareGalleryEmpty: "The spare gallery is empty.",
+    uploadedCount: "Uploaded photos",
+    uploadHelp: "You can upload one or several photos",
+    photosAiTitle: "Photos and AI variants",
+    photosAiHelp: "Upload photos, mark frames for cleanup and generation, then move the best variants to the property photos.",
+    aiSources: "AI sources",
+    aiDropSource: "Drag a photo here from the main or spare gallery",
+    generatedVariant: "Generated variant",
+    aiResultPlaceholder: "The furniture generation result will appear here. You can drag it to the main or spare gallery.",
+    palette: "Palette",
+    generateFurniture: "Generate furniture",
+    generatingVariant: "Generating variant...",
+    generationBalance: "Accumulated generation balance",
+    tokens: "Tokens",
+    images: "Images",
+    records: "Records",
+    remove: "Remove",
+    roomType: "Room type",
+    photoSavedToSpare: "Photo saved to the spare gallery. Drag it to AI sources or to the main gallery.",
+    dragImageToGallery: "Drag the image to the main gallery if this variant works.",
+    download: "Download",
+    gifTitle: "Property transformation GIF",
+    gifHelp: "Create a light GIF: initial view, smooth transformation, and final AI result.",
+    startPhoto: "Start photo",
+    finishPhoto: "Final photo",
+    readyGif: "Ready GIF",
+    reset: "Reset",
+    startSeconds: "Show start, sec.",
+    transitionSeconds: "Transformation, sec.",
+    finishSeconds: "Show result, sec.",
+    generateGif: "Generate GIF",
+    generatingGif: "Generating GIF...",
+    gifPlaceholder: "The animation result will appear here. You can drag it to the main or spare gallery.",
+    inquiriesHelp: "All requests sent from the general selection form and property cards are shown here.",
+    propertyInquiry: "Property inquiry",
+    generalInquiry: "General selection request",
+    openUser: "Open user",
+    markReviewed: "Mark reviewed",
+    returnToNew: "Return to new",
+    phone: "Phone",
+    messengers: "Messengers",
+    name: "Name",
+    user: "User",
+    property: "Property",
+    areaTypology: "Area and typology",
+    need: "Needed",
+    message: "Message",
+    noInquiries: "No site inquiries yet.",
+    registration: "Registration",
+    siteUser: "Site user",
+    lastActivity: "Last activity",
+    userSearchTitle: "What the user searched for",
+    deal: "Deal",
+    purchase: "Purchase",
+    notSpecified: "Not specified",
+    cities: "Cities",
+    budget: "Budget",
+    mustHave: "Key wishes",
+    favorites: "Favorites",
+    compareList: "Compare list",
+    openCard: "Open card",
     titlePlaceholder: "Example: Oceanfront villa",
     savedLater: "After saving",
     shortDescriptionPlaceholder: "Briefly describe the property",
@@ -281,6 +423,7 @@ const adminTranslations = {
     shortDescription: "Краткое описание",
     fullDescription: "Полное описание",
     city: "Город",
+    location: "Локация",
     address: "Адрес",
     fillCoordinates: "Заполнить координаты по адресу",
     latitude: "Широта",
@@ -323,6 +466,76 @@ const adminTranslations = {
     stop: "Остановка",
     walkTime: "5 минут пешком",
     noRoutes: "Пока нет маршрутов.",
+    defaultBadge: "default",
+    currentPhotos: "Текущие фотографии объекта",
+    reorderPhotosHelp: "Перетащите, чтобы изменить порядок или убрать в запасные.",
+    cover: "Обложка",
+    currentCover: "Текущая обложка",
+    makeCover: "Сделать обложкой",
+    noPhotos: "У объекта пока нет фотографий.",
+    spareGallery: "Запасная галерея",
+    spareGalleryHelp: "Перетащите сюда из основной или перетащите фото обратно в основную",
+    spareGalleryEmpty: "Запасная галерея пока пустая.",
+    uploadedCount: "Загружено фото",
+    uploadHelp: "Можно загрузить одно или несколько фото",
+    photosAiTitle: "Фотографии и AI-варианты",
+    photosAiHelp: "Загружайте фото, отмечайте нужные кадры для очистки и генерации, затем переносите лучшие варианты в фотографии объекта.",
+    aiSources: "Исходники для AI",
+    aiDropSource: "Перетащите сюда фото из основной или запасной галереи",
+    generatedVariant: "Сгенерированный вариант",
+    aiResultPlaceholder: "Здесь появится результат генерации мебели. Его можно будет перетащить в основную или запасную галерею.",
+    palette: "Палитра",
+    generateFurniture: "Сгенерировать мебель",
+    generatingVariant: "Генерируем вариант...",
+    generationBalance: "Накопленный баланс генераций",
+    tokens: "Токены",
+    images: "Изображений",
+    records: "Записей",
+    remove: "Убрать",
+    roomType: "Тип комнаты",
+    photoSavedToSpare: "Фото сохранено в запасную галерею. Перетащите его в поле исходников для AI или в основную галерею.",
+    dragImageToGallery: "Перетащите изображение в основную галерею, если вариант подходит.",
+    download: "Скачать",
+    gifTitle: "GIF превращения объекта",
+    gifHelp: "Соберите лёгкую GIF-анимацию: исходный вид, плавное превращение и финальный AI-результат.",
+    startPhoto: "Стартовое фото",
+    finishPhoto: "Финальное фото",
+    readyGif: "Готовая GIF",
+    reset: "Сбросить",
+    startSeconds: "Показ исходника, сек.",
+    transitionSeconds: "Превращение, сек.",
+    finishSeconds: "Показ результата, сек.",
+    generateGif: "Сгенерировать GIF",
+    generatingGif: "Генерируем GIF...",
+    gifPlaceholder: "Здесь появится результат анимации изменения объекта. Его можно будет перетащить в основную или запасную галерею.",
+    inquiriesHelp: "Здесь видны все заявки, отправленные с общей формы подбора и из карточек объектов.",
+    propertyInquiry: "Обращение по объекту",
+    generalInquiry: "Общий запрос на подбор",
+    openUser: "Открыть пользователя",
+    markReviewed: "Пометить просмотренным",
+    returnToNew: "Вернуть в новые",
+    phone: "Телефон",
+    messengers: "Мессенджеры",
+    name: "Имя",
+    user: "Пользователь",
+    property: "Объект",
+    areaTypology: "Площадь и типология",
+    need: "Что необходимо",
+    message: "Сообщение",
+    noInquiries: "Пока нет обращений с сайта.",
+    registration: "Регистрация",
+    siteUser: "Пользователь сайта",
+    lastActivity: "Последняя активность",
+    userSearchTitle: "Что искал пользователь",
+    deal: "Сделка",
+    purchase: "Покупка",
+    notSpecified: "Не указано",
+    cities: "Города",
+    budget: "Бюджет",
+    mustHave: "Ключевые пожелания",
+    favorites: "Избранное",
+    compareList: "Список сравнения",
+    openCard: "Открыть карточку",
     titlePlaceholder: "Например: Вилла у океана",
     savedLater: "После сохранения",
     shortDescriptionPlaceholder: "Кратко опишите объект",
@@ -363,6 +576,7 @@ const adminTranslations = {
     shortDescription: "Короткий опис",
     fullDescription: "Повний опис",
     city: "Місто",
+    location: "Локація",
     address: "Адреса",
     fillCoordinates: "Заповнити координати за адресою",
     latitude: "Широта",
@@ -405,6 +619,76 @@ const adminTranslations = {
     stop: "Зупинка",
     walkTime: "5 хвилин пішки",
     noRoutes: "Маршрутів поки немає.",
+    defaultBadge: "default",
+    currentPhotos: "Поточні фотографії об'єкта",
+    reorderPhotosHelp: "Перетягніть, щоб змінити порядок або прибрати в запасні.",
+    cover: "Обкладинка",
+    currentCover: "Поточна обкладинка",
+    makeCover: "Зробити обкладинкою",
+    noPhotos: "В об'єкта поки немає фотографій.",
+    spareGallery: "Запасна галерея",
+    spareGalleryHelp: "Перетягніть сюди з основної або поверніть фото в основну",
+    spareGalleryEmpty: "Запасна галерея поки порожня.",
+    uploadedCount: "Завантажено фото",
+    uploadHelp: "Можна завантажити одне або кілька фото",
+    photosAiTitle: "Фотографії та AI-варіанти",
+    photosAiHelp: "Завантажуйте фото, позначайте потрібні кадри для очищення й генерації, потім переносіть найкращі варіанти у фотографії об'єкта.",
+    aiSources: "Джерела для AI",
+    aiDropSource: "Перетягніть сюди фото з основної або запасної галереї",
+    generatedVariant: "Згенерований варіант",
+    aiResultPlaceholder: "Тут з'явиться результат генерації меблів. Його можна буде перетягнути в основну або запасну галерею.",
+    palette: "Палітра",
+    generateFurniture: "Згенерувати меблі",
+    generatingVariant: "Генеруємо варіант...",
+    generationBalance: "Накопичений баланс генерацій",
+    tokens: "Токени",
+    images: "Зображень",
+    records: "Записів",
+    remove: "Прибрати",
+    roomType: "Тип кімнати",
+    photoSavedToSpare: "Фото збережено в запасну галерею. Перетягніть його в джерела AI або в основну галерею.",
+    dragImageToGallery: "Перетягніть зображення в основну галерею, якщо варіант підходить.",
+    download: "Завантажити",
+    gifTitle: "GIF перетворення об'єкта",
+    gifHelp: "Зберіть легку GIF-анімацію: початковий вигляд, плавне перетворення і фінальний AI-результат.",
+    startPhoto: "Стартове фото",
+    finishPhoto: "Фінальне фото",
+    readyGif: "Готова GIF",
+    reset: "Скинути",
+    startSeconds: "Показ початку, сек.",
+    transitionSeconds: "Перетворення, сек.",
+    finishSeconds: "Показ результату, сек.",
+    generateGif: "Згенерувати GIF",
+    generatingGif: "Генеруємо GIF...",
+    gifPlaceholder: "Тут з'явиться результат анімації зміни об'єкта. Його можна буде перетягнути в основну або запасну галерею.",
+    inquiriesHelp: "Тут видно всі заявки, надіслані із загальної форми підбору та з карток об'єктів.",
+    propertyInquiry: "Звернення щодо об'єкта",
+    generalInquiry: "Загальний запит на підбір",
+    openUser: "Відкрити користувача",
+    markReviewed: "Позначити переглянутим",
+    returnToNew: "Повернути в нові",
+    phone: "Телефон",
+    messengers: "Месенджери",
+    name: "Ім'я",
+    user: "Користувач",
+    property: "Об'єкт",
+    areaTypology: "Площа і типологія",
+    need: "Що потрібно",
+    message: "Повідомлення",
+    noInquiries: "Поки немає звернень із сайту.",
+    registration: "Реєстрація",
+    siteUser: "Користувач сайту",
+    lastActivity: "Остання активність",
+    userSearchTitle: "Що шукав користувач",
+    deal: "Угода",
+    purchase: "Купівля",
+    notSpecified: "Не вказано",
+    cities: "Міста",
+    budget: "Бюджет",
+    mustHave: "Ключові побажання",
+    favorites: "Обране",
+    compareList: "Список порівняння",
+    openCard: "Відкрити картку",
     titlePlaceholder: "Наприклад: Вілла біля океану",
     savedLater: "Після збереження",
     shortDescriptionPlaceholder: "Коротко опишіть об'єкт",
@@ -435,6 +719,71 @@ const paletteOptions = [
   { value: "pastel", label: "Пастельная" },
   { value: "scandinavian", label: "Скандинавская" },
 ] as const;
+
+const localizedRoomTypeLabels: Record<SiteLocale, Record<RoomType, string>> = {
+  pt: {
+    bedroom: "Quarto",
+    living_room: "Sala",
+    kids_room: "Quarto infantil",
+    office: "Escritorio",
+    kitchen: "Cozinha",
+  },
+  en: {
+    bedroom: "Bedroom",
+    living_room: "Living room",
+    kids_room: "Kids room",
+    office: "Office",
+    kitchen: "Kitchen",
+  },
+  ru: {
+    bedroom: "Спальня",
+    living_room: "Гостиная",
+    kids_room: "Детская",
+    office: "Кабинет",
+    kitchen: "Кухня",
+  },
+  uk: {
+    bedroom: "Спальня",
+    living_room: "Вітальня",
+    kids_room: "Дитяча",
+    office: "Кабінет",
+    kitchen: "Кухня",
+  },
+};
+
+const paletteLabels: Record<
+  SiteLocale,
+  Record<(typeof paletteOptions)[number]["value"], string>
+> = {
+  pt: {
+    light: "Clara",
+    warm: "Quente",
+    dark: "Escura",
+    pastel: "Pastel",
+    scandinavian: "Escandinava",
+  },
+  en: {
+    light: "Light",
+    warm: "Warm",
+    dark: "Dark",
+    pastel: "Pastel",
+    scandinavian: "Scandinavian",
+  },
+  ru: {
+    light: "Светлая",
+    warm: "Теплая",
+    dark: "Темная",
+    pastel: "Пастельная",
+    scandinavian: "Скандинавская",
+  },
+  uk: {
+    light: "Світла",
+    warm: "Тепла",
+    dark: "Темна",
+    pastel: "Пастельна",
+    scandinavian: "Скандинавська",
+  },
+};
 
 const defaultGifFrameSettings: GifFrameSettings = {
   x: 50,
@@ -834,6 +1183,29 @@ function getPropertyContentForLocale(
   }
 
   return property.translations?.[locale] ?? getEmptyPropertyContentTranslation();
+}
+
+function getPropertyDisplayContentForLocale(
+  property: PropertyListing,
+  locale: SiteLocale
+) {
+  const sourceContent = getSourcePropertyContent(property);
+  const sourceLocale = getPropertySourceLocale(property);
+  const translation = property.translations?.[locale];
+  const isFallback = locale !== sourceLocale && !translation;
+
+  return {
+    content: {
+      title: translation?.title || sourceContent.title,
+      city: translation?.city || sourceContent.city,
+      shortDescription: translation?.shortDescription || sourceContent.shortDescription,
+      fullDescription: translation?.fullDescription || sourceContent.fullDescription,
+      orientation: translation?.orientation?.length
+        ? translation.orientation
+        : sourceContent.orientation,
+    },
+    isFallback,
+  };
 }
 
 function getLocalizedContentPath(
@@ -3031,7 +3403,16 @@ export function AdminDashboard({
   }
 
   function formatAdminDate(isoDate: string) {
-    return new Intl.DateTimeFormat("ru-RU", {
+    const localeCode =
+      siteLanguage === "pt"
+        ? "pt-PT"
+        : siteLanguage === "en"
+          ? "en-GB"
+          : siteLanguage === "uk"
+            ? "uk-UA"
+            : "ru-RU";
+
+    return new Intl.DateTimeFormat(localeCode, {
       dateStyle: "medium",
       timeStyle: "short",
     }).format(new Date(isoDate));
@@ -3039,15 +3420,11 @@ export function AdminDashboard({
 
   function formatUserPropertyTypes(propertyTypes?: PropertyType[]) {
     if (!propertyTypes || propertyTypes.length === 0) {
-      return "Не указаны";
+      return adminT.notSpecified;
     }
 
     return propertyTypes
-      .map(
-        (propertyType) =>
-          extendedPropertyTypeOptions.find((option) => option.value === propertyType)?.label ??
-          propertyType
-      )
+      .map((propertyType) => localizedPropertyTypeLabels[propertyType] ?? propertyType)
       .join(", ");
   }
 
@@ -3055,14 +3432,14 @@ export function AdminDashboard({
     mode?: NonNullable<RegisteredUser["searchProfile"]>["mode"]
   ) {
     if (mode === "sale") {
-      return "Покупка";
+      return adminT.purchase;
     }
 
     if (mode === "rent") {
-      return "Аренда";
+      return adminT.rent;
     }
 
-    return "Не указана";
+    return adminT.notSpecified;
   }
 
   return (
@@ -3242,6 +3619,10 @@ export function AdminDashboard({
                 <div className="grid content-start gap-3 pr-1 2xl:min-h-0 2xl:flex-1 2xl:overflow-y-auto">
                   {filteredProperties.map((property) => {
                     const isActive = property.id === selectedId;
+                    const catalogPropertyContent = getPropertyDisplayContentForLocale(
+                      property,
+                      siteLanguage
+                    );
 
                     return (
                       <button
@@ -3256,23 +3637,30 @@ export function AdminDashboard({
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="text-sm font-semibold text-slate-950">
-                            {property.title}
+                            {catalogPropertyContent.content.title}
                           </div>
-                          <span
-                            className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${
-                              property.isActive === false
-                                ? "bg-slate-200 text-slate-600"
-                                : "bg-emerald-100 text-emerald-800"
-                            }`}
-                          >
-                            {property.isActive === false ? adminT.inactive : adminT.active}
-                          </span>
+                          <div className="grid justify-items-end gap-1">
+                            <span
+                              className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                                property.isActive === false
+                                  ? "bg-slate-200 text-slate-600"
+                                  : "bg-emerald-100 text-emerald-800"
+                              }`}
+                            >
+                              {property.isActive === false ? adminT.inactive : adminT.active}
+                            </span>
+                            {catalogPropertyContent.isFallback ? (
+                              <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                                {adminT.defaultBadge}
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                         <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">
                           {getPropertyDisplayId(property)}
                         </div>
                         <div className="mt-2 text-sm text-slate-500">
-                          {property.city} · {property.mode === "sale" ? adminT.sale : adminT.rent}
+                          {catalogPropertyContent.content.city} · {property.mode === "sale" ? adminT.sale : adminT.rent}
                         </div>
                       </button>
                     );
@@ -4450,10 +4838,10 @@ export function AdminDashboard({
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <div className="text-sm font-semibold text-slate-900">
-                              Текущие фотографии объекта
+                              {adminT.currentPhotos}
                             </div>
                             <div className="mt-1 text-xs text-slate-500">
-                              Перетащите, чтобы изменить порядок или убрать в запасные.
+                              {adminT.reorderPhotosHelp}
                             </div>
                           </div>
                           {renderCollapseButton("photos")}
@@ -4507,7 +4895,7 @@ export function AdminDashboard({
                                   </div>
                                   {propertyDraft.imageUrl === imageUrl ? (
                                     <div className="absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">
-                                      Обложка
+                                      {adminT.cover}
                                     </div>
                                   ) : null}
                                   {isAiGeneratedImage(imageUrl) ? (
@@ -4599,8 +4987,8 @@ export function AdminDashboard({
                                       }`}
                                     >
                                       {propertyDraft.imageUrl === imageUrl
-                                        ? "Текущая обложка"
-                                        : "Сделать обложкой"}
+                                        ? adminT.currentCover
+                                        : adminT.makeCover}
                                     </button>
                                   </div>
                                 </div>
@@ -4609,7 +4997,7 @@ export function AdminDashboard({
                             })
                           ) : (
                             <div className="min-w-[260px] rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
-                              У объекта пока нет фотографий.
+                              {adminT.noPhotos}
                             </div>
                           )}
                         </div>
@@ -4622,10 +5010,10 @@ export function AdminDashboard({
                         >
                           <div className="mb-3 flex items-center justify-between gap-3">
                             <div className="text-sm font-semibold text-slate-900">
-                              Запасная галерея
+                              {adminT.spareGallery}
                             </div>
                             <div className="text-xs text-slate-500">
-                              Перетащите сюда из основной или перетащите фото обратно в основную
+                              {adminT.spareGalleryHelp}
                             </div>
                           </div>
                           {spareGalleryItems.length > 0 ? (
@@ -4707,7 +5095,7 @@ export function AdminDashboard({
                             </div>
                           ) : (
                             <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-500">
-                              Запасная галерея пока пустая.
+                              {adminT.spareGalleryEmpty}
                             </div>
                           )}
                           <label className="mt-4 grid gap-2">
@@ -4742,8 +5130,8 @@ export function AdminDashboard({
                                 </button>
                                 <span className="hidden text-sm text-slate-600 md:inline">
                                   {uploadedPhotos.length > 0
-                                    ? `Загружено фото: ${uploadedPhotos.length}`
-                                    : "Можно загрузить одно или несколько фото"}
+                                    ? `${adminT.uploadedCount}: ${uploadedPhotos.length}`
+                                    : adminT.uploadHelp}
                                 </span>
                                 <input
                                   ref={photoFileInputRef}
@@ -4785,11 +5173,10 @@ export function AdminDashboard({
                   <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-slate-950">
-                        Фотографии и AI-варианты
+                        {adminT.photosAiTitle}
                       </div>
                       <div className="mt-1 text-sm text-slate-500">
-                        Загружайте фото, отмечайте нужные кадры для очистки и генерации,
-                        затем переносите лучшие варианты в фотографии объекта.
+                        {adminT.photosAiHelp}
                       </div>
                     </div>
                     {renderCollapseButton("ai")}
@@ -4800,7 +5187,7 @@ export function AdminDashboard({
                     <div className="grid self-start gap-4">
                       <div className="grid gap-2">
                         <div className="text-sm font-semibold text-slate-800">
-                          Исходники для AI
+                          {adminT.aiSources}
                         </div>
                         <div
                           className="min-h-[132px] rounded-3xl border border-dashed border-emerald-300 bg-emerald-50/50 p-4"
@@ -4832,7 +5219,7 @@ export function AdminDashboard({
                                     >
                                       {roomTypeOptions.map((option) => (
                                         <option key={option.value} value={option.value}>
-                                          {option.label}
+                                          {localizedRoomTypeLabels[siteLanguage][option.value]}
                                         </option>
                                       ))}
                                     </select>
@@ -4841,7 +5228,7 @@ export function AdminDashboard({
                                       onClick={() => removeAiSourcePhoto(photo.imageUrl)}
                                       className="rounded-xl border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 transition hover:border-red-200 hover:text-red-700"
                                     >
-                                      Убрать
+                                      {adminT.remove}
                                     </button>
                                   </div>
                                 </div>
@@ -4849,7 +5236,7 @@ export function AdminDashboard({
                             </div>
                           ) : (
                             <div className="flex h-full min-h-[96px] items-center justify-center text-center text-sm text-slate-500">
-                              Перетащите сюда фото из основной или запасной галереи
+                              {adminT.aiDropSource}
                             </div>
                           )}
                         </div>
@@ -4858,7 +5245,7 @@ export function AdminDashboard({
                       <div className="grid gap-4 lg:grid-cols-1">
                         <label className="grid gap-2">
                           <span className="text-sm font-semibold text-slate-800">
-                            Палитра
+                            {adminT.palette}
                           </span>
                           <select
                             value={aiPalette}
@@ -4871,7 +5258,7 @@ export function AdminDashboard({
                           >
                             {paletteOptions.map((option) => (
                               <option key={option.value} value={option.value}>
-                                {option.label}
+                                {paletteLabels[siteLanguage][option.value]}
                               </option>
                             ))}
                           </select>
@@ -4885,8 +5272,8 @@ export function AdminDashboard({
                         className="rounded-2xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                       >
                         {isGeneratingAi
-                          ? "Генерируем вариант..."
-                          : "Сгенерировать мебель"}
+                          ? adminT.generatingVariant
+                          : adminT.generateFurniture}
                       </button>
 
                      
@@ -4894,12 +5281,12 @@ export function AdminDashboard({
                       {generationBalance ? (
                         <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950">
                           <div className="font-semibold">
-                            Накопленный баланс генераций: {formatUsd(generationBalance.totalCostUsd)}
+                            {adminT.generationBalance}: {formatUsd(generationBalance.totalCostUsd)}
                           </div>
                           <div className="mt-1 text-xs text-emerald-900/80">
-                            Токены: {generationBalance.totalTokens.toLocaleString("ru-RU")}
-                            {" "}· Изображений: {generationBalance.totalImages}
-                            {" "}· Записей: {generationBalance.entriesCount}
+                            {adminT.tokens}: {generationBalance.totalTokens.toLocaleString("ru-RU")}
+                            {" "}· {adminT.images}: {generationBalance.totalImages}
+                            {" "}· {adminT.records}: {generationBalance.entriesCount}
                           </div>
                         </div>
                       ) : null}
@@ -4922,7 +5309,7 @@ export function AdminDashboard({
                                 </div>
                                 <label className="mt-3 grid gap-2">
                                   <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                    Тип комнаты
+                                    {adminT.roomType}
                                   </span>
                                   <select
                                     value={photo.roomType}
@@ -4933,14 +5320,14 @@ export function AdminDashboard({
                                   >
                                     {roomTypeOptions.map((option) => (
                                       <option key={option.value} value={option.value}>
-                                        {option.label}
+                                        {localizedRoomTypeLabels[siteLanguage][option.value]}
                                       </option>
                                     ))}
                                   </select>
                                 </label>
                                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
                                   <div className="text-sm text-slate-600">
-                                    Фото сохранено в запасную галерею. Перетащите его в поле исходников для AI или в основную галерею.
+                                    {adminT.photoSavedToSpare}
                                   </div>
                                 </div>
                               </div>
@@ -4952,7 +5339,7 @@ export function AdminDashboard({
 
                     <div className="grid self-start gap-3">
                       <div className="text-sm font-semibold text-slate-800">
-                        Сгенерированный вариант
+                        {adminT.generatedVariant}
                       </div>
                       {visibleAiVariants.length > 0 ? (
                         <div className="grid gap-4">
@@ -4985,7 +5372,7 @@ export function AdminDashboard({
                                     {variant.title}
                                   </div>
                                   <div className="mt-1 text-sm text-slate-600">
-                                    Перетащите изображение в основную галерею, если вариант подходит.
+                                    {adminT.dragImageToGallery}
                                   </div>
                                 </div>
                                 {aiResult?.usageEstimate ? (
@@ -5003,7 +5390,7 @@ export function AdminDashboard({
                                   }
                                   className="w-fit rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
                                 >
-                                  Скачать
+                                  {adminT.download}
                                 </button>
                               </div>
                             </article>
@@ -5011,7 +5398,7 @@ export function AdminDashboard({
                         </div>
                       ) : (
                         <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                          Здесь появится результат генерации мебели. Его можно будет перетащить в основную или запасную галерею.
+                          {adminT.aiResultPlaceholder}
                         </div>
                       )}
                     </div>
@@ -5023,10 +5410,10 @@ export function AdminDashboard({
                   <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-slate-950">
-                        GIF превращения объекта
+                        {adminT.gifTitle}
                       </div>
                       <div className="mt-1 text-sm text-slate-500">
-                        Соберите лёгкую GIF-анимацию: исходный вид, плавное превращение и финальный AI-результат.
+                        {adminT.gifHelp}
                       </div>
                     </div>
                     {renderCollapseButton("gif")}
@@ -5037,8 +5424,8 @@ export function AdminDashboard({
                       <div className="grid min-w-0 gap-4 xl:max-w-[500px] 2xl:max-w-none">
                         <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:gap-4">
                           {([
-                            ["start", "Стартовое фото", gifStartImageUrl],
-                            ["finish", "Финальное фото", gifFinishImageUrl],
+                            ["start", adminT.startPhoto, gifStartImageUrl],
+                            ["finish", adminT.finishPhoto, gifFinishImageUrl],
                           ] as Array<[GifImageSlot, string, string]>).map(
                             ([slot, label, imageUrl]) => {
                               const frameSettings = getGifFrameSettings(slot);
@@ -5055,7 +5442,7 @@ export function AdminDashboard({
                                         onClick={() => resetGifFrameSettings(slot)}
                                         className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 transition hover:border-emerald-300 hover:text-emerald-800"
                                       >
-                                        Сбросить
+                                        {adminT.reset}
                                       </button>
                                     ) : null}
                                   </div>
@@ -5161,7 +5548,7 @@ export function AdminDashboard({
                                       </>
                                     ) : (
                                       <span className="px-5">
-                                        Перетащите сюда фото из основной или запасной галереи
+                                        {adminT.aiDropSource}
                                       </span>
                                     )}
                                   </div>
@@ -5174,7 +5561,7 @@ export function AdminDashboard({
                         <div className="grid gap-3 md:grid-cols-3">
                           <label className="grid gap-2">
                             <span className="text-sm font-semibold text-slate-800">
-                              Показ исходника, сек.
+                              {adminT.startSeconds}
                             </span>
                             <input
                               type="number"
@@ -5190,7 +5577,7 @@ export function AdminDashboard({
                           </label>
                           <label className="grid gap-2">
                             <span className="text-sm font-semibold text-slate-800">
-                              Превращение, сек.
+                              {adminT.transitionSeconds}
                             </span>
                             <input
                               type="number"
@@ -5206,7 +5593,7 @@ export function AdminDashboard({
                           </label>
                           <label className="grid gap-2">
                             <span className="text-sm font-semibold text-slate-800">
-                              Показ результата, сек.
+                              {adminT.finishSeconds}
                             </span>
                             <input
                               type="number"
@@ -5228,7 +5615,7 @@ export function AdminDashboard({
                           disabled={isGeneratingGif}
                           className="rounded-2xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                         >
-                          {isGeneratingGif ? "Генерируем GIF..." : "Сгенерировать GIF"}
+                          {isGeneratingGif ? adminT.generatingGif : adminT.generateGif}
                         </button>
 
                         {gifStatus ? (
@@ -5240,7 +5627,7 @@ export function AdminDashboard({
 
                       <div className="grid min-w-0 self-start gap-3">
                         <div className="text-sm font-semibold text-slate-800">
-                          Готовая GIF
+                          {adminT.readyGif}
                         </div>
                         {gifResult ? (
                           <div
@@ -5252,7 +5639,7 @@ export function AdminDashboard({
                           >
                             <img
                               src={gifResult.gifUrl}
-                              alt="GIF превращения объекта"
+                              alt={adminT.gifTitle}
                               draggable={false}
                               onDragStart={(event) => {
                                 event.preventDefault();
@@ -5267,21 +5654,21 @@ export function AdminDashboard({
                               </div>
                               <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div className="text-xs text-slate-500">
-                                  Перетащите GIF в основную или запасную галерею.
+                                  {adminT.spareGalleryHelp}
                                 </div>
                                 <a
                                   href={gifResult.gifUrl}
                                   download
                                   className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
                                 >
-                                  Скачать GIF
+                                  {adminT.download} GIF
                                 </a>
                               </div>
                             </div>
                           </div>
                         ) : (
                           <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">                            
-                            Здесь появится результат анимации изменения объекта. Его можно будет перетащить в основную или запасную галерею.
+                            {adminT.gifPlaceholder}
                           </div>
                         )}
                       </div>
@@ -5299,8 +5686,7 @@ export function AdminDashboard({
                 {adminT.clientInquiriesTitle}
               </div>
               <div className="mt-1 text-sm text-slate-500">
-                Здесь видны все заявки, отправленные с общей формы подбора и из
-                карточек объектов.
+                {adminT.inquiriesHelp}
               </div>
             </div>
 
@@ -5321,8 +5707,8 @@ export function AdminDashboard({
                         <div>
                         <div className="text-sm font-semibold text-slate-950">
                           {inquiry.source === "property_request"
-                            ? "Обращение по объекту"
-                            : "Общий запрос на подбор"}
+                            ? adminT.propertyInquiry
+                            : adminT.generalInquiry}
                         </div>
                         <div className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">
                           {new Date(inquiry.createdAt).toLocaleString("ru-RU")}
@@ -5339,7 +5725,7 @@ export function AdminDashboard({
                               }}
                               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
                             >
-                              Открыть пользователя
+                              {adminT.openUser}
                             </button>
                           ) : null}
                           <button
@@ -5357,8 +5743,8 @@ export function AdminDashboard({
                             }`}
                           >
                             {inquiry.status === "new"
-                              ? "Пометить просмотренным"
-                              : "Вернуть в новые"}
+                              ? adminT.markReviewed
+                              : adminT.returnToNew}
                           </button>
                         </div>
                       </div>
@@ -5366,7 +5752,7 @@ export function AdminDashboard({
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
                         <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700">
                           <div>
-                            <span className="font-semibold">Телефон:</span> {inquiry.phone}
+                            <span className="font-semibold">{adminT.phone}:</span> {inquiry.phone}
                           </div>
                           {visibleInquiryEmail ? (
                             <div className="mt-1">
@@ -5374,12 +5760,12 @@ export function AdminDashboard({
                             </div>
                           ) : null}
                           <div className="mt-1">
-                            <span className="font-semibold">Мессенджеры:</span>{" "}
+                            <span className="font-semibold">{adminT.messengers}:</span>{" "}
                             {inquiry.messengers.join(", ") || "-"}
                           </div>
                           {inquiry.name ? (
                             <div className="mt-1">
-                              <span className="font-semibold">Имя:</span> {inquiry.name}
+                              <span className="font-semibold">{adminT.name}:</span> {inquiry.name}
                             </div>
                           ) : null}
                         </div>
@@ -5387,31 +5773,31 @@ export function AdminDashboard({
                         <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700">
                           {linkedUser ? (
                             <div>
-                              <span className="font-semibold">Пользователь:</span>{" "}
+                              <span className="font-semibold">{adminT.user}:</span>{" "}
                               {linkedUser.email}
                             </div>
                           ) : null}
                           {inquiry.propertyTitle ? (
                             <div className={linkedUser ? "mt-1" : undefined}>
-                              <span className="font-semibold">Объект:</span>{" "}
+                              <span className="font-semibold">{adminT.property}:</span>{" "}
                               {inquiry.propertyTitle}
                             </div>
                           ) : null}
                           {inquiry.location ? (
                             <div className="mt-1">
-                              <span className="font-semibold">Локация:</span>{" "}
+                              <span className="font-semibold">{adminT.location}:</span>{" "}
                               {inquiry.location}
                             </div>
                           ) : null}
                           {inquiry.areaAndTypology ? (
                             <div className="mt-1">
-                              <span className="font-semibold">Площадь и типология:</span>{" "}
+                              <span className="font-semibold">{adminT.areaTypology}:</span>{" "}
                               {inquiry.areaAndTypology}
                             </div>
                           ) : null}
                           {inquiry.searchType ? (
                             <div className="mt-1">
-                              <span className="font-semibold">Что необходимо:</span>{" "}
+                              <span className="font-semibold">{adminT.need}:</span>{" "}
                               {inquiry.searchType}
                             </div>
                           ) : null}
@@ -5420,7 +5806,7 @@ export function AdminDashboard({
 
                       {inquiry.message ? (
                         <div className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm leading-6 text-slate-700">
-                          <span className="font-semibold">Сообщение:</span> {inquiry.message}
+                          <span className="font-semibold">{adminT.message}:</span> {inquiry.message}
                         </div>
                       ) : null}
                     </article>
@@ -5428,7 +5814,7 @@ export function AdminDashboard({
                 })
               ) : (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                  Пока нет обращений с сайта.
+                  {adminT.noInquiries}
                 </div>
               )}
             </div>
@@ -5459,7 +5845,7 @@ export function AdminDashboard({
                           {user.email}
                         </div>
                         <div className="mt-1 text-xs text-slate-400">
-                          Регистрация: {formatAdminDate(user.createdAt)}
+                          {adminT.registration}: {formatAdminDate(user.createdAt)}
                         </div>
                       </div>
                     </button>
@@ -5478,11 +5864,11 @@ export function AdminDashboard({
                           {selectedUser.email}
                         </div>
                         <div className="mt-1 text-sm text-slate-500">
-                          Пользователь сайта
+                          {adminT.siteUser}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                        Последняя активность: {formatAdminDate(selectedUser.lastActiveAt)}
+                        {adminT.lastActivity}: {formatAdminDate(selectedUser.lastActiveAt)}
                       </div>
                     </div>
 
@@ -5497,7 +5883,7 @@ export function AdminDashboard({
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          Регистрация
+                          {adminT.registration}
                         </div>
                         <div className="mt-2 text-base font-semibold text-slate-950">
                           {formatAdminDate(selectedUser.createdAt)}
@@ -5508,12 +5894,12 @@ export function AdminDashboard({
 
                   <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="text-lg font-semibold text-slate-950">
-                      Что искал пользователь
+                      {adminT.userSearchTitle}
                     </div>
                     <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          Сделка
+                          {adminT.deal}
                         </div>
                         <div className="mt-2 text-sm leading-6 text-slate-700">
                           {formatUserSearchMode(selectedUser.searchProfile?.mode)}
@@ -5521,15 +5907,15 @@ export function AdminDashboard({
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          Города
+                          {adminT.cities}
                         </div>
                         <div className="mt-2 text-sm leading-6 text-slate-700">
-                          {selectedUser.searchProfile?.cities?.join(", ") ?? "Не указаны"}
+                          {selectedUser.searchProfile?.cities?.join(", ") ?? adminT.notSpecified}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          Тип объекта
+                          {adminT.propertyType}
                         </div>
                         <div className="mt-2 text-sm leading-6 text-slate-700">
                           {formatUserPropertyTypes(selectedUser.searchProfile?.propertyTypes)}
@@ -5537,18 +5923,18 @@ export function AdminDashboard({
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          Бюджет
+                          {adminT.budget}
                         </div>
                         <div className="mt-2 text-sm leading-6 text-slate-700">
-                          {selectedUser.searchProfile?.budgetLabel ?? "Не указан"}
+                          {selectedUser.searchProfile?.budgetLabel ?? adminT.notSpecified}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          Ключевые пожелания
+                          {adminT.mustHave}
                         </div>
                         <div className="mt-2 text-sm leading-6 text-slate-700">
-                          {selectedUser.searchProfile?.mustHave?.join(", ") ?? "Не указаны"}
+                          {selectedUser.searchProfile?.mustHave?.join(", ") ?? adminT.notSpecified}
                         </div>
                       </div>
                     </div>
@@ -5562,67 +5948,81 @@ export function AdminDashboard({
                   <div className="grid gap-6 xl:grid-cols-2">
                     <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                       <div className="mb-4 text-lg font-semibold text-slate-950">
-                        Избранное
+                        {adminT.favorites}
                       </div>
                       <div className="grid gap-3">
-                        {getPropertiesByIds(selectedUser.favoriteIds).map((property) => (
-                          <div
-                            key={`favorite-${property.id}`}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="text-base font-semibold text-slate-950">
-                                  {property.title}
+                        {getPropertiesByIds(selectedUser.favoriteIds).map((property) => {
+                          const localizedProperty = getPropertyDisplayContentForLocale(
+                            property,
+                            siteLanguage
+                          );
+
+                          return (
+                            <div
+                              key={`favorite-${property.id}`}
+                              className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="text-base font-semibold text-slate-950">
+                                    {localizedProperty.content.title}
+                                  </div>
+                                  <div className="mt-1 text-sm text-slate-500">
+                                    {localizedProperty.content.city} · {property.priceLabel}
+                                  </div>
                                 </div>
-                                <div className="mt-1 text-sm text-slate-500">
-                                  {property.city} · {property.priceLabel}
-                                </div>
+                                <a
+                                  href={getPropertyPublicPath(property)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                                >
+                                  {adminT.openCard}
+                                </a>
                               </div>
-                              <a
-                                href={getPropertyPublicPath(property)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
-                              >
-                                Открыть карточку
-                              </a>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
 
                     <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                       <div className="mb-4 text-lg font-semibold text-slate-950">
-                        Список сравнения
+                        {adminT.compareList}
                       </div>
                       <div className="grid gap-3">
-                        {getPropertiesByIds(selectedUser.compareIds).map((property) => (
-                          <div
-                            key={`compare-${property.id}`}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="text-base font-semibold text-slate-950">
-                                  {property.title}
+                        {getPropertiesByIds(selectedUser.compareIds).map((property) => {
+                          const localizedProperty = getPropertyDisplayContentForLocale(
+                            property,
+                            siteLanguage
+                          );
+
+                          return (
+                            <div
+                              key={`compare-${property.id}`}
+                              className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="text-base font-semibold text-slate-950">
+                                    {localizedProperty.content.title}
+                                  </div>
+                                  <div className="mt-1 text-sm text-slate-500">
+                                    {localizedProperty.content.city} · {property.priceLabel}
+                                  </div>
                                 </div>
-                                <div className="mt-1 text-sm text-slate-500">
-                                  {property.city} · {property.priceLabel}
-                                </div>
+                                <a
+                                  href={getPropertyPublicPath(property)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                                >
+                                  {adminT.openCard}
+                                </a>
                               </div>
-                              <a
-                                href={getPropertyPublicPath(property)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
-                              >
-                                Открыть карточку
-                              </a>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </div>

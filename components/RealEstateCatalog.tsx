@@ -44,11 +44,13 @@ function isAiGeneratedImage(property: PropertyListing, imageUrl: string) {
 
 function getLocalizedPropertyContent(property: PropertyListing, locale: SiteLocale) {
   const translation = property.translations?.[locale];
+  const isFallback = locale !== (property.sourceLocale ?? "ru") && !translation;
 
   return {
     title: translation?.title || property.title,
     city: translation?.city || property.city,
     shortDescription: translation?.shortDescription || property.shortDescription,
+    isFallback,
   };
 }
 
@@ -1039,6 +1041,11 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                         <div className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 shadow-sm">
                           {property.mode === "sale" ? t.sale : t.rent}
                         </div>
+                        {localizedProperty.isFallback ? (
+                          <div className="absolute right-4 top-4 rounded-full border border-slate-200 bg-white/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 shadow-sm">
+                            default
+                          </div>
+                        ) : null}
 
                         {imageCount > 1 && (
                           <>
@@ -1218,6 +1225,11 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                               ),
                             }}
                           />
+                          {localizedProperty.isFallback ? (
+                            <span className="absolute right-1 top-1 rounded-full border border-slate-200 bg-white/92 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+                              default
+                            </span>
+                          ) : null}
                         </div>
 
                         <div className="min-w-0 flex-1">

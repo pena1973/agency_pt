@@ -7,6 +7,14 @@ import {
   getPropertyCoverImage,
   getPropertyImagePosition,
 } from "@/lib/real-estate/property-cover";
+import {
+  featureTranslations,
+  propertyTypeTranslations,
+  siteLocales,
+  siteTranslations,
+  type SiteLocale,
+} from "@/lib/i18n/site";
+import { useSiteLocale } from "@/lib/i18n/use-site-locale";
 import type {
   EnergyRating,
   HeatingType,
@@ -81,6 +89,22 @@ function getListingModeLabel(mode: PropertyListing["mode"]) {
   return mode === "rent" ? "Аренда" : "Продажа";
 }
 
+function getPropertyContentForLocale(property: PropertyListing, locale: SiteLocale) {
+  const translation = property.translations?.[locale];
+  const isFallback = locale !== (property.sourceLocale ?? "ru") && !translation;
+
+  return {
+    title: translation?.title || property.title,
+    city: translation?.city || property.city,
+    shortDescription: translation?.shortDescription || property.shortDescription,
+    fullDescription: translation?.fullDescription || property.fullDescription,
+    orientation: translation?.orientation?.length
+      ? translation.orientation
+      : property.details.orientation,
+    isFallback,
+  };
+}
+
 function isAiGeneratedImage(property: PropertyListing, imageUrl: string) {
   return property.imageSources?.[imageUrl] === "ai_generated";
 }
@@ -117,7 +141,24 @@ const displayHeatingLabels: Record<HeatingType, string> = {
   underfloor: "Теплый пол",
 };
 
-function getPropertyTags(property: PropertyListing): string[] {
+function getPropertyTags(property: PropertyListing, locale?: SiteLocale): string[] {
+  if (locale) {
+    const featureLabels = featureTranslations[locale];
+    const localizedTags = new Set<string>(
+      property.features.map((feature) => featureLabels[feature] ?? getFeatureLabel(feature))
+    );
+
+    if (property.details.storageRoom) localizedTags.add(featureLabels.storageRoom);
+    if (property.details.elevator) localizedTags.add(featureLabels.elevator);
+    if (property.details.equippedKitchen) localizedTags.add(featureLabels.equippedKitchen);
+    if (property.details.builtInWardrobes) localizedTags.add(featureLabels.builtInWardrobes);
+    if (property.details.parkingSpaces > 0) localizedTags.add(featureLabels.parking);
+    if (property.details.balconyCount > 0) localizedTags.add(featureLabels.balcony);
+    if (property.details.terraceCount > 0) localizedTags.add(featureLabels.terrace);
+
+    return Array.from(localizedTags);
+  }
+
   const tags = new Set<string>(property.features.map((feature) => getFeatureLabel(feature)));
 
   if (property.details.storageRoom) tags.add("Кладовая");
@@ -173,6 +214,10 @@ function CompareIcon() {
 }
 
 export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
+  const [language, setSiteLanguage] = useSiteLocale();
+  const t = siteTranslations[language];
+  const localizedPropertyTypeLabels = propertyTypeTranslations[language];
+  const localizedProperty = getPropertyContentForLocale(property, language);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showTaxCalculator, setShowTaxCalculator] = useState(true);
   const [showContactForm, setShowContactForm] = useState(false);
@@ -219,7 +264,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
     };
   }, [property]);
 
-  const propertyTags = useMemo(() => getPropertyTags(property), [property]);
+  const propertyTags = useMemo(() => getPropertyTags(property, language), [language, property]);
 
   const summaryStats = useMemo(() => {
     if (property.details.propertyType === "land") {
@@ -311,17 +356,17 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   const cardSummaryStats = useMemo(() => {
     if (property.details.propertyType === "land") {
       return [
-        { label: "Площадь", value: `${property.areaM2} м²` },
-        { label: "Тип объекта", value: displayPropertyTypeLabels[property.details.propertyType] },
+        { label: t.area, value: `${property.areaM2} m²` },
+        { label: t.propertyType, value: localizedPropertyTypeLabels[property.details.propertyType] },
       ];
     }
 
     return [
-      { label: "Площадь", value: `${property.areaM2} м²` },
-      { label: "Спальни", value: String(property.bedrooms) },
-      { label: "Тип объекта", value: displayPropertyTypeLabels[property.details.propertyType] },
+      { label: t.area, value: `${property.areaM2} m²` },
+      { label: t.bedrooms, value: String(property.bedrooms) },
+      { label: t.propertyType, value: localizedPropertyTypeLabels[property.details.propertyType] },
     ];
-  }, [property]);
+  }, [localizedPropertyTypeLabels, property, t]);
 
   const cardCharacteristics = useMemo(() => {
     const propertyType = property.details.propertyType;
@@ -389,8 +434,8 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   async function handleShare() {
     if (navigator.share) {
       await navigator.share({
-        title: property.title,
-        text: `${property.title} — ${property.priceLabel}`,
+        title: localizedProperty.title,
+        text: `${localizedProperty.title} — ${property.priceLabel}`,
         url: propertyUrl,
       });
       return;
@@ -430,7 +475,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
           message: contactMessage,
           propertyId: property.id,
           propertySlug: property.slug,
-          propertyTitle: property.title,
+          propertyTitle: localizedProperty.title,
         }),
       });
 
@@ -457,10 +502,27 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
             href="/"
             className="w-full max-w-[360px] rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:w-fit"
           >
-            Вернуться в каталог
+            {t.catalog}
           </Link>
 
           <div className="grid w-full max-w-[360px] grid-cols-2 gap-2 md:flex md:max-w-none md:w-auto md:flex-wrap md:items-center">
+            <div className="col-span-2 flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-1 shadow-sm md:col-span-1">
+              {siteLocales.map((locale) => (
+                <button
+                  key={locale.code}
+                  type="button"
+                  onClick={() => setSiteLanguage(locale.code)}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                    language === locale.code
+                      ? "bg-slate-950 text-white"
+                      : "text-slate-600 hover:text-slate-950"
+                  }`}
+                  aria-pressed={language === locale.code}
+                >
+                  {locale.label}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => toggleCompare(property.id)}
@@ -471,7 +533,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               }`}
             >
               <CompareIcon />
-              {isCompared ? "В сравнении" : "В сравнение"}
+              {isCompared ? t.compared : t.addCompare}
             </button>
             <button
               type="button"
@@ -479,7 +541,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:col-span-1 md:h-auto md:px-4 md:py-2.5"
             >
               <CopyIcon />
-              {copyState === "copied" ? "Ссылка скопирована" : "Копировать ссылку"}
+              {copyState === "copied" ? "OK" : "Copy"}
             </button>
             <button
               type="button"
@@ -487,7 +549,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:h-auto md:px-4 md:py-2.5"
             >
               <ShareIcon />
-              Поделиться
+              Share
             </button>
             <a
               href={property.location.googleMapsUrl}
@@ -495,7 +557,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               rel="noreferrer"
               className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:h-auto md:px-4 md:py-2.5"
             >
-              Открыть на карте
+              {t.openGoogleMaps}
             </a>
             <div className="col-span-2 justify-self-start rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 md:col-span-1">
               ID: {getPropertyPublicReference(property)}
@@ -515,7 +577,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
             ) : null}
             <img
               src={property.imageGallery[activeImageIndex] ?? getPropertyCoverImage(property)}
-              alt={`${property.title} — фото ${activeImageIndex + 1}`}
+              alt={`${localizedProperty.title} ${activeImageIndex + 1}`}
               className="h-[440px] w-full object-cover md:h-[520px]"
               style={{
                 objectPosition: getPropertyImagePosition(
@@ -574,7 +636,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                   ) : null}
                   <img
                     src={image}
-                    alt={`${property.title} — миниатюра ${index + 1}`}
+                    alt={`${localizedProperty.title} ${index + 1}`}
                     className="h-16 w-24 object-cover"
                     style={{ objectPosition: getPropertyImagePosition(property, image) }}
                   />
@@ -587,20 +649,25 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
             <div className="grid gap-5 self-start">
               <div className="grid gap-2">
                 <div className="inline-flex w-fit rounded-full bg-[#eef6f4] px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900">
-                  {property.mode === "sale" ? "Продажа" : "Аренда"}
+                  {property.mode === "sale" ? t.sale : t.rent}
                 </div>
 
                 <h1 className="text-3xl font-semibold tracking-tight text-slate-950 md:text-[2rem]">
-                  {property.title}
+                  {localizedProperty.title}
                 </h1>
+                {localizedProperty.isFallback ? (
+                  <div className="w-fit rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    default
+                  </div>
+                ) : null}
 
                 <p className="text-sm text-slate-500 md:text-base">
-                  {property.city}, {property.district}, {property.country}
+                  {localizedProperty.city}, {property.district}, {property.country}
                 </p>
               </div>
 
               <p className="max-w-3xl text-sm leading-7 text-slate-600 md:text-base">
-                {property.fullDescription}
+                {localizedProperty.fullDescription}
               </p>
 
               <div className="flex flex-wrap items-start content-start gap-2 self-start">
