@@ -4,6 +4,11 @@ import sharp from "sharp";
 import { NextResponse } from "next/server";
 import { requireAdminApiAccess } from "@/lib/auth/admin-access";
 import { recordGenerationUsage } from "@/lib/db/generation-usage";
+import {
+  getMediaFilePathFromUrl,
+  getMediaPublicUrl,
+  resolveMediaStoragePath,
+} from "@/lib/media/storage";
 
 export const runtime = "nodejs";
 
@@ -57,6 +62,12 @@ function normalizeFrameSettings(settings?: GifFrameSettings) {
 }
 
 function getPublicFilePath(imageUrl: string) {
+  const mediaFilePath = getMediaFilePathFromUrl(imageUrl);
+
+  if (mediaFilePath) {
+    return mediaFilePath;
+  }
+
   if (!imageUrl.startsWith("/")) {
     return null;
   }
@@ -233,10 +244,11 @@ export async function POST(request: Request) {
       })
       .toBuffer();
 
-    const outputDirectory = path.resolve(process.cwd(), "public", "generated", "gifs");
+    const outputDirectory = resolveMediaStoragePath("generated", "gifs");
     await mkdir(outputDirectory, { recursive: true });
     const fileName = `property-transition-${Date.now()}.gif`;
     await writeFile(path.join(outputDirectory, fileName), gifBuffer);
+    const gifUrl = getMediaPublicUrl("generated", "gifs", fileName);
 
     recordGenerationUsage({
       propertyId: payload.propertyId ?? null,
@@ -250,7 +262,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      gifUrl: `/generated/gifs/${fileName}`,
+      gifUrl,
       sizeBytes: gifBuffer.byteLength,
       estimatedCostUsd: 0,
       note: "GIF собрана локально через sharp, OpenAI не используется.",

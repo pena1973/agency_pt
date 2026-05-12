@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { siteTranslations } from "@/lib/i18n/site";
+import { useSiteLocale } from "@/lib/i18n/use-site-locale";
 import { AgencyLogo } from "./AgencyLogo";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 type AuthMode = "login" | "register";
 type SubmitState = "idle" | "submitting" | "success" | "error";
@@ -42,6 +45,7 @@ const initialRegisterFormState: RegisterFormState = {
 
 export function LoginPage() {
   const router = useRouter();
+  const [language, setSiteLanguage] = useSiteLocale();
   const [mode, setMode] = useState<AuthMode>("login");
   const [loginFormState, setLoginFormState] =
     useState<LoginFormState>(initialLoginFormState);
@@ -51,6 +55,97 @@ export function LoginPage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const t = siteTranslations[language];
+  const l = {
+    pt: {
+      intro: "O registo ajuda a guardar filtros de pesquisa, favoritos e lista de comparacao para nao recomecar a selecao em cada visita.",
+      register: "Registar",
+      checking: "A verificar a sessao atual...",
+      loggedIn: "Ja iniciou sessao como",
+      role: "Nivel de acesso",
+      goAdmin: "Ir para admin",
+      goCatalog: "Ir para catalogo",
+      refresh: "Atualizar",
+      password: "Palavra-passe",
+      remember: "Lembrar-me neste dispositivo",
+      signingIn: "A entrar...",
+      signIn: "Entrar",
+      recover: "Recuperar por email",
+      passwordHint: "Ate 8 caracteres: letra, numero e simbolo",
+      registering: "A registar...",
+      loginFailed: "Nao foi possivel iniciar sessao.",
+      registerFailed: "Nao foi possivel concluir o registo.",
+      loginSuccess: "Sessao iniciada com sucesso.",
+      registerSuccess: "Registo concluido com sucesso.",
+      logoutFailed: "Nao foi possivel terminar a sessao.",
+    },
+    en: {
+      intro: "Registration helps save search filters, favorite listings, and the compare list so you do not start over each visit.",
+      register: "Register",
+      checking: "Checking current session...",
+      loggedIn: "You are already signed in as",
+      role: "Access role",
+      goAdmin: "Go to admin",
+      goCatalog: "Go to catalog",
+      refresh: "Refresh",
+      password: "Password",
+      remember: "Remember me on this device",
+      signingIn: "Signing in...",
+      signIn: "Sign in",
+      recover: "Recover by email",
+      passwordHint: "Up to 8 characters: letter, number, and symbol",
+      registering: "Registering...",
+      loginFailed: "Could not sign in.",
+      registerFailed: "Could not complete registration.",
+      loginSuccess: "Signed in successfully.",
+      registerSuccess: "Registration completed successfully.",
+      logoutFailed: "Could not end the session.",
+    },
+    ru: {
+      intro: "Регистрация поможет сохранить параметры поиска, избранные объекты и список сравнения, чтобы не начинать подбор заново при каждом визите.",
+      register: "Регистрация",
+      checking: "Проверяем текущую сессию...",
+      loggedIn: "Вы уже вошли как",
+      role: "Роль доступа",
+      goAdmin: "Перейти в админку",
+      goCatalog: "Перейти в каталог",
+      refresh: "Обновить",
+      password: "Пароль",
+      remember: "Запомнить меня на этом устройстве",
+      signingIn: "Входим...",
+      signIn: "Войти",
+      recover: "Восстановить через email",
+      passwordHint: "До 8 символов: буква, цифра и знак",
+      registering: "Регистрируем...",
+      loginFailed: "Не удалось выполнить вход.",
+      registerFailed: "Не удалось завершить регистрацию.",
+      loginSuccess: "Вход выполнен успешно.",
+      registerSuccess: "Регистрация выполнена успешно.",
+      logoutFailed: "Не удалось завершить сеанс.",
+    },
+    uk: {
+      intro: "Реєстрація допоможе зберегти параметри пошуку, обрані об'єкти й список порівняння, щоб не починати підбір заново під час кожного візиту.",
+      register: "Реєстрація",
+      checking: "Перевіряємо поточну сесію...",
+      loggedIn: "Ви вже увійшли як",
+      role: "Роль доступу",
+      goAdmin: "Перейти в адмінку",
+      goCatalog: "Перейти в каталог",
+      refresh: "Оновити",
+      password: "Пароль",
+      remember: "Запам'ятати мене на цьому пристрої",
+      signingIn: "Входимо...",
+      signIn: "Увійти",
+      recover: "Відновити через email",
+      passwordHint: "До 8 символів: літера, цифра і знак",
+      registering: "Реєструємо...",
+      loginFailed: "Не вдалося виконати вхід.",
+      registerFailed: "Не вдалося завершити реєстрацію.",
+      loginSuccess: "Вхід виконано успішно.",
+      registerSuccess: "Реєстрацію виконано успішно.",
+      logoutFailed: "Не вдалося завершити сеанс.",
+    },
+  }[language];
 
   const isLoginValid = useMemo(() => {
     return (
@@ -132,18 +227,18 @@ export function LoginPage() {
 
       if (!response.ok || !payload.user || !payload.redirectTo) {
         setSubmitState("error");
-        setStatusMessage(payload.error ?? "Не удалось выполнить вход.");
+        setStatusMessage(payload.error ?? l.loginFailed);
         return;
       }
 
       setCurrentUser(payload.user);
       setSubmitState("success");
-      setStatusMessage("Вход выполнен успешно.");
+      setStatusMessage(l.loginSuccess);
       router.push(payload.redirectTo);
       router.refresh();
     } catch {
       setSubmitState("error");
-      setStatusMessage("Не удалось выполнить вход.");
+      setStatusMessage(l.loginFailed);
     }
   }
 
@@ -174,18 +269,18 @@ export function LoginPage() {
 
       if (!response.ok || !payload.user || !payload.redirectTo) {
         setSubmitState("error");
-        setStatusMessage(payload.error ?? "Не удалось завершить регистрацию.");
+        setStatusMessage(payload.error ?? l.registerFailed);
         return;
       }
 
       setCurrentUser(payload.user);
       setSubmitState("success");
-      setStatusMessage("Регистрация выполнена успешно.");
+      setStatusMessage(l.registerSuccess);
       router.push(payload.redirectTo);
       router.refresh();
     } catch {
       setSubmitState("error");
-      setStatusMessage("Не удалось завершить регистрацию.");
+      setStatusMessage(l.registerFailed);
     }
   }
 
@@ -209,7 +304,7 @@ export function LoginPage() {
       router.refresh();
     } catch {
       setSubmitState("error");
-      setStatusMessage("Не удалось завершить сеанс.");
+      setStatusMessage(l.logoutFailed);
     }
   }
 
@@ -223,19 +318,20 @@ export function LoginPage() {
                 <AgencyLogo priority className="h-[52px] w-auto sm:h-[62px]" />
               </Link>
 
-              <Link
-                href="/"
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
-              >
-                В каталог
-              </Link>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <LanguageSwitcher language={language} onChange={setSiteLanguage} />
+                <Link
+                  href="/"
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                >
+                  {t.backToCatalog}
+                </Link>
+              </div>
             </div>
 
             <div className="mt-10 max-w-2xl">
               <p className="mt-5 text-base leading-8 text-slate-600">
-                Регистрация поможет сохранить параметры поиска, избранные объекты
-                и список сравнения, чтобы не начинать подбор заново при каждом
-                визите.
+                {l.intro}
               </p>
             </div>
           </div>
@@ -255,7 +351,7 @@ export function LoginPage() {
                     : "text-slate-600 hover:text-slate-950"
                 }`}
               >
-                Вход
+                {t.login}
               </button>
               <button
                 type="button"
@@ -270,22 +366,22 @@ export function LoginPage() {
                     : "text-slate-600 hover:text-slate-950"
                 }`}
               >
-                Регистрация
+                {l.register}
               </button>
             </div>
 
             {isCheckingSession ? (
               <div className="mt-8 rounded-[24px] border border-slate-200 bg-[#fbfdff] px-5 py-4 text-sm text-slate-600">
-                Проверяем текущую сессию...
+                {l.checking}
               </div>
             ) : currentUser ? (
               <div className="mt-8 grid gap-5">
                 <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm leading-7 text-emerald-900">
                   <p>
-                    Вы уже вошли как <strong>{currentUser.email}</strong>.
+                    {l.loggedIn} <strong>{currentUser.email}</strong>.
                   </p>
                   <p>
-                    Роль доступа:{" "}
+                    {l.role}:{" "}
                     <strong>
                       {currentUser.role === "admin"
                         ? "admin"
@@ -302,22 +398,22 @@ export function LoginPage() {
                     className="rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
                   >
                     {currentUser.role === "admin"
-                      ? "Перейти в админку"
-                      : "Перейти в каталог"}
+                      ? l.goAdmin
+                      : l.goCatalog}
                   </Link>
                   <button
                     type="button"
                     onClick={() => router.refresh()}
                     className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
                   >
-                    Обновить
+                    {l.refresh}
                   </button>
                   <button
                     type="button"
                     onClick={handleLogout}
                     className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-rose-300 hover:text-rose-700"
                   >
-                    Выйти
+                    {t.logout}
                   </button>
                 </div>
               </div>
@@ -346,7 +442,7 @@ export function LoginPage() {
 
                 <label className="grid gap-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                    Пароль
+                    {l.password}
                   </span>
                   <input
                     type="password"
@@ -360,7 +456,7 @@ export function LoginPage() {
                       setSubmitState("idle");
                       setStatusMessage("");
                     }}
-                    placeholder="Пароль"
+                    placeholder={l.password}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                   />
                 </label>
@@ -377,7 +473,7 @@ export function LoginPage() {
                     }
                     className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
                   />
-                  Запомнить меня на этом устройстве
+                  {l.remember}
                 </label>
 
                 <div className="grid gap-3 pt-2 sm:grid-cols-[1fr_auto]">
@@ -386,14 +482,14 @@ export function LoginPage() {
                     disabled={!isLoginValid || submitState === "submitting"}
                     className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
-                    {submitState === "submitting" ? "Входим..." : "Войти"}
+                    {submitState === "submitting" ? l.signingIn : l.signIn}
                   </button>
 
                   <button
                     type="button"
                     className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
                   >
-                    Восстановить через email
+                    {l.recover}
                   </button>
                 </div>
               </form>
@@ -422,7 +518,7 @@ export function LoginPage() {
 
                 <label className="grid gap-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                    Пароль
+                    {l.password}
                   </span>
                   <input
                     type="password"
@@ -436,7 +532,7 @@ export function LoginPage() {
                       setSubmitState("idle");
                       setStatusMessage("");
                     }}
-                    placeholder="До 8 символов: буква, цифра и знак"
+                    placeholder={l.passwordHint}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                   />
                 </label>
@@ -448,8 +544,8 @@ export function LoginPage() {
                     className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
                     {submitState === "submitting"
-                      ? "Регистрируем..."
-                      : "Зарегистрироваться"}
+                      ? l.registering
+                      : l.register}
                   </button>
                 </div>
               </form>

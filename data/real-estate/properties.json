@@ -1,5 +1,101 @@
 [
   {
+    "id": "1778594201859",
+    "slug": "1778594026577",
+    "isActive": true,
+    "sourceLocale": "ru",
+    "translations": {
+      "en": {
+        "title": "Apartment in Gandre",
+        "city": "Lisbon",
+        "shortDescription": "Apartment on the 1st floor",
+        "fullDescription": "Apartment on the 1st floor, quiet location",
+        "orientation": [
+          "south"
+        ]
+      },
+      "pt": {
+        "title": "Apartamento em Gandres",
+        "city": "Lisboa",
+        "shortDescription": "Apartamento no 1.º andar",
+        "fullDescription": "Apartamento no 1.º andar, local tranquilo",
+        "orientation": [
+          "sul"
+        ]
+      },
+      "uk": {
+        "title": "Квартира в Гандре",
+        "city": "Лісабон",
+        "shortDescription": "Квартира на 1 поверсі",
+        "fullDescription": "Квартира на 1 поверсі, тихе місце",
+        "orientation": [
+          "південь"
+        ]
+      }
+    },
+    "mode": "rent",
+    "title": "Квартира в Гандре",
+    "city": "Лиссабон",
+    "district": "Лиссабон",
+    "country": "Португалия",
+    "location": {
+      "addressLabel": "Lisbon, Portugal",
+      "latitude": 0,
+      "longitude": 0,
+      "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=0,0"
+    },
+    "priceAmount": 650,
+    "priceLabel": "€650 / месяц",
+    "shortDescription": "Квартира на 1 этаже",
+    "fullDescription": "Квартира на 1 этаже   тихое место",
+    "bedrooms": 2,
+    "bathrooms": 0,
+    "areaM2": 60,
+    "imageUrl": "/mock/property-placeholder.svg",
+    "imageGallery": [],
+    "imagePositions": {},
+    "imageSources": {},
+    "features": [
+      "city_center"
+    ],
+    "details": {
+      "propertyType": "apartment",
+      "usableAreaM2": 0,
+      "builtAreaM2": 0,
+      "plotAreaM2": 0,
+      "floor": "1",
+      "exterior": false,
+      "elevator": false,
+      "parkingSpaces": 0,
+      "storageRoom": false,
+      "builtInWardrobes": true,
+      "equippedKitchen": true,
+      "furnished": false,
+      "balconyCount": 0,
+      "terraceCount": 0,
+      "condition": "good",
+      "yearBuilt": 1985,
+      "heating": "gas_boiler",
+      "accessibilityAdapted": false,
+      "orientation": [
+        "юг"
+      ],
+      "energyRating": "B-",
+      "bathroomsFull": 0,
+      "guestBathrooms": 0,
+      "buildingFloors": 5,
+      "monthlyCondoFeeEur": 0
+    },
+    "transportAccess": [],
+    "taxProfile": {
+      "propertyTransferTaxRate": 0.06,
+      "stampDutyRate": 0.008,
+      "notaryEstimateRate": 0.01
+    },
+    "agentName": "Ирина",
+    "publishedAt": "2026-05-12"
+  },
+  {
     "id": "irina-1778062918727",
     "slug": "1778062918727",
     "isActive": true,
@@ -211,6 +307,7 @@
       "propertyType": "apartment",
       "usableAreaM2": 104,
       "builtAreaM2": 118,
+      "bathroomsFull": 2,
       "plotAreaM2": 0,
       "floor": "7",
       "exterior": true,
@@ -231,7 +328,6 @@
         "юг"
       ],
       "energyRating": "B",
-      "bathroomsFull": 2,
       "guestBathrooms": 0,
       "buildingFloors": 10,
       "monthlyCondoFeeEur": 145

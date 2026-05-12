@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSiteLocale } from "@/lib/i18n/use-site-locale";
 
 const COOKIE_NAME = "irina_cookie_consent";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 180;
@@ -17,6 +18,25 @@ export function CookieConsentBanner({
   initialAccepted,
 }: CookieConsentBannerProps) {
   const [isVisible, setIsVisible] = useState(!initialAccepted);
+  const [language] = useSiteLocale();
+  const text = {
+    pt: {
+      body: "Usamos cookies para guardar o idioma, preferencias do catalogo e melhorar o funcionamento do site. Ao continuar a usar o site, concorda com a utilizacao de cookies.",
+      accept: "Aceitar",
+    },
+    en: {
+      body: "We use cookies to save language, catalog preferences, and improve the site. By continuing to use the site, you agree to the use of cookies.",
+      accept: "Accept",
+    },
+    ru: {
+      body: "Мы используем cookies для сохранения языка, предпочтений каталога и улучшения работы сайта. Продолжая пользоваться сайтом, вы соглашаетесь с использованием cookies.",
+      accept: "Принять",
+    },
+    uk: {
+      body: "Ми використовуємо cookies для збереження мови, налаштувань каталогу та покращення роботи сайту. Продовжуючи користуватися сайтом, ви погоджуєтеся з використанням cookies.",
+      accept: "Прийняти",
+    },
+  }[language];
 
   if (!isVisible) {
     return null;
@@ -30,9 +50,7 @@ export function CookieConsentBanner({
             Cookies
           </div>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Мы используем cookies для сохранения языка, предпочтений каталога и
-            улучшения работы сайта. Продолжая пользоваться сайтом, вы соглашаетесь
-            с использованием cookies.
+            {text.body}
           </p>
         </div>
 
@@ -44,7 +62,7 @@ export function CookieConsentBanner({
           }}
           className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
         >
-          Принять
+          {text.accept}
         </button>
       </div>
     </div>

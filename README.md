@@ -16,6 +16,21 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Media storage
+
+Uploaded photos, generated room images, and generated GIFs are stored outside the
+deployment bundle through environment variables:
+
+```bash
+REAL_ESTATE_UPLOADS_PATH=/var/www/realestate/uploads
+REAL_ESTATE_UPLOADS_PUBLIC_PATH=/uploads
+```
+
+New admin uploads are saved under `photos/`, AI images under
+`generated/room-ai/`, and GIFs under `generated/gifs/`. In production, configure
+the web server to expose `REAL_ESTATE_UPLOADS_PATH` at
+`REAL_ESTATE_UPLOADS_PUBLIC_PATH`, for example `/uploads`.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

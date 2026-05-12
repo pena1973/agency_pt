@@ -3,6 +3,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { requireAdminApiAccess } from "@/lib/auth/admin-access";
 import { saveUploadedPhotosForProperty } from "@/lib/db/spare-gallery";
+import { getMediaPublicUrl, resolveMediaStoragePath } from "@/lib/media/storage";
 
 export const runtime = "nodejs";
 
@@ -41,12 +42,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const uploadsDirectory = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "properties"
-    );
+    const uploadsDirectory = resolveMediaStoragePath("photos");
 
     await mkdir(uploadsDirectory, { recursive: true });
 
@@ -60,7 +56,7 @@ export async function POST(request: Request) {
 
         return {
           name: file.name,
-          url: `/uploads/properties/${fileName}`,
+          url: getMediaPublicUrl("photos", fileName),
         };
       })
     );

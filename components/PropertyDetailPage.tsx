@@ -8,10 +8,13 @@ import {
   getPropertyImagePosition,
 } from "@/lib/real-estate/property-cover";
 import {
+  conditionTranslations,
   featureTranslations,
+  formatPropertyPrice,
+  heatingTranslations,
   propertyTypeTranslations,
-  siteLocales,
   siteTranslations,
+  transportModeTranslations,
   type SiteLocale,
 } from "@/lib/i18n/site";
 import { useSiteLocale } from "@/lib/i18n/use-site-locale";
@@ -21,9 +24,9 @@ import type {
   PropertyCondition,
   PropertyListing,
   PropertyType,
-  TransportMode,
 } from "@/lib/real-estate/types";
 import { useCompareList } from "@/lib/real-estate/useCompareList";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 type PropertyDetailPageProps = {
   property: PropertyListing;
@@ -57,14 +60,6 @@ const heatingLabels: Record<HeatingType, string> = {
   underfloor: "Теплый пол",
 };
 
-const transportModeLabels: Record<TransportMode, string> = {
-  bus: "Автобус",
-  ferry: "Паром",
-  metro: "Метро",
-  train: "Поезд",
-  tram: "Трамвай",
-};
-
 type MessengerOption = "whatsapp" | "telegram" | "viber" | "signal";
 
 const messengerLabels: Array<{ value: MessengerOption; label: string }> = [
@@ -83,10 +78,6 @@ function getPropertyPublicPath(property: PropertyListing) {
 
 function getPropertyPublicReference(property: PropertyListing) {
   return property.id.replace(/^irina-/, "");
-}
-
-function getListingModeLabel(mode: PropertyListing["mode"]) {
-  return mode === "rent" ? "Аренда" : "Продажа";
 }
 
 function getPropertyContentForLocale(property: PropertyListing, locale: SiteLocale) {
@@ -109,8 +100,57 @@ function isAiGeneratedImage(property: PropertyListing, imageUrl: string) {
   return property.imageSources?.[imageUrl] === "ai_generated";
 }
 
-function buildContactMessage(property: PropertyListing) {
-  return `Здравствуйте! Меня интересует объект ${getPropertyPublicReference(property)} — ${property.title}/${getListingModeLabel(property.mode)}`;
+function formatArea(value: number) {
+  return `${value} m²`;
+}
+
+function formatFloorLabel(value: string, locale: SiteLocale) {
+  const floorNumber = value.trim().match(/\d+/)?.[0];
+
+  if (!floorNumber) {
+    return value;
+  }
+
+  if (locale === "pt") return `${floorNumber} piso`;
+  if (locale === "en") return `${floorNumber} floor`;
+  if (locale === "uk") return `${floorNumber} поверх`;
+
+  return `${floorNumber} этаж`;
+}
+
+function translateOrientationValue(value: string, locale: SiteLocale) {
+  const normalizedValue = value.trim().toLowerCase();
+  const translations: Record<string, Record<SiteLocale, string>> = {
+    north: { pt: "norte", en: "north", ru: "север", uk: "північ" },
+    south: { pt: "sul", en: "south", ru: "юг", uk: "південь" },
+    east: { pt: "este", en: "east", ru: "восток", uk: "схід" },
+    west: { pt: "oeste", en: "west", ru: "запад", uk: "захід" },
+    "север": { pt: "norte", en: "north", ru: "север", uk: "північ" },
+    "юг": { pt: "sul", en: "south", ru: "юг", uk: "південь" },
+    "восток": { pt: "este", en: "east", ru: "восток", uk: "схід" },
+    "запад": { pt: "oeste", en: "west", ru: "запад", uk: "захід" },
+  };
+
+  return translations[normalizedValue]?.[locale] ?? value;
+}
+
+function buildContactMessage(property: PropertyListing, locale: SiteLocale) {
+  const content = getPropertyContentForLocale(property, locale);
+  const modeLabel = property.mode === "rent" ? siteTranslations[locale].rent : siteTranslations[locale].sale;
+
+  if (locale === "pt") {
+    return `Ola! Tenho interesse no imovel ${getPropertyPublicReference(property)} - ${content.title}/${modeLabel}`;
+  }
+
+  if (locale === "en") {
+    return `Hello! I am interested in property ${getPropertyPublicReference(property)} - ${content.title}/${modeLabel}`;
+  }
+
+  if (locale === "uk") {
+    return `Вітаю! Мене цікавить об'єкт ${getPropertyPublicReference(property)} - ${content.title}/${modeLabel}`;
+  }
+
+  return `Здравствуйте! Меня интересует объект ${getPropertyPublicReference(property)} - ${content.title}/${modeLabel}`;
 }
 
 const displayPropertyTypeLabels: Record<PropertyType, string> = {
@@ -218,6 +258,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   const t = siteTranslations[language];
   const localizedPropertyTypeLabels = propertyTypeTranslations[language];
   const localizedProperty = getPropertyContentForLocale(property, language);
+  const localizedPrice = formatPropertyPrice(property.priceAmount, property.mode, language);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showTaxCalculator, setShowTaxCalculator] = useState(true);
   const [showContactForm, setShowContactForm] = useState(false);
@@ -226,7 +267,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   const [contactPhone, setContactPhone] = useState("");
   const [contactMessengers, setContactMessengers] = useState<MessengerOption[]>([]);
   const [contactMessage, setContactMessage] = useState(
-    buildContactMessage(property)
+    buildContactMessage(property, language)
   );
   const [contactSubmitState, setContactSubmitState] = useState<
     "idle" | "error" | "success"
@@ -356,13 +397,13 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
   const cardSummaryStats = useMemo(() => {
     if (property.details.propertyType === "land") {
       return [
-        { label: t.area, value: `${property.areaM2} m²` },
+        { label: t.area, value: formatArea(property.areaM2) },
         { label: t.propertyType, value: localizedPropertyTypeLabels[property.details.propertyType] },
       ];
     }
 
     return [
-      { label: t.area, value: `${property.areaM2} m²` },
+      { label: t.area, value: formatArea(property.areaM2) },
       { label: t.bedrooms, value: String(property.bedrooms) },
       { label: t.propertyType, value: localizedPropertyTypeLabels[property.details.propertyType] },
     ];
@@ -374,9 +415,9 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
     const hasAttachedLand = ["villa", "townhouse"].includes(propertyType);
 
     const items: Array<{ label: string; value: string }> = [
-      { label: "Тип объекта", value: displayPropertyTypeLabels[propertyType] },
-      { label: "Состояние", value: displayConditionLabels[property.details.condition] },
-      { label: "Площадь", value: `${property.areaM2} м²` },
+      { label: t.propertyType, value: localizedPropertyTypeLabels[propertyType] },
+      { label: t.condition, value: conditionTranslations[language][property.details.condition] },
+      { label: t.area, value: formatArea(property.areaM2) },
     ];
 
     if (isLand) {
@@ -384,46 +425,51 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
     }
 
     if (property.details.floor) {
-      items.push({ label: "Этаж", value: property.details.floor });
+      items.push({ label: t.floor, value: formatFloorLabel(property.details.floor, language) });
     }
 
     if (property.details.buildingFloors && property.details.buildingFloors > 0) {
-      items.push({ label: "Этажность", value: String(property.details.buildingFloors) });
+      items.push({ label: t.floors, value: String(property.details.buildingFloors) });
     }
 
     if (property.details.yearBuilt > 0) {
-      items.push({ label: "Год постройки", value: String(property.details.yearBuilt) });
+      items.push({ label: t.yearBuilt, value: String(property.details.yearBuilt) });
     }
 
     items.push(
-      { label: "Спальни", value: String(property.bedrooms) },
-      { label: "Ванные", value: String(property.bathrooms) }
+      { label: t.bedrooms, value: String(property.bedrooms) },
+      { label: t.bathrooms, value: String(property.bathrooms) }
     );
 
     if (property.details.balconyCount > 0) {
-      items.push({ label: "Балконов", value: String(property.details.balconyCount) });
+      items.push({ label: t.balconies, value: String(property.details.balconyCount) });
     }
 
     if (property.details.parkingSpaces > 0) {
-      items.push({ label: "Парк. мест", value: String(property.details.parkingSpaces) });
+      items.push({ label: t.parkingSpaces, value: String(property.details.parkingSpaces) });
     }
 
     if (hasAttachedLand && property.details.plotAreaM2 && property.details.plotAreaM2 > 0) {
-      items.push({ label: "Участок", value: `${property.details.plotAreaM2} м²` });
+      items.push({ label: t.plotArea, value: formatArea(property.details.plotAreaM2) });
     }
 
     if (hasAttachedLand && property.details.terraceCount > 0) {
-      items.push({ label: "Террас", value: String(property.details.terraceCount) });
+      items.push({ label: t.terraces, value: String(property.details.terraceCount) });
     }
 
     items.push(
-      { label: "Энергокласс", value: property.details.energyRating },
-      { label: "Отопление", value: displayHeatingLabels[property.details.heating] },
-      { label: "Ориентация", value: property.details.orientation.join(", ") }
+      { label: t.energyRating, value: property.details.energyRating },
+      { label: t.heating, value: heatingTranslations[language][property.details.heating] },
+      {
+        label: t.orientation,
+        value: localizedProperty.orientation
+          .map((item) => translateOrientationValue(item, language))
+          .join(", "),
+      }
     );
 
     return items;
-  }, [property]);
+  }, [language, localizedProperty.orientation, localizedPropertyTypeLabels, property, t]);
 
   async function handleCopyLink() {
     await navigator.clipboard.writeText(propertyUrl);
@@ -435,7 +481,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
     if (navigator.share) {
       await navigator.share({
         title: localizedProperty.title,
-        text: `${localizedProperty.title} — ${property.priceLabel}`,
+        text: `${localizedProperty.title} — ${localizedPrice}`,
         url: propertyUrl,
       });
       return;
@@ -451,6 +497,11 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
         : [...currentMessengers, messenger]
     );
     setContactSubmitState("idle");
+  }
+
+  function handleSiteLanguageChange(nextLanguage: SiteLocale) {
+    setSiteLanguage(nextLanguage);
+    setContactMessage(buildContactMessage(property, nextLanguage));
   }
 
   async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
@@ -488,7 +539,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
       setContactName("");
       setContactPhone("");
       setContactMessengers([]);
-      setContactMessage(buildContactMessage(property));
+      setContactMessage(buildContactMessage(property, language));
     } catch {
       setContactSubmitState("error");
     }
@@ -506,23 +557,12 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
           </Link>
 
           <div className="grid w-full max-w-[360px] grid-cols-2 gap-2 md:flex md:max-w-none md:w-auto md:flex-wrap md:items-center">
-            <div className="col-span-2 flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-1 shadow-sm md:col-span-1">
-              {siteLocales.map((locale) => (
-                <button
-                  key={locale.code}
-                  type="button"
-                  onClick={() => setSiteLanguage(locale.code)}
-                  className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-                    language === locale.code
-                      ? "bg-slate-950 text-white"
-                      : "text-slate-600 hover:text-slate-950"
-                  }`}
-                  aria-pressed={language === locale.code}
-                >
-                  {locale.label}
-                </button>
-              ))}
-            </div>
+            <LanguageSwitcher
+              language={language}
+              onChange={handleSiteLanguageChange}
+              className="col-span-2 flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-1 shadow-sm md:col-span-1"
+              buttonClassName="rounded-xl px-3 py-1.5 text-xs font-semibold transition"
+            />
             <button
               type="button"
               onClick={() => toggleCompare(property.id)}
@@ -541,7 +581,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:col-span-1 md:h-auto md:px-4 md:py-2.5"
             >
               <CopyIcon />
-              {copyState === "copied" ? "OK" : "Copy"}
+              {copyState === "copied" ? "OK" : t.copy}
             </button>
             <button
               type="button"
@@ -549,7 +589,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:h-auto md:px-4 md:py-2.5"
             >
               <ShareIcon />
-              Share
+              {t.share}
             </button>
             <a
               href={property.location.googleMapsUrl}
@@ -682,7 +722,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               </div>
 
               <section className="hidden">
-                <h2 className="text-lg font-semibold text-slate-950">Характеристики объекта</h2>
+                <h2 className="text-lg font-semibold text-slate-950">{t.characteristics}</h2>
                 <div className="grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                   <div>Тип объекта: {propertyTypeLabels[property.details.propertyType]}</div>
                   <div>Состояние: {conditionLabels[property.details.condition]}</div>
@@ -714,7 +754,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               </section>
 
               <section className="grid gap-3 rounded-[28px] border border-slate-200 bg-slate-50 p-4">
-                <h2 className="text-lg font-semibold text-slate-950">Характеристики объекта</h2>
+                <h2 className="text-lg font-semibold text-slate-950">{t.characteristics}</h2>
                 <div className="grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                   {cardCharacteristics.map((item) => (
                     <div key={item.label}>
@@ -729,10 +769,10 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
             <aside className="grid gap-3 self-start rounded-[28px] bg-slate-50 p-4">
               <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
                 <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                  Стоимость
+                  {t.priceBlock}
                 </div>
                 <div className="mt-1 text-[2rem] font-semibold text-slate-950">
-                  {property.priceLabel}
+                  {localizedPrice}
                 </div>
               </div>
 
@@ -779,7 +819,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               </div>
 
               <section className="grid gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-950">Транспортная доступность</h2>
+                <h2 className="text-lg font-semibold text-slate-950">{t.transportAccess}</h2>
                 <div className="grid gap-2">
                   {property.transportAccess.map((route) => (
                     <div
@@ -787,10 +827,10 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                       className="rounded-2xl bg-slate-50 px-4 py-2.5 text-sm text-slate-700"
                     >
                       <div className="font-semibold text-slate-950">
-                        {transportModeLabels[route.mode]} {route.route}
+                        {transportModeTranslations[language][route.mode]} {route.route}
                       </div>
                       <div className="mt-1">
-                        Остановка: {route.stopName} · пешком {route.walkMinutes} мин
+                        {t.stop}: {route.stopName} · {t.walk} {route.walkMinutes} {t.minutesShort}
                       </div>
                     </div>
                   ))}
@@ -802,10 +842,10 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                        Налоги и оформление
+                        {t.taxesAndFees}
                       </div>
                       <div className="mt-1 text-sm text-slate-600">
-                        Быстрая оценка расходов при покупке
+                        {t.taxesHint}
                       </div>
                     </div>
                     <button
@@ -813,7 +853,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                       onClick={() => setShowTaxCalculator((current) => !current)}
                       className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                     >
-                      Налоговый калькулятор
+                      {t.taxCalculator}
                     </button>
                   </div>
 
@@ -823,13 +863,13 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                         IMT: {formatMoney(taxEstimate.transferTax)}
                       </div>
                       <div className="rounded-2xl bg-slate-50 px-4 py-2.5">
-                        Гербовый сбор: {formatMoney(taxEstimate.stampDuty)}
+                        {t.stampDuty}: {formatMoney(taxEstimate.stampDuty)}
                       </div>
                       <div className="rounded-2xl bg-slate-50 px-4 py-2.5">
-                        Нотариус и регистрация: {formatMoney(taxEstimate.notaryCosts)}
+                        {t.notaryRegistration}: {formatMoney(taxEstimate.notaryCosts)}
                       </div>
                       <div className="rounded-2xl bg-[#eef6f4] px-4 py-2.5 font-semibold text-emerald-900">
-                        Итого ориентировочно: {formatMoney(taxEstimate.total)}
+                        {t.estimatedTotal}: {formatMoney(taxEstimate.total)}
                       </div>
                     </div>
                   ) : null}
@@ -839,14 +879,14 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                    Связь с риэлтором
+                    {t.realtorContact}
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowContactForm((current) => !current)}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800"
                   >
-                    Написать риэлтору
+                    {t.contactRealtor}
                   </button>
                 </div>
 
@@ -859,7 +899,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                       type="text"
                       value={contactName}
                       onChange={(event) => setContactName(event.target.value)}
-                      placeholder="Ваше имя"
+                      placeholder={t.yourName}
                       className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500"
                     />
                     <div className="grid gap-2">
@@ -868,7 +908,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                         required
                         value={contactPhone}
                         onChange={(event) => setContactPhone(event.target.value)}
-                        placeholder="Телефон (обязательно)"
+                        placeholder={t.phoneRequired}
                         className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500"
                       />
                       <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-[#fbfdff] px-3 py-3">
@@ -903,18 +943,18 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                     />
                     {contactSubmitState === "error" ? (
                       <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                        Укажи телефон, чтобы отправить обращение.
+                        {t.phoneRequiredError}
                       </div>
                     ) : contactSubmitState === "success" ? (
                       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                        Обращение отправлено и сохранено в админке.
+                        {t.inquirySent}
                       </div>
                     ) : null}
                     <button
                       type="submit"
                       className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                     >
-                      Отправить обращение
+                      {t.submitInquiry}
                     </button>
                   </form>
                 ) : null}

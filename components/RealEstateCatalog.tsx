@@ -6,8 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeCityName } from "@/lib/real-estate/city";
 import {
   featureTranslations,
+  formatPropertyPrice,
   propertyTypeTranslations,
-  siteLocales,
   siteTranslations,
   type SiteFeatureKey,
   type SiteLocale,
@@ -18,7 +18,6 @@ import {
   getPropertyImagePosition,
 } from "@/lib/real-estate/property-cover";
 import type {
-  ListingFeature,
   ListingMode,
   PropertyListing,
   PropertyType,
@@ -26,6 +25,7 @@ import type {
 import { useCompareList } from "@/lib/real-estate/useCompareList";
 import { useFavoritesList } from "@/lib/real-estate/useFavoritesList";
 import { AgencyLogo } from "./AgencyLogo";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 function getPropertyPublicPath(property: PropertyListing) {
   const generatedIdSlug = property.id.replace(/^irina-/, "");
@@ -54,8 +54,6 @@ function getLocalizedPropertyContent(property: PropertyListing, locale: SiteLoca
   };
 }
 
-const languageOptions = siteLocales;
-
 type CatalogFeatureFilterKey = SiteFeatureKey;
 
 const catalogFeatureOptions: Array<{
@@ -74,18 +72,6 @@ const catalogFeatureOptions: Array<{
   { value: "equippedKitchen" },
   { value: "builtInWardrobes" },
 ];
-
-const propertyTypeLabels: Record<PropertyType, string> = {
-  apartment: "Квартира",
-  duplex: "Дуплекс",
-  land: "Участок",
-  loft: "Лофт",
-  penthouse: "Пентхаус",
-  room: "Комната",
-  studio: "Студия",
-  townhouse: "Таунхаус",
-  villa: "Вилла",
-};
 
 const propertyTypeOptions: Array<{ value: PropertyType; label: string }> = [
   { value: "apartment", label: "Квартира" },
@@ -161,18 +147,6 @@ function hasMeaningfulSearchProfile(searchProfile: SearchPreferencesPayload) {
       searchProfile.bedrooms ||
       (searchProfile.features && searchProfile.features.length > 0)
   );
-}
-
-function getCatalogUserRoleLabel(role: CatalogAuthUser["role"]) {
-  if (role === "admin") {
-    return "Админ";
-  }
-
-  if (role === "realtor") {
-    return "Риэлтор";
-  }
-
-  return "Клиент";
 }
 
 function matchesCatalogFeature(
@@ -416,8 +390,12 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
 
   useEffect(() => {
     if (cityFilter !== "all" && !cities.includes(cityFilter)) {
-      setCityFilter("all");
-      setCurrentPage(1);
+      const timeoutId = window.setTimeout(() => {
+        setCityFilter("all");
+        setCurrentPage(1);
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
     }
   }, [cities, cityFilter]);
 
@@ -600,23 +578,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
           </Link>
 
           <div className="order-2 flex w-full justify-center lg:order-none lg:w-auto">
-            <div className="flex items-center rounded-[18px] border border-slate-200 bg-white p-1 shadow-sm">
-              {languageOptions.map((item) => (
-                <button
-                  key={item.code}
-                  type="button"
-                  onClick={() => setSiteLanguage(item.code)}
-                  className={`rounded-[14px] px-2.5 py-1.5 text-xs font-semibold transition sm:px-4 sm:py-2.5 sm:text-sm ${
-                    language === item.code
-                      ? "bg-slate-950 text-white"
-                      : "text-slate-600 hover:text-slate-950"
-                  }`}
-                  aria-pressed={language === item.code}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+            <LanguageSwitcher language={language} onChange={setSiteLanguage} />
           </div>
 
           <div className="order-4 flex w-full justify-center lg:order-none lg:w-auto">
@@ -1019,6 +981,11 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   const propertyTags = getPropertyTags(property, language);
                   const propertyMetrics = getCatalogMetrics(property, language);
                   const localizedProperty = getLocalizedPropertyContent(property, language);
+                  const localizedPrice = formatPropertyPrice(
+                    property.priceAmount,
+                    property.mode,
+                    language
+                  );
 
                   return (
                     <article
@@ -1092,7 +1059,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                             </p>
                           </div>
                           <div className="rounded-2xl bg-[#eef6f4] px-4 py-2 text-sm font-semibold leading-tight text-emerald-900">
-                            {property.priceLabel}
+                            {localizedPrice}
                           </div>
                         </div>
 
@@ -1188,6 +1155,11 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                   const isFavorite = favoriteIds.includes(property.id);
                   const compactMetrics = getCatalogMetrics(property, language);
                   const localizedProperty = getLocalizedPropertyContent(property, language);
+                  const localizedPrice = formatPropertyPrice(
+                    property.priceAmount,
+                    property.mode,
+                    language
+                  );
 
                   return (
                     <article
@@ -1243,7 +1215,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                               </div>
                             </div>
                             <div className="shrink-0 rounded-2xl bg-white px-3 py-2 text-sm font-semibold leading-tight text-emerald-900 shadow-sm">
-                              {property.priceLabel}
+                              {localizedPrice}
                             </div>
                           </div>
 
@@ -1396,19 +1368,27 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
       <footer className="border-t border-slate-200 bg-[#0f172a] text-slate-200">
         <div className="mx-auto grid max-w-7xl gap-3 px-5 py-8 md:grid-cols-[1.1fr_0.9fr]">
           <div className="grid gap-3">
-            <div className="text-lg font-semibold">Агентство недвижимости ИРИНА</div>
+            <div className="text-lg font-semibold">{t.agencyName}</div>
             <p className="max-w-2xl text-sm leading-6 text-slate-300">
-              Контакты: +351 912 345 678 | info@irina-realestate.com
+              {t.contacts}: +351 912 345 678 | info@irina-realestate.com
             </p>
           </div>
 
           <div className="grid gap-3">
             <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Юридическая информация
+              {t.legalInfo}
             </div>
             <ul className="grid gap-2 text-sm leading-5 text-slate-300">
-              <li>Политика конфиденциальности</li>
-              <li>Раскрытие информации об ИИ</li>              
+              <li>
+                <Link href="/privacy" className="transition hover:text-white">
+                  {t.privacyPolicy}
+                </Link>
+              </li>
+              <li>
+                <Link href="/ai-disclosure" className="transition hover:text-white">
+                  {t.aiDisclosure}
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

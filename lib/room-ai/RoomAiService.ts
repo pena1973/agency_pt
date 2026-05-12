@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { getMediaPublicUrl, resolveMediaStoragePath } from "@/lib/media/storage";
 import { throwIfRoomAiUserError } from "@/lib/room-ai/errors";
 import { OpenAiRoomProvider } from "@/lib/room-ai/providers/OpenAiRoomProvider";
 import { env } from "@/lib/room-ai/utils/env";
@@ -146,12 +147,12 @@ export class RoomAiService {
     const safeFileName = fileName
       .replace(/\.[^.]+$/, `.${extension}`)
       .replace(/[^a-zA-Z0-9._-]/g, "-");
-    const storageDirectory = path.resolve(process.cwd(), env.ROOM_AI_STORAGE_PATH);
+    const storageDirectory = resolveMediaStoragePath("generated", "room-ai");
 
     await mkdir(storageDirectory, { recursive: true });
     await writeFile(path.join(storageDirectory, safeFileName), Buffer.from(base64, "base64"));
 
-    return `/generated/${safeFileName}`;
+    return getMediaPublicUrl("generated", "room-ai", safeFileName);
   }
 
   private async generatePhotosForVariants(

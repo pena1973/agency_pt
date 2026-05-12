@@ -17,6 +17,12 @@
 /.next/
 /out/
 
+# media storage
+/public/uploads/
+!/public/generated/
+/public/generated/*
+!/public/generated/mock-*.svg
+
 # production
 /build
 
