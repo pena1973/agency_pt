@@ -1,6 +1,6 @@
 import path from "node:path";
 
-const DEFAULT_STORAGE_ROOT = "./public/uploads";
+const DEFAULT_STORAGE_ROOT = "../uploads";
 const DEFAULT_PUBLIC_PATH = "/uploads";
 
 function normalizePublicPath(value: string) {

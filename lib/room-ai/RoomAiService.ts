@@ -16,6 +16,8 @@ import type {
   RoomVariant,
 } from "./types";
 
+const ROOM_AI_FALLBACK_IMAGE_URL = "/mock/property-placeholder.svg";
+
 type GenerateRoomDesignInput = {
   photos: File[];
   roomType: RoomType;
@@ -161,7 +163,7 @@ export class RoomAiService {
     variants: RoomVariant[]
   ): Promise<RoomVariant[]> {
     return Promise.all(
-      variants.map(async (variant, index) => {
+      variants.map(async (variant) => {
         try {
           const photoImageUrl = await this.ai.generateVariantPhoto({
             photos: input.photos,
@@ -180,8 +182,7 @@ export class RoomAiService {
 
           return {
             ...variant,
-            photoImageUrl:
-              variant.photoImageUrl || `/generated/mock-photo-${(index % 3) + 1}.svg`,
+            photoImageUrl: variant.photoImageUrl || ROOM_AI_FALLBACK_IMAGE_URL,
           };
         }
       })
@@ -346,8 +347,8 @@ export class RoomAiService {
           title,
           description:
             "Тестовый вариант расстановки. Если OpenAI недоступен, используется резервный вариант.",
-          photoImageUrl: `/generated/mock-photo-${variantNumber}.svg`,
-          planImageUrl: `/generated/mock-plan-${variantNumber}.svg`,
+          photoImageUrl: ROOM_AI_FALLBACK_IMAGE_URL,
+          planImageUrl: ROOM_AI_FALLBACK_IMAGE_URL,
           layoutSource: "mock",
           palette: this.getMockPalette(variantNumber),
           pros: ["Понятная композиция", "Базовая эргономика"],

@@ -1,7 +1,0 @@
-<svg width="900" height="560" viewBox="0 0 900 560" xmlns="http://www.w3.org/2000/svg">
-  <rect width="900" height="560" fill="#f8fafc"/>
-  <rect x="70" y="70" width="760" height="420" rx="24" fill="#e2e8f0"/>
-  <rect x="130" y="150" width="260" height="170" rx="18" fill="#94a3b8"/>
-  <rect x="470" y="140" width="220" height="260" rx="18" fill="#cbd5e1"/>
-  <text x="450" y="500" text-anchor="middle" font-family="Arial" font-size="28" fill="#334155">Mock photo variant 1</text>
-</svg>

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "prestart": "npm run db:init",
     "start": "next start",
     "lint": "eslint",
     "db:init": "node scripts/db/init.mjs",

@@ -156,24 +156,24 @@
     "bedrooms": 2,
     "bathrooms": 1,
     "areaM2": 32,
-    "imageUrl": "http://localhost:3000/generated/gifs/property-transition-1778239740185.gif",
+    "imageUrl": "/uploads/generated/gifs/property-transition-1778239740185.gif",
     "imageGallery": [
-      "http://localhost:3000/generated/gifs/property-transition-1778239740185.gif",
-      "/generated/gifs/property-transition-1778240033560.gif"
+      "/uploads/generated/gifs/property-transition-1778239740185.gif",
+      "/uploads/generated/gifs/property-transition-1778240033560.gif"
     ],
     "imagePositions": {
-      "http://localhost:3000/generated/gifs/property-transition-1778239740185.gif": {
+      "/uploads/generated/gifs/property-transition-1778239740185.gif": {
         "x": 50,
         "y": 72
       },
-      "/generated/gifs/property-transition-1778240033560.gif": {
+      "/uploads/generated/gifs/property-transition-1778240033560.gif": {
         "x": 50,
         "y": 50
       }
     },
     "imageSources": {
-      "http://localhost:3000/generated/gifs/property-transition-1778239740185.gif": "original",
-      "/generated/gifs/property-transition-1778240033560.gif": "original"
+      "/uploads/generated/gifs/property-transition-1778239740185.gif": "original",
+      "/uploads/generated/gifs/property-transition-1778240033560.gif": "original"
     },
     "features": [
       "city_center",
@@ -269,7 +269,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
     "imageGallery": [
       "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
-      "/mock/room_transformation.gif",
+      "/mock/property-placeholder.svg",
       "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80"
     ],
@@ -278,7 +278,7 @@
         "x": 50,
         "y": 50
       },
-      "/mock/room_transformation.gif": {
+      "/mock/property-placeholder.svg": {
         "x": 50,
         "y": 100
       },
@@ -293,7 +293,7 @@
     },
     "imageSources": {
       "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80": "original",
-      "/mock/room_transformation.gif": "original",
+      "/mock/property-placeholder.svg": "original",
       "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80": "original",
       "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80": "original"
     },

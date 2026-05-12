@@ -24,12 +24,16 @@ deployment bundle through environment variables:
 ```bash
 REAL_ESTATE_UPLOADS_PATH=/var/www/realestate/uploads
 REAL_ESTATE_UPLOADS_PUBLIC_PATH=/uploads
+DATABASE_PATH=/var/www/realestate/uploads/storage/app.db
 ```
 
 New admin uploads are saved under `photos/`, AI images under
 `generated/room-ai/`, and GIFs under `generated/gifs/`. In production, configure
 the web server to expose `REAL_ESTATE_UPLOADS_PATH` at
 `REAL_ESTATE_UPLOADS_PUBLIC_PATH`, for example `/uploads`.
+The SQLite database is stored in `storage/app.db` under the same uploads root so
+deployments do not overwrite it. `npm start` runs pending migrations before
+starting Next.js.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

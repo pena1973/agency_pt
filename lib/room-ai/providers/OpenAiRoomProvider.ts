@@ -10,6 +10,8 @@ import type {
 } from "@/lib/room-ai/types";
 import { env } from "@/lib/room-ai/utils/env";
 
+const ROOM_AI_FALLBACK_IMAGE_URL = "/mock/property-placeholder.svg";
+
 type AnalyzeRoomInput = {
   photos: File[];
   roomType: RoomType;
@@ -286,8 +288,8 @@ export class OpenAiRoomProvider {
           id: variant.id || `variant_${variantNumber}`,
           title: variant.title || `Вариант ${variantNumber}`,
           description: variant.description || "Вариант расстановки мебели.",
-          photoImageUrl: `/generated/mock-photo-${variantNumber}.svg`,
-          planImageUrl: `/generated/mock-plan-${variantNumber}.svg`,
+          photoImageUrl: ROOM_AI_FALLBACK_IMAGE_URL,
+          planImageUrl: ROOM_AI_FALLBACK_IMAGE_URL,
           layoutSource: "ai",
           palette: Array.isArray(variant.palette)
             ? variant.palette

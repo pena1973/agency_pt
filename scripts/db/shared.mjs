@@ -3,7 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 const PROJECT_ROOT = process.cwd();
-const ENV_FILE = path.join(PROJECT_ROOT, ".env.local");
+const ENV_FILES = [".env.production", ".env.local"].map((fileName) =>
+  path.join(PROJECT_ROOT, fileName),
+);
 
 function parseEnvFile(content) {
   const result = {};
@@ -31,15 +33,24 @@ function parseEnvFile(content) {
 }
 
 export function loadProjectEnv() {
-  const fileValues = fs.existsSync(ENV_FILE)
-    ? parseEnvFile(fs.readFileSync(ENV_FILE, "utf8"))
-    : {};
+  const fileValues = ENV_FILES.reduce((values, envFile) => {
+    if (!fs.existsSync(envFile)) {
+      return values;
+    }
+
+    return {
+      ...values,
+      ...parseEnvFile(fs.readFileSync(envFile, "utf8")),
+    };
+  }, {});
 
   return {
     DATABASE_PATH:
       process.env.DATABASE_PATH ??
+      process.env.SQLITE_PATH ??
       fileValues.DATABASE_PATH ??
-      "./data/real-estate/app.db",
+      fileValues.SQLITE_PATH ??
+      "../uploads/storage/app.db",
     ADMIN_EMAIL:
       process.env.ADMIN_EMAIL ?? fileValues.ADMIN_EMAIL ?? "admin@example.com",
   };

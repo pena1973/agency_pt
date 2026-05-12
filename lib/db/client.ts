@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -7,6 +8,8 @@ import * as schema from "@/lib/db/schema";
 const sqlitePath = path.isAbsolute(dbEnv.DATABASE_PATH)
   ? dbEnv.DATABASE_PATH
   : path.join(process.cwd(), dbEnv.DATABASE_PATH);
+
+mkdirSync(path.dirname(sqlitePath), { recursive: true });
 
 const sqlite = new Database(sqlitePath);
 

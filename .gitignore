@@ -18,10 +18,12 @@
 /out/
 
 # media storage
+/uploads/
+/data/real-estate/*.db
+/data/real-estate/*.db-shm
+/data/real-estate/*.db-wal
 /public/uploads/
-!/public/generated/
-/public/generated/*
-!/public/generated/mock-*.svg
+/public/generated/
 
 # production
 /build
