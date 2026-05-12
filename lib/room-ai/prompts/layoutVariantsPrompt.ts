@@ -48,6 +48,17 @@ export function buildLayoutVariantsPrompt(input: BuildLayoutVariantsPromptInput)
 Анализ помещения:
 ${JSON.stringify(input.roomAnalysis, null, 2)}
 
+ARCHITECTURE LOCK:
+- Treat roomAnalysis.openings as immutable architectural geometry.
+- Treat every real door, second door, doorway, window, frame, trim, sill, and threshold from the source photo as untouchable.
+- Do not add, remove, hide, cover, relocate, resize, center, straighten, simplify, replace, or mirror any existing door, doorway, opening, or window.
+- Preserve the room proportions, wall lengths, ceiling height, floor proportions, perspective logic, camera viewpoint, image framing, visual room scale, and all distances from each door/window/opening to the nearest corners and to the other openings.
+- Do not change zoom/crop/focal length; keep the same amount of visible floor, ceiling, side walls, back wall, corners, doors, and windows as in the source photo.
+- For every opening from roomAnalysis.openings, copy the same id, type, wall, offsetM, widthM, hinge, and swing into the returned variant unless a value is truly absent.
+- If a value is uncertain, keep the original relative placement from the source photo instead of inventing a cleaner or more symmetrical layout.
+- Furniture may change, but walls, doors, windows, sill/door heights, opening sizes, and distances to openings must remain unchanged.
+- If roomAnalysis.openings contains two doors/openings, the returned variant must contain both; never collapse them into one opening.
+
 Правила:
 - Отвечай на русском языке.
 - Нужно предложить ровно 1 вариант.

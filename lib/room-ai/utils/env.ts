@@ -11,6 +11,7 @@ const envSchema = z.object({
   ROOM_AI_MAX_PHOTOS: z.coerce.number().int().positive().default(5),
   ROOM_AI_MAX_IMAGE_MB: z.coerce.number().positive().default(15),
   ROOM_AI_DEBUG: z.coerce.boolean().default(false),
+  ROOM_AI_USD_TO_EUR_RATE: z.coerce.number().positive().default(0.92),
 });
 
 export const env = envSchema.parse(process.env);

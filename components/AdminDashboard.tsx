@@ -6,7 +6,7 @@ import type { ChangeEvent, DragEvent, PointerEvent } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   DEFAULT_PROPERTY_COVER_URL,
-  getPropertyImagePosition,
+  getPropertyImageStyle,
 } from "@/lib/real-estate/property-cover";
 import {
   featureTranslations,
@@ -80,7 +80,18 @@ type GenerationBalance = {
   totalTokens: number;
   totalImages: number;
   totalCostUsd: number;
+  totalCostEur?: number;
   entriesCount: number;
+};
+
+const emptyGenerationBalance: GenerationBalance = {
+  totalInputTokens: 0,
+  totalOutputTokens: 0,
+  totalTokens: 0,
+  totalImages: 0,
+  totalCostUsd: 0,
+  totalCostEur: 0,
+  entriesCount: 0,
 };
 
 const adminTranslations = {
@@ -177,6 +188,7 @@ const adminTranslations = {
     aiSources: "Fontes para AI",
     aiDropSource: "Arraste para ca uma foto da galeria principal ou de reserva",
     generatedVariant: "Variante gerada",
+    clearGeneratedVariant: "Limpar",
     aiResultPlaceholder: "O resultado da geracao de mobiliario aparecera aqui. Podera arrasta-lo para a galeria principal ou de reserva.",
     palette: "Paleta",
     generateFurniture: "Gerar mobiliario",
@@ -330,6 +342,7 @@ const adminTranslations = {
     aiSources: "AI sources",
     aiDropSource: "Drag a photo here from the main or spare gallery",
     generatedVariant: "Generated variant",
+    clearGeneratedVariant: "Clear",
     aiResultPlaceholder: "The furniture generation result will appear here. You can drag it to the main or spare gallery.",
     palette: "Palette",
     generateFurniture: "Generate furniture",
@@ -483,6 +496,7 @@ const adminTranslations = {
     aiSources: "Исходники для AI",
     aiDropSource: "Перетащите сюда фото из основной или запасной галереи",
     generatedVariant: "Сгенерированный вариант",
+    clearGeneratedVariant: "Очистить",
     aiResultPlaceholder: "Здесь появится результат генерации мебели. Его можно будет перетащить в основную или запасную галерею.",
     palette: "Палитра",
     generateFurniture: "Сгенерировать мебель",
@@ -636,6 +650,7 @@ const adminTranslations = {
     aiSources: "Джерела для AI",
     aiDropSource: "Перетягніть сюди фото з основної або запасної галереї",
     generatedVariant: "Згенерований варіант",
+    clearGeneratedVariant: "Очистити",
     aiResultPlaceholder: "Тут з'явиться результат генерації меблів. Його можна буде перетягнути в основну або запасну галерею.",
     palette: "Палітра",
     generateFurniture: "Згенерувати меблі",
@@ -1100,14 +1115,24 @@ function formatAiGenerationCost(
     return "";
   }
 
-  const cost = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(usageEstimate.estimatedCostUsd);
+  const cost = formatEur(
+    usageEstimate.estimatedCostEur ?? usdToEur(usageEstimate.estimatedCostUsd)
+  );
 
   return `Примерная стоимость генерации: ${cost}. Токены: ${usageEstimate.totalTokens.toLocaleString("ru-RU")}, изображений: ${usageEstimate.generatedImages}.`;
+}
+
+function usdToEur(value: number) {
+  return value * 0.92;
+}
+
+function formatEur(value: number) {
+  return new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  }).format(value);
 }
 
 function formatBytes(bytes: number) {
@@ -1120,15 +1145,6 @@ function formatBytes(bytes: number) {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
-}
-
-function formatUsd(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(value);
 }
 
 function isGeneratedPropertySlugForId(slug: string, id: string) {
@@ -1152,6 +1168,16 @@ function parseOrientationValue(value: string) {
 
 function getPropertySourceLocale(property: PropertyListing): SiteLocale {
   return property.sourceLocale ?? "ru";
+}
+
+function isBlankLocalizedContent(content: PropertyContentTranslation) {
+  return (
+    !content.title.trim() &&
+    !content.city.trim() &&
+    !content.shortDescription.trim() &&
+    !content.fullDescription.trim() &&
+    content.orientation.length === 0
+  );
 }
 
 function getEmptyPropertyContentTranslation(): PropertyContentTranslation {
@@ -1183,6 +1209,61 @@ function getPropertyContentForLocale(
   }
 
   return property.translations?.[locale] ?? getEmptyPropertyContentTranslation();
+}
+
+function normalizeSourceContentForSave(property: PropertyListing): PropertyListing {
+  const sourceLocale = getPropertySourceLocale(property);
+  const sourceContent = getSourcePropertyContent(property);
+
+  if (!isBlankLocalizedContent(sourceContent)) {
+    return property;
+  }
+
+  const fallbackEntry = Object.entries(property.translations ?? {}).find(
+    ([, translation]) => translation && !isBlankLocalizedContent(translation)
+  );
+
+  if (!fallbackEntry) {
+    return property;
+  }
+
+  const [fallbackLocale, fallbackContent] = fallbackEntry as [
+    SiteLocale,
+    PropertyContentTranslation,
+  ];
+  const nextTranslations = { ...property.translations };
+  nextTranslations[sourceLocale] = sourceContent;
+  delete nextTranslations[fallbackLocale];
+
+  return {
+    ...property,
+    sourceLocale: fallbackLocale,
+    title: fallbackContent.title,
+    city: fallbackContent.city,
+    shortDescription: fallbackContent.shortDescription,
+    fullDescription: fallbackContent.fullDescription,
+    details: {
+      ...property.details,
+      orientation: fallbackContent.orientation,
+    },
+    translations: nextTranslations,
+  };
+}
+
+function getPropertyValidationMessage(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return "Не удалось сохранить объект.";
+  }
+
+  const issues = (error as { issues?: Array<{ path?: Array<string | number>; message?: string }> }).issues;
+  const firstIssue = issues?.[0];
+
+  if (!firstIssue) {
+    return "Не удалось сохранить объект.";
+  }
+
+  const path = firstIssue.path?.join(".") || "поле";
+  return `Проверьте поле ${path}: ${firstIssue.message ?? "некорректное значение"}.`;
 }
 
 function getPropertyDisplayContentForLocale(
@@ -1231,6 +1312,13 @@ function clampPercentage(value: number | undefined) {
   );
 }
 
+function clampImageScale(value: number | undefined) {
+  return Math.min(
+    200,
+    Math.max(100, typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 100)
+  );
+}
+
 function normalizePropertyListing(property: PropertyListing): PropertyListing {
   const nextId = property.id.trim();
   const nextCity = normalizeCityName(property.city);
@@ -1259,6 +1347,7 @@ function normalizePropertyListing(property: PropertyListing): PropertyListing {
         {
           x: clampPercentage(position?.x),
           y: clampPercentage(position?.y),
+          scale: clampImageScale(position?.scale),
         },
       ];
     })
@@ -1463,7 +1552,11 @@ export function AdminDashboard({
   const [aiResult, setAiResult] = useState<GenerateRoomDesignResult | null>(null);
   const [freshAiResultUrls, setFreshAiResultUrls] = useState<string[]>([]);
   const [aiStatus, setAiStatus] = useState("");
+  const [currentAiUsageEstimate, setCurrentAiUsageEstimate] =
+    useState<GenerateRoomDesignResult["usageEstimate"]>();
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [currentAiPhotoName, setCurrentAiPhotoName] = useState("");
+  const aiAbortControllerRef = useRef<AbortController | null>(null);
   const [spareGalleryItems, setSpareGalleryItems] = useState<AdminSpareGalleryItem[]>([]);
   const [isJsonEditorOpen, setIsJsonEditorOpen] = useState(false);
   const [jsonEditorValue, setJsonEditorValue] = useState("");
@@ -1493,7 +1586,7 @@ export function AdminDashboard({
   } | null>(null);
   const [isGeneratingGif, setIsGeneratingGif] = useState(false);
   const [generationBalance, setGenerationBalance] =
-    useState<GenerationBalance | null>(null);
+    useState<GenerationBalance>(emptyGenerationBalance);
   const [catalogModeFilter, setCatalogModeFilter] =
     useState<AdminCatalogModeFilter>("all");
   const [catalogIdQuery, setCatalogIdQuery] = useState("");
@@ -1541,25 +1634,18 @@ export function AdminDashboard({
   });
   const selectedUser = users.find((user) => user.id === selectedUserId) ?? users[0] ?? null;
   const usersById = new Map(users.map((user) => [user.id, user] as const));
+  const selectedPropertyExists = selectedId
+    ? properties.some((property) => property.id === selectedId)
+    : false;
   const featureGridClass = showsCompactLayout
     ? "mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6"
     : "mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4";
   const adminT = adminTranslations[siteLanguage];
   const localizedPropertyTypeLabels = propertyTypeTranslations[siteLanguage];
   const localizedFeatureLabels = featureTranslations[siteLanguage];
-  const visibleAiVariants = (aiResult?.variants ?? []).filter((variant) => {
-    if (freshAiResultUrls.includes(variant.photoImageUrl)) {
-      return true;
-    }
-
-    const isInMainGallery =
-      propertyDraft?.imageGallery.includes(variant.photoImageUrl) ?? false;
-    const isInSpareGallery = spareGalleryItems.some(
-      (item) => item.imageUrl === variant.photoImageUrl
-    );
-
-    return !isInMainGallery && !isInSpareGallery;
-  });
+  const visibleAiVariants = aiResult?.variants ?? [];
+  const hasAiGeneratedResult =
+    visibleAiVariants.length > 0 || Boolean(currentAiUsageEstimate);
   const activePropertyContent = propertyDraft
     ? getPropertyContentForLocale(propertyDraft, adminContentLocale)
     : null;
@@ -1676,11 +1762,13 @@ export function AdminDashboard({
       });
 
       if (!response.ok) {
+        setGenerationBalance(emptyGenerationBalance);
         return;
       }
 
       setGenerationBalance((await response.json()) as GenerationBalance);
     } catch {
+      setGenerationBalance(emptyGenerationBalance);
       // Balance is informational; the editor can continue without it.
     }
   }
@@ -1809,8 +1897,8 @@ export function AdminDashboard({
       !originalPropertyDraft.imageGallery.includes(imageUrl) ||
       originalPropertyDraft.imageGallery[index] !== imageUrl ||
       (propertyDraft.imageUrl === imageUrl && originalPropertyDraft.imageUrl !== imageUrl) ||
-      JSON.stringify(propertyDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 }) !==
-        JSON.stringify(originalPropertyDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 })
+      JSON.stringify(propertyDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50, scale: 100 }) !==
+        JSON.stringify(originalPropertyDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50, scale: 100 })
     );
   }
 
@@ -2305,10 +2393,20 @@ export function AdminDashboard({
     });
 
     const responseText = await response.text();
-    const payload = (responseText ? JSON.parse(responseText) : {}) as {
+    let payload: {
       error?: string;
       properties?: PropertyListing[];
-    };
+    } = {};
+
+    try {
+      payload = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      payload = {
+        error: response.ok
+          ? "Сервер вернул некорректный ответ."
+          : `Сервер вернул ошибку ${response.status}.`,
+      };
+    }
 
     if (!response.ok || !payload.properties) {
       setStatusMessage(payload.error ?? "Не удалось сохранить объект.");
@@ -2334,13 +2432,16 @@ export function AdminDashboard({
     }
 
     const nextId = propertyDraft.id.trim() || buildGeneratedPropertyId();
-    const nextProperty = normalizePropertyListing({
+    const normalizedDraft = normalizeSourceContentForSave({
       ...propertyDraft,
       id: nextId,
+    });
+    const nextProperty = normalizePropertyListing({
+      ...normalizedDraft,
       slug:
-        !propertyDraft.slug.trim() || isGeneratedPropertySlugForId(propertyDraft.slug, nextId)
-          ? buildPropertySlug(propertyDraft.title, nextId)
-          : propertyDraft.slug.trim(),
+        !normalizedDraft.slug.trim() || isGeneratedPropertySlugForId(normalizedDraft.slug, nextId)
+          ? buildPropertySlug(normalizedDraft.title, nextId)
+          : normalizedDraft.slug.trim(),
     });
 
     setIsSaving(true);
@@ -2356,13 +2457,29 @@ export function AdminDashboard({
           body: JSON.stringify(nextProperty),
         });
 
-        const payload = (await response.json()) as {
+        const responseText = await response.text();
+        let payload: {
           error?: string;
           properties?: PropertyListing[];
-        };
+        } = {};
+
+        try {
+          payload = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          payload = {
+            error: response.ok
+              ? "Сервер вернул некорректный ответ."
+              : `Сервер вернул ошибку ${response.status}.`,
+          };
+        }
 
         if (!response.ok || !payload.properties) {
-          setStatusMessage(payload.error ?? "Не удалось создать объект.");
+          const validationMessage = getPropertyValidationMessage(payload);
+          setStatusMessage(
+            payload.error
+              ? `${payload.error} ${validationMessage}`
+              : validationMessage
+          );
           return false;
         }
 
@@ -2618,7 +2735,7 @@ export function AdminDashboard({
           : [...currentDraft.imageGallery, imageUrl];
         const nextImagePositions = {
           ...currentDraft.imagePositions,
-          [imageUrl]: currentDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 },
+          [imageUrl]: currentDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50, scale: 100 },
         };
         const nextImageSources = {
           ...currentDraft.imageSources,
@@ -2685,7 +2802,7 @@ export function AdminDashboard({
         : [...currentDraft.imageGallery, imageUrl];
     const nextImagePositions = {
       ...currentDraft.imagePositions,
-      [imageUrl]: currentDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 },
+      [imageUrl]: currentDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50, scale: 100 },
     };
     const nextImageSources = {
       ...currentDraft.imageSources,
@@ -2726,7 +2843,10 @@ export function AdminDashboard({
     nextDraft: PropertyListing,
     successMessage: string
   ) {
-    const saved = await persistProperty(normalizePropertyListing(nextDraft), selectedId ?? nextDraft.id);
+    const saved = await persistProperty(
+      normalizePropertyListing(nextDraft),
+      selectedPropertyExists ? selectedId ?? nextDraft.id : nextDraft.id
+    );
 
     if (saved) {
       setStatusMessage(successMessage);
@@ -2863,7 +2983,10 @@ export function AdminDashboard({
     });
   }
 
-  async function ensureImageInSpareGallery(imageUrl: string) {
+  async function ensureImageInSpareGallery(
+    imageUrl: string,
+    options: { removeFromResult?: boolean } = {}
+  ) {
     if (!propertyDraft?.id) {
       return;
     }
@@ -2886,8 +3009,10 @@ export function AdminDashboard({
     }
 
     await loadSpareGallery(propertyDraft.id);
-    removeAiResultVariant(imageUrl);
-    if (gifResult?.gifUrl === imageUrl) {
+    if (options.removeFromResult ?? true) {
+      removeAiResultVariant(imageUrl);
+    }
+    if ((options.removeFromResult ?? true) && gifResult?.gifUrl === imageUrl) {
       setGifResult(null);
     }
     setStatusMessage("Фотография добавлена в запасную галерею.");
@@ -2971,6 +3096,19 @@ export function AdminDashboard({
     setter(defaultGifFrameSettings);
   }
 
+  function clearGifImageSlot(slot: GifImageSlot) {
+    resetGifFrameSettings(slot);
+
+    if (slot === "start") {
+      setGifStartImageUrl("");
+    } else {
+      setGifFinishImageUrl("");
+    }
+
+    setGifResult(null);
+    setGifStatus("");
+  }
+
   function nudgeGifFramePosition(
     slot: GifImageSlot,
     axis: keyof GifFrameSettings,
@@ -3045,8 +3183,11 @@ export function AdminDashboard({
         estimatedCostUsd: payload.estimatedCostUsd ?? 0,
         note: payload.note ?? "GIF собрана локально через sharp, OpenAI не используется.",
       });
+      if (propertyDraft?.id) {
+        await ensureImageInSpareGallery(payload.gifUrl, { removeFromResult: false });
+      }
       setGifStatus(
-        `GIF готов${payload.sizeBytes ? `, размер ${formatBytes(payload.sizeBytes)}` : ""}. Стоимость генерации: ${formatUsd(payload.estimatedCostUsd ?? 0)}.`
+        `GIF готов${payload.sizeBytes ? `, размер ${formatBytes(payload.sizeBytes)}` : ""} и добавлен в запасную галерею. Стоимость генерации: ${formatEur(usdToEur(payload.estimatedCostUsd ?? 0))}.`
       );
       await loadGenerationBalance();
     } catch {
@@ -3070,9 +3211,9 @@ export function AdminDashboard({
     );
   }
 
-  async function fetchImageAsFile(imageUrl: string, fileName: string) {
+  async function fetchImageAsFile(imageUrl: string, fileName: string, signal?: AbortSignal) {
     const absoluteUrl = new URL(imageUrl, window.location.origin).toString();
-    const response = await fetch(absoluteUrl);
+    const response = await fetch(absoluteUrl, { signal });
 
     if (!response.ok) {
       throw new Error("Image fetch failed");
@@ -3110,7 +3251,11 @@ export function AdminDashboard({
         return currentDraft;
       }
 
-      const currentPosition = currentDraft.imagePositions?.[imageUrl] ?? { x: 50, y: 50 };
+      const currentPosition = currentDraft.imagePositions?.[imageUrl] ?? {
+        x: 50,
+        y: 50,
+        scale: 100,
+      };
 
       return {
         ...currentDraft,
@@ -3146,6 +3291,31 @@ export function AdminDashboard({
     imageNudgeIntervalRef.current = window.setInterval(() => {
       nudgeGalleryImagePosition(imageUrl, axis, delta);
     }, 90);
+  }
+
+  function nudgeGalleryImageScale(imageUrl: string, delta: number) {
+    setPropertyDraft((currentDraft) => {
+      if (!currentDraft || !currentDraft.imageGallery.includes(imageUrl)) {
+        return currentDraft;
+      }
+
+      const currentPosition = currentDraft.imagePositions?.[imageUrl] ?? {
+        x: 50,
+        y: 50,
+        scale: 100,
+      };
+
+      return {
+        ...currentDraft,
+        imagePositions: {
+          ...currentDraft.imagePositions,
+          [imageUrl]: {
+            ...currentPosition,
+            scale: clampImageScale((currentPosition.scale ?? 100) + delta),
+          },
+        },
+      };
+    });
   }
 
   async function downloadImageToComputer(imageUrl: string, fileName: string) {
@@ -3232,6 +3402,115 @@ export function AdminDashboard({
     setStatusMessage("Фотография удалена из запасной галереи.");
   }
 
+  function mergeAiResults(
+    currentResult: GenerateRoomDesignResult | null,
+    nextResult: GenerateRoomDesignResult,
+    usageEstimate?: NonNullable<GenerateRoomDesignResult["usageEstimate"]>
+  ): GenerateRoomDesignResult {
+    const variantsByUrl = new Map(
+      (currentResult?.variants ?? []).map((variant) => [variant.photoImageUrl, variant])
+    );
+
+    for (const variant of nextResult.variants) {
+      variantsByUrl.set(variant.photoImageUrl, variant);
+    }
+
+    return {
+      ...nextResult,
+      roomAnalysis: nextResult.roomAnalysis ?? currentResult?.roomAnalysis ?? null,
+      variants: Array.from(variantsByUrl.values()),
+      usageEstimate:
+        usageEstimate ?? nextResult.usageEstimate ?? currentResult?.usageEstimate,
+    };
+  }
+
+  function emptyAiUsageEstimate(): NonNullable<GenerateRoomDesignResult["usageEstimate"]> {
+    return {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      generatedImages: 0,
+      estimatedCostUsd: 0,
+      estimatedCostEur: 0,
+      note:
+        "Оценка: текстовые токены взяты из usage, стоимость изображения рассчитана по high quality.",
+    };
+  }
+
+  function addAiUsageEstimate(
+    total: NonNullable<GenerateRoomDesignResult["usageEstimate"]>,
+    result: GenerateRoomDesignResult
+  ): NonNullable<GenerateRoomDesignResult["usageEstimate"]> {
+    return {
+      ...total,
+      inputTokens: total.inputTokens + (result.usageEstimate?.inputTokens ?? 0),
+      outputTokens: total.outputTokens + (result.usageEstimate?.outputTokens ?? 0),
+      totalTokens: total.totalTokens + (result.usageEstimate?.totalTokens ?? 0),
+      generatedImages: total.generatedImages + (result.usageEstimate?.generatedImages ?? 0),
+      estimatedCostUsd:
+        total.estimatedCostUsd + (result.usageEstimate?.estimatedCostUsd ?? 0),
+      estimatedCostEur:
+        total.estimatedCostEur + (result.usageEstimate?.estimatedCostEur ?? 0),
+    };
+  }
+
+  function cancelAiGeneration() {
+    aiAbortControllerRef.current?.abort();
+    setAiStatus("Останавливаю генерацию...");
+  }
+
+  function clearAiGeneratedVariants() {
+    setAiResult(null);
+    setFreshAiResultUrls([]);
+    setCurrentAiUsageEstimate(undefined);
+    setCurrentAiPhotoName("");
+    setAiStatus("");
+  }
+
+  function isAbortError(error: unknown) {
+    return error instanceof DOMException && error.name === "AbortError";
+  }
+
+  async function readRoomAiResponse(response: Response) {
+    const responseText = await response.text();
+
+    if (!responseText) {
+      return {} as GenerateRoomDesignResult & { error?: string; errorCode?: string };
+    }
+
+    try {
+      return JSON.parse(responseText) as GenerateRoomDesignResult & {
+        error?: string;
+        errorCode?: string;
+      };
+    } catch {
+      return {
+        error: response.ok
+          ? "Сервер вернул неожиданный ответ."
+          : `Сервер вернул не JSON-ответ: ${responseText.slice(0, 120)}`,
+      } as GenerateRoomDesignResult & { error?: string; errorCode?: string };
+    }
+  }
+
+  function getRoomAiErrorMessage(
+    payload: { error?: string; errorCode?: string },
+    photoName: string
+  ) {
+    if (payload.errorCode === "quota_exceeded") {
+      return payload.error ?? "Лимит токенов или квота OpenAI исчерпаны. Пополните баланс API и попробуйте снова.";
+    }
+
+    if (payload.errorCode === "rate_limit_exceeded") {
+      return payload.error ?? "OpenAI временно ограничил частоту запросов. Подождите немного и попробуйте снова.";
+    }
+
+    if (payload.errorCode === "token_limit_exceeded") {
+      return payload.error ?? "Превышен лимит токенов для этого запроса. Попробуйте меньше фотографий.";
+    }
+
+    return payload.error ?? `Ошибка генерации для фото ${photoName}.`;
+  }
+
   async function generateAiVariants() {
     if (aiSourcePhotos.length === 0) {
       setAiStatus("Перетащите хотя бы одно фото в поле исходников для AI.");
@@ -3244,15 +3523,30 @@ export function AdminDashboard({
     }
 
     setIsGeneratingAi(true);
-    setAiStatus("");
+    setCurrentAiPhotoName("");
+    setCurrentAiUsageEstimate(undefined);
+    setAiStatus("Подготавливаю фото для генерации...");
+    const abortController = new AbortController();
+    aiAbortControllerRef.current = abortController;
 
     try {
       const generatedResults: GenerateRoomDesignResult[] = [];
+      let totalUsage = emptyAiUsageEstimate();
 
-      for (const photo of aiSourcePhotos) {
+      for (const [photoIndex, photo] of aiSourcePhotos.entries()) {
+        if (abortController.signal.aborted) {
+          break;
+        }
+
+        setCurrentAiPhotoName(photo.name);
+        setAiStatus(
+          `Обрабатываю фото ${photoIndex + 1} из ${aiSourcePhotos.length}: ${photo.name}`
+        );
+
         const sourceFile = await fetchImageAsFile(
           photo.imageUrl,
-          `${photo.id}.jpg`
+          `${photo.id}.jpg`,
+          abortController.signal
         );
         const formData = new FormData();
         formData.append("photos", sourceFile, sourceFile.name);
@@ -3263,65 +3557,61 @@ export function AdminDashboard({
         const response = await fetch("/api/room-ai/generate", {
           method: "POST",
           body: formData,
+          signal: abortController.signal,
         });
-        const payload = (await response.json()) as GenerateRoomDesignResult & {
-          error?: string;
-        };
+        const payload = await readRoomAiResponse(response);
 
         if (!response.ok) {
-          setAiStatus(payload.error ?? `Ошибка генерации для фото ${photo.name}.`);
+          setAiStatus(getRoomAiErrorMessage(payload, photo.name));
+          await loadGenerationBalance();
           return;
         }
 
         generatedResults.push(payload);
+        totalUsage = addAiUsageEstimate(totalUsage, payload);
+        setCurrentAiUsageEstimate(totalUsage);
+
+        const resultUrls = payload.variants.map((variant) => variant.photoImageUrl);
+        setFreshAiResultUrls((currentUrls) =>
+          Array.from(new Set([...currentUrls, ...resultUrls]))
+        );
+        setAiResult((currentResult) => mergeAiResults(currentResult, payload, totalUsage));
+        setAiStatus(
+          `Готово фото ${photoIndex + 1} из ${aiSourcePhotos.length}: ${photo.name}. ${formatAiGenerationCost(totalUsage)}`
+        );
       }
 
-      await loadSavedAiResults(propertyDraft.id);
       await loadSpareGallery(propertyDraft.id);
-      setFreshAiResultUrls(
-        generatedResults.flatMap((result) =>
-          result.variants.map((variant) => variant.photoImageUrl)
-        )
-      );
-      const totalUsage = generatedResults.reduce<
-        NonNullable<GenerateRoomDesignResult["usageEstimate"]>
-      >(
-        (total, result) => ({
-          inputTokens: total.inputTokens + (result.usageEstimate?.inputTokens ?? 0),
-          outputTokens: total.outputTokens + (result.usageEstimate?.outputTokens ?? 0),
-          totalTokens: total.totalTokens + (result.usageEstimate?.totalTokens ?? 0),
-          generatedImages:
-            total.generatedImages + (result.usageEstimate?.generatedImages ?? 0),
-          estimatedCostUsd:
-            total.estimatedCostUsd + (result.usageEstimate?.estimatedCostUsd ?? 0),
-          note:
-            "Оценка: текстовые токены взяты из usage, стоимость изображения рассчитана по текущему прайсу для 1536x1024 medium.",
-        }),
-        {
-          inputTokens: 0,
-          outputTokens: 0,
-          totalTokens: 0,
-          generatedImages: 0,
-          estimatedCostUsd: 0,
-          note:
-            "Оценка: текстовые токены взяты из usage, стоимость изображения рассчитана по текущему прайсу для 1536x1024 medium.",
-        }
-      );
-      setAiResult((currentResult) =>
-        currentResult
-          ? { ...currentResult, usageEstimate: totalUsage }
-          : generatedResults[generatedResults.length - 1] ?? null
-      );
+      if (generatedResults.length === 0 && abortController.signal.aborted) {
+        setAiStatus("Генерация прервана. Готовых вариантов пока нет.");
+        return;
+      }
+
+      if (abortController.signal.aborted) {
+        setAiStatus(
+          `Генерация прервана. Готово ${generatedResults.length} из ${aiSourcePhotos.length}. ${formatAiGenerationCost(totalUsage)}`
+        );
+        await loadGenerationBalance();
+        return;
+      }
+
       setAiStatus(
         `AI сгенерировал и сохранил ${aiSourcePhotos.length} ${
           aiSourcePhotos.length === 1 ? "вариант" : "варианта"
         }. ${formatAiGenerationCost(totalUsage)}`
       );
       await loadGenerationBalance();
-    } catch {
-      setAiStatus("Ошибка генерации вариантов.");
+    } catch (error) {
+      if (isAbortError(error)) {
+        setAiStatus("Генерация прервана. Уже готовые варианты остались в результате.");
+        return;
+      }
+
+      setAiStatus(error instanceof Error ? error.message : "Ошибка генерации вариантов.");
     } finally {
       setIsGeneratingAi(false);
+      setCurrentAiPhotoName("");
+      aiAbortControllerRef.current = null;
     }
   }
 
@@ -3616,7 +3906,7 @@ export function AdminDashboard({
                     />
                   </label>
                 </div>
-                <div className="grid content-start gap-3 pr-1 2xl:min-h-0 2xl:flex-1 2xl:overflow-y-auto">
+                <div className="grid max-h-[340px] content-start gap-3 overflow-y-auto overscroll-contain pr-1 2xl:max-h-none 2xl:min-h-0 2xl:flex-1">
                   {filteredProperties.map((property) => {
                     const isActive = property.id === selectedId;
                     const catalogPropertyContent = getPropertyDisplayContentForLocale(
@@ -3732,7 +4022,7 @@ export function AdminDashboard({
                             type="button"
                             onClick={saveSelectedProperty}
                             disabled={isSaving || !propertyDraft}
-                            className="col-span-2 h-10 rounded-2xl border border-emerald-300 bg-emerald-50 px-3 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-100 disabled:opacity-60 md:col-span-1 md:h-auto md:px-4 md:py-2.5"
+                            className="col-span-2 flex min-h-10 items-center justify-center rounded-2xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-center text-sm font-semibold leading-tight text-emerald-900 transition hover:bg-emerald-100 disabled:opacity-60 md:col-span-1 md:min-h-0 md:px-4 md:py-2.5"
                           >
                             {adminT.saveProperty}
                           </button>
@@ -3741,7 +4031,7 @@ export function AdminDashboard({
                             onClick={() =>
                               setDraftValue("isActive", propertyDraft.isActive === false)
                             }
-                            className={`h-10 rounded-2xl px-3 text-sm font-semibold transition md:h-auto md:px-4 md:py-2.5 ${
+                            className={`flex min-h-10 items-center justify-center rounded-2xl px-3 py-2 text-center text-sm font-semibold leading-tight transition md:min-h-0 md:px-4 md:py-2.5 ${
                               propertyDraft.isActive === false
                                 ? "border border-emerald-300 bg-emerald-50 text-emerald-900"
                                 : "border border-amber-300 bg-amber-50 text-amber-900"
@@ -3755,7 +4045,7 @@ export function AdminDashboard({
                             type="button"
                             onClick={openJsonEditor}
                             disabled={!propertyDraft}
-                            className="h-10 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 disabled:opacity-60 md:h-auto md:px-4 md:py-2.5"
+                            className="flex min-h-10 items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-2 text-center text-sm font-semibold leading-tight text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 disabled:opacity-60 md:min-h-0 md:px-4 md:py-2.5"
                           >
                             {adminT.jsonEditor}
                           </button>
@@ -3763,7 +4053,7 @@ export function AdminDashboard({
                             type="button"
                             onClick={deleteSelectedProperty}
                             disabled={isSaving || !selectedId}
-                            className="h-10 rounded-2xl border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-60 md:h-auto md:px-4 md:py-2.5"
+                            className="flex min-h-10 items-center justify-center rounded-2xl border border-red-200 bg-white px-3 py-2 text-center text-sm font-semibold leading-tight text-red-700 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-60 md:min-h-0 md:px-4 md:py-2.5"
                           >
                             {adminT.deleteProperty}
                           </button>
@@ -3772,7 +4062,7 @@ export function AdminDashboard({
                               href={`${getPropertyPublicPath(propertyDraft)}?admin_preview=1`}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:h-auto md:px-4 md:py-2.5"
+                              className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-2 text-center text-sm font-semibold leading-tight text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 md:min-h-0 md:px-4 md:py-2.5"
                             >
                               {adminT.openProperty}
                             </a>
@@ -4857,6 +5147,9 @@ export function AdminDashboard({
                         >
                           {propertyDraft.imageGallery.length > 0 ? (
                             propertyDraft.imageGallery.map((imageUrl, index) => {
+                              const imageScale =
+                                propertyDraft.imagePositions?.[imageUrl]?.scale ?? 100;
+
                               return (
                               <div
                                 key={imageUrl}
@@ -4878,17 +5171,12 @@ export function AdminDashboard({
                                   isGalleryImageChanged(imageUrl, index)
                                 )}
                               >
-                                <div className="relative">
+                                <div className="relative overflow-hidden">
                                   <img
                                     src={imageUrl}
                                     alt={propertyDraft.title}
                                     className="h-40 w-full object-cover"
-                                    style={{
-                                      objectPosition: getPropertyImagePosition(
-                                        propertyDraft,
-                                        imageUrl
-                                      ),
-                                    }}
+                                    style={getPropertyImageStyle(propertyDraft, imageUrl)}
                                   />
                                   <div className="absolute left-2 top-2 rounded-full bg-slate-950/80 px-2 py-1 text-xs font-semibold text-white">
                                     {index + 1}
@@ -4903,7 +5191,7 @@ export function AdminDashboard({
                                       AI
                                     </div>
                                   ) : null}
-                                  <div className="absolute bottom-2 left-1/2 grid -translate-x-1/2 grid-cols-3 gap-0.5 rounded-xl bg-slate-950/20 p-1 text-white opacity-45 shadow-sm transition hover:bg-slate-950/45 hover:opacity-100">
+                                  <div className="absolute bottom-2 left-1/2 grid -translate-x-1/2 grid-cols-4 gap-0.5 rounded-xl bg-slate-950/20 p-1 text-white opacity-45 shadow-sm transition hover:bg-slate-950/45 hover:opacity-100">
                                     <span />
                                     <button
                                       type="button"
@@ -4925,6 +5213,21 @@ export function AdminDashboard({
                                     <button
                                       type="button"
                                       draggable={false}
+                                      title="Увеличить масштаб"
+                                      aria-label="Увеличить масштаб"
+                                      onPointerDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        nudgeGalleryImageScale(imageUrl, 5);
+                                      }}
+                                      onClick={(event) => event.preventDefault()}
+                                      className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
+                                    >
+                                      +
+                                    </button>
+                                    <button
+                                      type="button"
+                                      draggable={false}
                                       title="Сдвинуть фото влево"
                                       aria-label="Сдвинуть фото влево"
                                       onPointerDown={(event) =>
@@ -4938,7 +5241,9 @@ export function AdminDashboard({
                                     >
                                       ←
                                     </button>
-                                    <span className="h-6 w-6" />
+                                    <span className="grid h-6 w-6 select-none place-items-center text-[9px] font-bold leading-none text-white/90">
+                                      {imageScale}
+                                    </span>
                                     <button
                                       type="button"
                                       draggable={false}
@@ -4954,6 +5259,21 @@ export function AdminDashboard({
                                       className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
                                     >
                                       →
+                                    </button>
+                                    <button
+                                      type="button"
+                                      draggable={false}
+                                      title="Уменьшить масштаб"
+                                      aria-label="Уменьшить масштаб"
+                                      onPointerDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        nudgeGalleryImageScale(imageUrl, -5);
+                                      }}
+                                      onClick={(event) => event.preventDefault()}
+                                      className="grid h-6 w-6 touch-none select-none place-items-center rounded-full bg-white/10 text-xs font-bold transition hover:bg-white/35"
+                                    >
+                                      −
                                     </button>
                                     <span />
                                     <button
@@ -5265,31 +5585,65 @@ export function AdminDashboard({
                         </label>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={generateAiVariants}
-                        disabled={isGeneratingAi}
-                        className="rounded-2xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
-                      >
-                        {isGeneratingAi
-                          ? adminT.generatingVariant
-                          : adminT.generateFurniture}
-                      </button>
+                      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                        <button
+                          type="button"
+                          onClick={generateAiVariants}
+                          disabled={isGeneratingAi}
+                          className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                        >
+                          {isGeneratingAi ? (
+                            <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+                          ) : null}
+                          <span className="min-w-0 break-words">
+                            {isGeneratingAi && currentAiPhotoName
+                              ? `Обрабатываю фото: ${currentAiPhotoName}`
+                              : isGeneratingAi
+                                ? adminT.generatingVariant
+                                : adminT.generateFurniture}
+                          </span>
+                        </button>
+                        {isGeneratingAi ? (
+                          <button
+                            type="button"
+                            onClick={cancelAiGeneration}
+                            className="min-h-14 rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50"
+                          >
+                            Прервать
+                          </button>
+                        ) : null}
+                      </div>
 
-                     
+                      {aiStatus ? (
+                        <div
+                          className={`rounded-2xl border px-4 py-3 text-sm ${
+                            /ошиб|лимит|квот|не удалось|превыш/i.test(aiStatus)
+                              ? "border-red-100 bg-red-50 text-red-800"
+                              : "border-slate-200 bg-slate-50 text-slate-700"
+                          }`}
+                        >
+                          {aiStatus}
+                        </div>
+                      ) : null}
 
-                      {generationBalance ? (
-                        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950">
+                      {currentAiUsageEstimate ? (
+                        <div className="rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-3 text-sm text-amber-950">
                           <div className="font-semibold">
-                            {adminT.generationBalance}: {formatUsd(generationBalance.totalCostUsd)}
-                          </div>
-                          <div className="mt-1 text-xs text-emerald-900/80">
-                            {adminT.tokens}: {generationBalance.totalTokens.toLocaleString("ru-RU")}
-                            {" "}· {adminT.images}: {generationBalance.totalImages}
-                            {" "}· {adminT.records}: {generationBalance.entriesCount}
+                            {formatAiGenerationCost(currentAiUsageEstimate)}
                           </div>
                         </div>
                       ) : null}
+
+                      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-950">
+                        <div className="font-semibold">
+                          {adminT.generationBalance}: {formatEur(generationBalance.totalCostEur ?? usdToEur(generationBalance.totalCostUsd))}
+                        </div>
+                        <div className="mt-1 text-xs text-emerald-900/80">
+                          {adminT.tokens}: {generationBalance.totalTokens.toLocaleString("ru-RU")}
+                          {" "}· {adminT.images}: {generationBalance.totalImages}
+                          {" "}· {adminT.records}: {generationBalance.entriesCount}
+                        </div>
+                      </div>
 
                       <div className="grid gap-3">
                         {uploadedPhotos.map((photo) => (
@@ -5307,24 +5661,6 @@ export function AdminDashboard({
                                 <div className="line-clamp-2 text-sm font-semibold text-slate-900">
                                   {photo.name}
                                 </div>
-                                <label className="mt-3 grid gap-2">
-                                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                    {adminT.roomType}
-                                  </span>
-                                  <select
-                                    value={photo.roomType}
-                                    onChange={(event) =>
-                                      setPhotoRoomType(photo.id, event.target.value as RoomType)
-                                    }
-                                    className="h-10 rounded-2xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500"
-                                  >
-                                    {roomTypeOptions.map((option) => (
-                                      <option key={option.value} value={option.value}>
-                                        {localizedRoomTypeLabels[siteLanguage][option.value]}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </label>
                                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
                                   <div className="text-sm text-slate-600">
                                     {adminT.photoSavedToSpare}
@@ -5338,14 +5674,26 @@ export function AdminDashboard({
                     </div>
 
                     <div className="grid self-start gap-3">
-                      <div className="text-sm font-semibold text-slate-800">
-                        {adminT.generatedVariant}
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                        <div className="text-sm font-semibold text-slate-800">
+                          {adminT.generatedVariant}
+                        </div>
+                        {hasAiGeneratedResult ? (
+                          <button
+                            type="button"
+                            onClick={clearAiGeneratedVariants}
+                            disabled={isGeneratingAi}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {adminT.clearGeneratedVariant}
+                          </button>
+                        ) : null}
                       </div>
                       {visibleAiVariants.length > 0 ? (
                         <div className="grid gap-4">
                           {visibleAiVariants.map((variant) => (
                             <article
-                              key={variant.id}
+                              key={variant.photoImageUrl}
                               draggable
                               onDragStart={(event) =>
                                 writeGalleryDragData(event, variant.photoImageUrl, "ai-result")
@@ -5439,7 +5787,7 @@ export function AdminDashboard({
                                     {imageUrl ? (
                                       <button
                                         type="button"
-                                        onClick={() => resetGifFrameSettings(slot)}
+                                        onClick={() => clearGifImageSlot(slot)}
                                         className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-500 transition hover:border-emerald-300 hover:text-emerald-800"
                                       >
                                         {adminT.reset}
@@ -5649,7 +5997,7 @@ export function AdminDashboard({
                             <div className="grid gap-3 p-4">
                               <div className="text-sm text-slate-600">
                                 <div>Размер: {formatBytes(gifResult.sizeBytes)}</div>
-                                <div>Стоимость генерации: {formatUsd(gifResult.estimatedCostUsd)}</div>
+                                <div>Стоимость генерации: {formatEur(usdToEur(gifResult.estimatedCostUsd))}</div>
                                 <div className="text-xs text-slate-500">{gifResult.note}</div>
                               </div>
                               <div className="flex flex-wrap items-center justify-between gap-3">

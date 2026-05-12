@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 import { getMediaPublicUrl, resolveMediaStoragePath } from "@/lib/media/storage";
 import { throwIfRoomAiUserError } from "@/lib/room-ai/errors";
 import { OpenAiRoomProvider } from "@/lib/room-ai/providers/OpenAiRoomProvider";
@@ -73,29 +74,40 @@ export class RoomAiService {
     const textCostUsd = this.estimateTextCostUsd(env.OPENAI_VISION_MODEL, usage);
     const estimatedCostUsd =
       textCostUsd + usage.generatedImages * imageUnitCostUsd;
+    const estimatedCostEur = estimatedCostUsd * env.ROOM_AI_USD_TO_EUR_RATE;
 
     return {
       ...usage,
       estimatedCostUsd,
+      estimatedCostEur,
       note:
-        "Оценка: текстовые токены взяты из usage, стоимость изображения рассчитана по текущему прайсу для 1536x1024 medium.",
+        `Оценка: текстовые токены взяты из usage, изображение считается по high quality для ${env.OPENAI_IMAGE_MODEL}; курс USD/EUR: ${env.ROOM_AI_USD_TO_EUR_RATE}. Фактическое списание OpenAI и банковская конвертация могут отличаться.`,
     };
   }
 
   private getImageUnitCostUsd(model: string) {
     if (model.includes("gpt-image-1-mini")) {
-      return 0.015;
+      return 0.052;
     }
 
-    return 0.063;
+    if (model.includes("gpt-image-1.5") || model.includes("chatgpt-image-latest")) {
+      return 0.2;
+    }
+
+    return 0.25;
   }
 
   private estimateTextCostUsd(
     model: string,
     usage: { inputTokens: number; outputTokens: number }
   ) {
-    const rates = model.includes("gpt-5.4-mini")
-      ? { input: 0.75, output: 4.5 }
+    const rates =
+      model.includes("gpt-5.1-mini") ||
+      model.includes("gpt-5-mini") ||
+      model.includes("codex-mini")
+        ? { input: 0.25, output: 2 }
+        : model.includes("gpt-5.4-mini")
+          ? { input: 0.75, output: 4.5 }
       : model.includes("gpt-5.4")
         ? { input: 2.5, output: 15 }
         : model.includes("gpt-5.5")
@@ -172,6 +184,12 @@ export class RoomAiService {
             variant,
           });
 
+          if (await this.isGeneratedImageSameAsSource(photoImageUrl, input.photos)) {
+            throw new Error(
+              "OpenAI returned an unchanged source photo instead of a renovated interior."
+            );
+          }
+
           return {
             ...variant,
             photoImageUrl,
@@ -179,14 +197,63 @@ export class RoomAiService {
         } catch (error) {
           throwIfRoomAiUserError(error);
           console.error("OpenAI photo generation failed:", error);
-
-          return {
-            ...variant,
-            photoImageUrl: variant.photoImageUrl || ROOM_AI_FALLBACK_IMAGE_URL,
-          };
+          throw new Error(
+            `OpenAI photo generation failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
         }
       })
     );
+  }
+
+  private async isGeneratedImageSameAsSource(dataUrl: string, sourcePhotos: File[]) {
+    const generatedBuffer = this.dataUrlToBuffer(dataUrl);
+
+    if (!generatedBuffer) {
+      return false;
+    }
+
+    for (const sourcePhoto of sourcePhotos) {
+      const sourceBuffer = Buffer.from(await sourcePhoto.arrayBuffer());
+      const diff = await this.calculateImageDiff(sourceBuffer, generatedBuffer);
+
+      if (diff.averageChannelDelta < 1 && diff.changedChannelPercent < 0.5) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private dataUrlToBuffer(dataUrl: string) {
+    const match = dataUrl.match(/^data:image\/\w+;base64,(.+)$/);
+
+    return match ? Buffer.from(match[1], "base64") : null;
+  }
+
+  private async calculateImageDiff(sourceBuffer: Buffer, generatedBuffer: Buffer) {
+    const width = 512;
+    const height = 384;
+    const [sourceRaw, generatedRaw] = await Promise.all([
+      sharp(sourceBuffer).resize(width, height, { fit: "fill" }).removeAlpha().raw().toBuffer(),
+      sharp(generatedBuffer).resize(width, height, { fit: "fill" }).removeAlpha().raw().toBuffer(),
+    ]);
+    let absoluteSum = 0;
+    let changedChannels = 0;
+
+    for (let index = 0; index < sourceRaw.length; index += 1) {
+      const delta = Math.abs(sourceRaw[index] - generatedRaw[index]);
+      absoluteSum += delta;
+      if (delta > 8) {
+        changedChannels += 1;
+      }
+    }
+
+    return {
+      averageChannelDelta: absoluteSum / sourceRaw.length,
+      changedChannelPercent: (changedChannels / sourceRaw.length) * 100,
+    };
   }
 
   private async getRoomAnalysis(
@@ -218,16 +285,16 @@ export class RoomAiService {
               ? "high"
               : "low",
         },
-        detectedObjects: ["стены", "пол", "окно", "дверь"],
-        removableObjects: ["временные предметы"],
-        fixedElements: ["окно", "дверь"],
+        detectedObjects: ["walls", "floor", "ceiling", "visible doors", "visible windows"],
+        removableObjects: ["temporary clutter", "loose construction debris"],
+        fixedElements: ["room perimeter", "doors", "windows", "wall/floor/ceiling seams"],
         constraints: [
-          "Не перекрывать открывание двери",
-          "Сохранить доступ к окну",
-          "Оставить проходы",
+          "Preserve all visible doors and windows from the source photo.",
+          "Keep wall/floor/ceiling seams and perspective unchanged.",
+          "Keep practical walkways and access to openings.",
         ],
         notes: [
-          "Использован резервный mock-анализ, потому что OpenAI не вернул корректный результат.",
+          "Fallback analysis was used because the model did not return parseable room-analysis JSON.",
         ],
         openings: [
           {
@@ -238,7 +305,7 @@ export class RoomAiService {
             widthM: 0.8,
             hinge: "start",
             swing: "in",
-            label: "дверь",
+            label: "door",
           },
           {
             id: "window_fallback",
@@ -246,7 +313,7 @@ export class RoomAiService {
             wall: "bottom",
             offsetM: Math.max(0.6, widthM / 2 - 0.7),
             widthM: Math.min(1.6, Math.max(0.8, widthM - 1.2)),
-            label: "окно",
+            label: "window",
           },
         ],
       };
@@ -313,29 +380,29 @@ export class RoomAiService {
   private createMockVariants(roomType: RoomType): RoomVariant[] {
     const titlesByType: Record<RoomType, string[]> = {
       kitchen: [
-        "Семейная кухня с мягким уголком",
-        "Практичная кухня с хранением",
-        "Кухня с ТВ-зоной",
+        "Ð¡ÐµÐ¼ÐµÐ¹Ð½Ð°Ñ ÐºÑƒÑ…Ð½Ñ Ñ Ð¼ÑÐ³ÐºÐ¸Ð¼ ÑƒÐ³Ð¾Ð»ÐºÐ¾Ð¼",
+        "ÐŸÑ€Ð°ÐºÑ‚Ð¸Ñ‡Ð½Ð°Ñ ÐºÑƒÑ…Ð½Ñ Ñ Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¸ÐµÐ¼",
+        "ÐšÑƒÑ…Ð½Ñ Ñ Ð¢Ð’-Ð·Ð¾Ð½Ð¾Ð¹",
       ],
       bedroom: [
-        "Спальня с рабочим местом",
-        "Спальня с большим хранением",
-        "Минималистичная спальня",
+        "Ð¡Ð¿Ð°Ð»ÑŒÐ½Ñ Ñ Ñ€Ð°Ð±Ð¾Ñ‡Ð¸Ð¼ Ð¼ÐµÑÑ‚Ð¾Ð¼",
+        "Ð¡Ð¿Ð°Ð»ÑŒÐ½Ñ Ñ Ð±Ð¾Ð»ÑŒÑˆÐ¸Ð¼ Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¸ÐµÐ¼",
+        "ÐœÐ¸Ð½Ð¸Ð¼Ð°Ð»Ð¸ÑÑ‚Ð¸Ñ‡Ð½Ð°Ñ ÑÐ¿Ð°Ð»ÑŒÐ½Ñ",
       ],
       kids_room: [
-        "Детская: сон + учёба",
-        "Детская с игровой зоной",
-        "Комната на вырост",
+        "Ð”ÐµÑ‚ÑÐºÐ°Ñ: ÑÐ¾Ð½ + ÑƒÑ‡Ñ‘Ð±Ð°",
+        "Ð”ÐµÑ‚ÑÐºÐ°Ñ Ñ Ð¸Ð³Ñ€Ð¾Ð²Ð¾Ð¹ Ð·Ð¾Ð½Ð¾Ð¹",
+        "ÐšÐ¾Ð¼Ð½Ð°Ñ‚Ð° Ð½Ð° Ð²Ñ‹Ñ€Ð¾ÑÑ‚",
       ],
       office: [
-        "Домашний офис с хранением",
-        "Минималистичный кабинет",
-        "Рабочая зона с местом отдыха",
+        "Ð”Ð¾Ð¼Ð°ÑˆÐ½Ð¸Ð¹ Ð¾Ñ„Ð¸Ñ Ñ Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¸ÐµÐ¼",
+        "ÐœÐ¸Ð½Ð¸Ð¼Ð°Ð»Ð¸ÑÑ‚Ð¸Ñ‡Ð½Ñ‹Ð¹ ÐºÐ°Ð±Ð¸Ð½ÐµÑ‚",
+        "Ð Ð°Ð±Ð¾Ñ‡Ð°Ñ Ð·Ð¾Ð½Ð° Ñ Ð¼ÐµÑÑ‚Ð¾Ð¼ Ð¾Ñ‚Ð´Ñ‹Ñ…Ð°",
       ],
       living_room: [
-        "Гостиная с диваном и ТВ",
-        "Гостиная с рабочим уголком",
-        "Уютная гостиная для отдыха",
+        "Ð“Ð¾ÑÑ‚Ð¸Ð½Ð°Ñ Ñ Ð´Ð¸Ð²Ð°Ð½Ð¾Ð¼ Ð¸ Ð¢Ð’",
+        "Ð“Ð¾ÑÑ‚Ð¸Ð½Ð°Ñ Ñ Ñ€Ð°Ð±Ð¾Ñ‡Ð¸Ð¼ ÑƒÐ³Ð¾Ð»ÐºÐ¾Ð¼",
+        "Ð£ÑŽÑ‚Ð½Ð°Ñ Ð³Ð¾ÑÑ‚Ð¸Ð½Ð°Ñ Ð´Ð»Ñ Ð¾Ñ‚Ð´Ñ‹Ñ…Ð°",
       ],
     };
 
@@ -346,13 +413,13 @@ export class RoomAiService {
           id: `variant_${variantNumber}`,
           title,
           description:
-            "Тестовый вариант расстановки. Если OpenAI недоступен, используется резервный вариант.",
+            "Ð¢ÐµÑÑ‚Ð¾Ð²Ñ‹Ð¹ Ð²Ð°Ñ€Ð¸Ð°Ð½Ñ‚ Ñ€Ð°ÑÑÑ‚Ð°Ð½Ð¾Ð²ÐºÐ¸. Ð•ÑÐ»Ð¸ OpenAI Ð½ÐµÐ´Ð¾ÑÑ‚ÑƒÐ¿ÐµÐ½, Ð¸ÑÐ¿Ð¾Ð»ÑŒÐ·ÑƒÐµÑ‚ÑÑ Ñ€ÐµÐ·ÐµÑ€Ð²Ð½Ñ‹Ð¹ Ð²Ð°Ñ€Ð¸Ð°Ð½Ñ‚.",
           photoImageUrl: ROOM_AI_FALLBACK_IMAGE_URL,
           planImageUrl: ROOM_AI_FALLBACK_IMAGE_URL,
           layoutSource: "mock",
           palette: this.getMockPalette(variantNumber),
-          pros: ["Понятная композиция", "Базовая эргономика"],
-          cons: ["Это резервный вариант", "Нужна ручная проверка"],
+          pros: ["ÐŸÐ¾Ð½ÑÑ‚Ð½Ð°Ñ ÐºÐ¾Ð¼Ð¿Ð¾Ð·Ð¸Ñ†Ð¸Ñ", "Ð‘Ð°Ð·Ð¾Ð²Ð°Ñ ÑÑ€Ð³Ð¾Ð½Ð¾Ð¼Ð¸ÐºÐ°"],
+          cons: ["Ð­Ñ‚Ð¾ Ñ€ÐµÐ·ÐµÑ€Ð²Ð½Ñ‹Ð¹ Ð²Ð°Ñ€Ð¸Ð°Ð½Ñ‚", "ÐÑƒÐ¶Ð½Ð° Ñ€ÑƒÑ‡Ð½Ð°Ñ Ð¿Ñ€Ð¾Ð²ÐµÑ€ÐºÐ°"],
           furniture: this.createMockFurniture(roomType, variantNumber),
       };
     });
@@ -366,11 +433,11 @@ export class RoomAiService {
 
   private createMockFurniture(roomType: RoomType, variantNumber: number) {
     const furnitureByType: Record<RoomType, string[]> = {
-      kitchen: ["Мягкий уголок", "Обеденный стол", "ТВ-зона", "Холодильник"],
-      bedroom: ["Кровать", "Рабочий стол", "Шкаф", "Тумба"],
-      kids_room: ["Кровать", "Учебный стол", "Стеллаж", "Игровая зона"],
-      office: ["Рабочий стол", "Кресло", "Шкаф", "Зона отдыха"],
-      living_room: ["Диван", "ТВ-тумба", "Журнальный стол", "Стеллаж"],
+      kitchen: ["ÐœÑÐ³ÐºÐ¸Ð¹ ÑƒÐ³Ð¾Ð»Ð¾Ðº", "ÐžÐ±ÐµÐ´ÐµÐ½Ð½Ñ‹Ð¹ ÑÑ‚Ð¾Ð»", "Ð¢Ð’-Ð·Ð¾Ð½Ð°", "Ð¥Ð¾Ð»Ð¾Ð´Ð¸Ð»ÑŒÐ½Ð¸Ðº"],
+      bedroom: ["ÐšÑ€Ð¾Ð²Ð°Ñ‚ÑŒ", "Ð Ð°Ð±Ð¾Ñ‡Ð¸Ð¹ ÑÑ‚Ð¾Ð»", "Ð¨ÐºÐ°Ñ„", "Ð¢ÑƒÐ¼Ð±Ð°"],
+      kids_room: ["ÐšÑ€Ð¾Ð²Ð°Ñ‚ÑŒ", "Ð£Ñ‡ÐµÐ±Ð½Ñ‹Ð¹ ÑÑ‚Ð¾Ð»", "Ð¡Ñ‚ÐµÐ»Ð»Ð°Ð¶", "Ð˜Ð³Ñ€Ð¾Ð²Ð°Ñ Ð·Ð¾Ð½Ð°"],
+      office: ["Ð Ð°Ð±Ð¾Ñ‡Ð¸Ð¹ ÑÑ‚Ð¾Ð»", "ÐšÑ€ÐµÑÐ»Ð¾", "Ð¨ÐºÐ°Ñ„", "Ð—Ð¾Ð½Ð° Ð¾Ñ‚Ð´Ñ‹Ñ…Ð°"],
+      living_room: ["Ð”Ð¸Ð²Ð°Ð½", "Ð¢Ð’-Ñ‚ÑƒÐ¼Ð±Ð°", "Ð–ÑƒÑ€Ð½Ð°Ð»ÑŒÐ½Ñ‹Ð¹ ÑÑ‚Ð¾Ð»", "Ð¡Ñ‚ÐµÐ»Ð»Ð°Ð¶"],
     };
 
     return furnitureByType[roomType].map((label, index) => ({
@@ -448,7 +515,7 @@ export class RoomAiService {
         widthM: 0.8,
         hinge: "start",
         swing: "in",
-        label: "дверь",
+        label: "Ð´Ð²ÐµÑ€ÑŒ",
       },
       {
         id: "window_fallback",
@@ -456,7 +523,7 @@ export class RoomAiService {
         wall: "bottom",
         offsetM: Math.max(0.6, roomWidthM / 2 - 0.7),
         widthM: Math.min(1.6, Math.max(0.8, roomWidthM - 1.2)),
-        label: "окно",
+        label: "Ð¾ÐºÐ½Ð¾",
       },
     ];
   }
@@ -678,11 +745,11 @@ export class RoomAiService {
     const centerDistance =
       Math.abs(centerX - roomWidthM / 2) + Math.abs(centerY - roomLengthM / 2);
 
-    if (/(кров|bed|диван|sofa|шкаф|wardrobe|dresser|комод|tv|тумба|shelf|стеллаж)/.test(kind)) {
+    if (/(ÐºÑ€Ð¾Ð²|bed|Ð´Ð¸Ð²Ð°Ð½|sofa|ÑˆÐºÐ°Ñ„|wardrobe|dresser|ÐºÐ¾Ð¼Ð¾Ð´|tv|Ñ‚ÑƒÐ¼Ð±Ð°|shelf|ÑÑ‚ÐµÐ»Ð»Ð°Ð¶)/.test(kind)) {
       return nearestWallGap * 0.9 + Math.max(0, 1.2 - centerDistance) * 1.8;
     }
 
-    if (/(desk|table|стол|рабоч)/.test(kind)) {
+    if (/(desk|table|ÑÑ‚Ð¾Ð»|Ñ€Ð°Ð±Ð¾Ñ‡)/.test(kind)) {
       return nearestWallGap * 0.45 + Math.max(0, 0.7 - centerDistance) * 0.8;
     }
 
@@ -716,3 +783,4 @@ export class RoomAiService {
     return Math.round(value * 100) / 100;
   }
 }
+

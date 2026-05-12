@@ -40,6 +40,16 @@ export function buildAnalyzeRoomPrompt(input: BuildAnalyzeRoomPromptInput) {
 Известные размеры: ${dimensionsText || "не указаны"}
 Желаемая цветовая гамма: ${input.palette ?? "не указана"}
 
+ARCHITECTURE LOCK FOR ANALYSIS:
+- The empty source room architecture is the source of truth.
+- Detect every visible door, second door, doorway, window, balcony door, arch, frame, trim, sill, and threshold as fixed architectural geometry, not as removable clutter.
+- For each door/window/opening, estimate wall, offset from the wall start, visible width, visible height, top edge, bottom edge, height/sill/threshold relationship when visible, and distance to adjacent corners.
+- Preserve asymmetry: if a window or door is off-center, record it as off-center.
+- Do not normalize the room into a cleaner rectangle if the photo shows a different proportion or perspective.
+- Add constraints that explicitly say room geometry, perspective, doors, second doors, doorways, windows, their sizes, heights, and distances to corners must not be changed during generation.
+- If there are two doors/openings, both must be listed separately in openings with separate ids.
+- Add constraints that the output must keep the same photo framing and room scale: no zoom, no crop change, no camera movement, no changed focal length, and no different amount of visible floor/ceiling/walls.
+
 Важные правила:
 - Отвечай на русском языке.
 - Не выдумывай точные размеры, если они не видны и не были указаны.

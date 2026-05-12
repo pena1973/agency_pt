@@ -61,31 +61,8 @@ function normalizeFrameSettings(settings?: GifFrameSettings) {
   };
 }
 
-function getPublicFilePath(imageUrl: string) {
-  const mediaFilePath = getMediaFilePathFromUrl(imageUrl);
-
-  if (mediaFilePath) {
-    return mediaFilePath;
-  }
-
-  if (!imageUrl.startsWith("/")) {
-    return null;
-  }
-
-  const normalizedPath = imageUrl.split("?")[0]?.replace(/^\/+/, "");
-
-  if (!normalizedPath) {
-    return null;
-  }
-
-  const publicRoot = path.resolve(process.cwd(), "public");
-  const resolvedPath = path.resolve(publicRoot, normalizedPath);
-
-  return resolvedPath.startsWith(publicRoot) ? resolvedPath : null;
-}
-
 async function readImageBuffer(imageUrl: string, requestUrl: string) {
-  const publicFilePath = getPublicFilePath(imageUrl);
+  const publicFilePath = getMediaFilePathFromUrl(imageUrl);
 
   if (publicFilePath) {
     return readFile(publicFilePath);

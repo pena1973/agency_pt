@@ -15,3 +15,22 @@ export function getPropertyImagePosition(
 
   return `${position?.x ?? 50}% ${position?.y ?? 50}%`;
 }
+
+export function getPropertyImageStyle(
+  property: Pick<PropertyListing, "imagePositions">,
+  imageUrl: string
+) {
+  const position = property.imagePositions?.[imageUrl];
+  const x = position?.x ?? 50;
+  const y = position?.y ?? 50;
+  const scale = Math.min(
+    200,
+    Math.max(100, typeof position?.scale === "number" ? position.scale : 100)
+  );
+
+  return {
+    objectPosition: `${x}% ${y}%`,
+    transform: scale === 100 ? undefined : `scale(${scale / 100})`,
+    transformOrigin: `${x}% ${y}%`,
+  };
+}

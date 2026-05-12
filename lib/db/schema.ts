@@ -189,6 +189,7 @@ export const propertyImages = sqliteTable(
     sortOrder: integer("sort_order").notNull().default(0),
     positionX: integer("position_x").notNull().default(50),
     positionY: integer("position_y").notNull().default(50),
+    scale: integer("scale").notNull().default(100),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [

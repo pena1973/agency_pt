@@ -7,7 +7,7 @@ import * as schema from "@/lib/db/schema";
 
 const sqlitePath = path.isAbsolute(dbEnv.DATABASE_PATH)
   ? dbEnv.DATABASE_PATH
-  : path.join(process.cwd(), dbEnv.DATABASE_PATH);
+  : path.join(/*turbopackIgnore: true*/ process.cwd(), dbEnv.DATABASE_PATH);
 
 mkdirSync(path.dirname(sqlitePath), { recursive: true });
 

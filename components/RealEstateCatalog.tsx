@@ -15,7 +15,7 @@ import {
 import { useSiteLocale } from "@/lib/i18n/use-site-locale";
 import {
   getPropertyCoverImage,
-  getPropertyImagePosition,
+  getPropertyImageStyle,
 } from "@/lib/real-estate/property-cover";
 import type {
   ListingMode,
@@ -1002,7 +1002,7 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                           src={currentImage}
                           alt={localizedProperty.title}
                           className="h-60 w-full object-cover md:h-64"
-                          style={{ objectPosition: getPropertyImagePosition(property, currentImage) }}
+                          style={getPropertyImageStyle(property, currentImage)}
                         />
 
                         <div className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 shadow-sm">
@@ -1190,12 +1190,10 @@ export function RealEstateCatalog({ propertiesData }: RealEstateCatalogProps) {
                             src={getPropertyCoverImage(property)}
                             alt={localizedProperty.title}
                             className="h-full w-full object-cover"
-                            style={{
-                              objectPosition: getPropertyImagePosition(
-                                property,
-                                getPropertyCoverImage(property)
-                              ),
-                            }}
+                            style={getPropertyImageStyle(
+                              property,
+                              getPropertyCoverImage(property)
+                            )}
                           />
                           {localizedProperty.isFallback ? (
                             <span className="absolute right-1 top-1 rounded-full border border-slate-200 bg-white/92 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-slate-500">

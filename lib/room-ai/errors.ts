@@ -75,7 +75,7 @@ export function toRoomAiUserError(error: unknown): RoomAiUserError | null {
   ) {
     return new RoomAiUserError(
       "token_limit_exceeded",
-      "Превышен лимит токенов для обработки запроса. Попробуйте загрузить меньше фотографий или уменьшить объём запроса."
+      "Превышен лимит токенов для обработки запроса. Попробуйте загрузить меньше фотографий или уменьшить объем запроса."
     );
   }
 
@@ -86,7 +86,7 @@ export function toRoomAiUserError(error: unknown): RoomAiUserError | null {
   ) {
     return new RoomAiUserError(
       "rate_limit_exceeded",
-      "Сервис временно упёрся в лимит запросов OpenAI. Подождите немного и попробуйте снова."
+      "Сервис временно уперся в лимит запросов OpenAI. Подождите немного и попробуйте снова."
     );
   }
 

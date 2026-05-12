@@ -110,6 +110,7 @@ export type GenerateRoomDesignResult = {
     totalTokens: number;
     generatedImages: number;
     estimatedCostUsd: number;
+    estimatedCostEur: number;
     note: string;
   };
 };

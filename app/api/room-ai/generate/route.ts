@@ -159,7 +159,12 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: "Ошибка генерации вариантов комнаты." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Ошибка генерации вариантов комнаты.",
+      },
       { status: 500 }
     );
   }

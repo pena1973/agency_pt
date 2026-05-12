@@ -1,6 +1,9 @@
 import { desc, eq, inArray } from "drizzle-orm";
+import { createHash } from "crypto";
+import { existsSync, readFileSync } from "fs";
 import { db } from "@/lib/db/client";
-import { aiGenerationJobs, aiGenerationResults } from "@/lib/db/schema";
+import { aiGenerationJobs, aiGenerationResults, propertyImages } from "@/lib/db/schema";
+import { getMediaFilePathFromUrl } from "@/lib/media/storage";
 import type { GenerateRoomDesignResult, RoomVariant } from "@/lib/room-ai/types";
 
 const emptyRoomAnalysis: GenerateRoomDesignResult["roomAnalysis"] = {
@@ -31,6 +34,16 @@ function mapSavedVariant(
     palette: [],
     layoutSource: "ai",
   };
+}
+
+function getFileHashFromUrl(fileUrl: string) {
+  const filePath = getMediaFilePathFromUrl(fileUrl);
+
+  if (!filePath || !existsSync(filePath)) {
+    return null;
+  }
+
+  return createHash("sha256").update(readFileSync(filePath)).digest("hex");
 }
 
 export async function saveRoomAiResultForProperty(
@@ -87,9 +100,28 @@ export async function readRoomAiResultsForProperty(
     .select()
     .from(aiGenerationResults)
     .where(inArray(aiGenerationResults.jobId, jobIds));
+  const sourceImageRows = await db
+    .select({ imageUrl: propertyImages.imageUrl })
+    .from(propertyImages)
+    .where(eq(propertyImages.propertyId, propertyId));
+  const sourceImageUrls = new Set(sourceImageRows.map((row) => row.imageUrl));
+  const sourceImageHashes = new Set(
+    sourceImageRows
+      .map((row) => getFileHashFromUrl(row.imageUrl))
+      .filter((hash): hash is string => Boolean(hash))
+  );
 
   const resultRowsByJobId = new Map<string, Array<typeof aiGenerationResults.$inferSelect>>();
   for (const row of resultRows) {
+    if (row.imageUrl === "/mock/property-placeholder.svg" || sourceImageUrls.has(row.imageUrl)) {
+      continue;
+    }
+
+    const resultHash = getFileHashFromUrl(row.imageUrl);
+    if (resultHash && sourceImageHashes.has(resultHash)) {
+      continue;
+    }
+
     const currentRows = resultRowsByJobId.get(row.jobId) ?? [];
     currentRows.push(row);
     resultRowsByJobId.set(row.jobId, currentRows);

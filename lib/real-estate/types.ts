@@ -123,7 +123,7 @@ export type PropertyListing = {
   areaM2: number;
   imageUrl: string;
   imageGallery: string[];
-  imagePositions?: Record<string, { x: number; y: number }>;
+  imagePositions?: Record<string, { x: number; y: number; scale?: number }>;
   imageSources?: Record<string, "original" | "ai_generated">;
   features: ListingFeature[];
   details: PropertyDetails;

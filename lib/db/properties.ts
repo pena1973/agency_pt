@@ -58,6 +58,13 @@ function clampImagePosition(value: number | null | undefined) {
   );
 }
 
+function clampImageScale(value: number | null | undefined) {
+  return Math.min(
+    200,
+    Math.max(100, typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 100)
+  );
+}
+
 export async function hasPropertiesInDb(): Promise<boolean> {
   const rows = await db
     .select({ count: sql<number>`count(*)` })
@@ -122,6 +129,7 @@ export async function readPropertyListingsFromDb(): Promise<PropertyListing[]> {
         {
           x: clampImagePosition(image.positionX),
           y: clampImagePosition(image.positionY),
+          scale: clampImageScale(image.scale),
         },
       ])
     );
@@ -373,6 +381,7 @@ export async function upsertPropertyListingInDb(property: PropertyListing): Prom
       sortOrder: index,
       positionX: clampImagePosition(property.imagePositions?.[imageUrl]?.x),
       positionY: clampImagePosition(property.imagePositions?.[imageUrl]?.y),
+      scale: clampImageScale(property.imagePositions?.[imageUrl]?.scale),
       createdAt: now,
     }));
 

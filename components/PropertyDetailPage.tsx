@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
-import { getFeatureLabel } from "@/lib/real-estate/data";
 import {
   getPropertyCoverImage,
-  getPropertyImagePosition,
+  getPropertyImageStyle,
 } from "@/lib/real-estate/property-cover";
 import {
   conditionTranslations,
@@ -98,6 +97,10 @@ function getPropertyContentForLocale(property: PropertyListing, locale: SiteLoca
 
 function isAiGeneratedImage(property: PropertyListing, imageUrl: string) {
   return property.imageSources?.[imageUrl] === "ai_generated";
+}
+
+function getFeatureLabel(feature: PropertyListing["features"][number]) {
+  return featureTranslations.ru[feature] ?? feature;
 }
 
 function formatArea(value: number) {
@@ -619,12 +622,10 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
               src={property.imageGallery[activeImageIndex] ?? getPropertyCoverImage(property)}
               alt={`${localizedProperty.title} ${activeImageIndex + 1}`}
               className="h-[440px] w-full object-cover md:h-[520px]"
-              style={{
-                objectPosition: getPropertyImagePosition(
-                  property,
-                  property.imageGallery[activeImageIndex] ?? getPropertyCoverImage(property)
-                ),
-              }}
+              style={getPropertyImageStyle(
+                property,
+                property.imageGallery[activeImageIndex] ?? getPropertyCoverImage(property)
+              )}
             />
 
             {property.imageGallery.length > 1 && (
@@ -678,7 +679,7 @@ export function PropertyDetailPage({ property }: PropertyDetailPageProps) {
                     src={image}
                     alt={`${localizedProperty.title} ${index + 1}`}
                     className="h-16 w-24 object-cover"
-                    style={{ objectPosition: getPropertyImagePosition(property, image) }}
+                    style={getPropertyImageStyle(property, image)}
                   />
                 </button>
               ))}

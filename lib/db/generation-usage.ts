@@ -8,6 +8,7 @@ export type GenerationUsageSummary = {
   totalTokens: number;
   totalImages: number;
   totalCostUsd: number;
+  totalCostEur: number;
   entriesCount: number;
 };
 
@@ -43,6 +44,12 @@ function ensureGenerationUsageTable() {
     CREATE INDEX IF NOT EXISTS generation_usage_created_at_idx
       ON generation_usage(created_at);
   `);
+}
+
+function getUsdToEurRate() {
+  const rate = Number(process.env.ROOM_AI_USD_TO_EUR_RATE ?? 0.92);
+
+  return Number.isFinite(rate) && rate > 0 ? rate : 0.92;
 }
 
 export function recordGenerationUsage(record: GenerationUsageRecord) {
@@ -97,12 +104,15 @@ export function readGenerationUsageSummary(): GenerationUsageSummary {
     )
     .get() as GenerationUsageSummary;
 
+  const totalCostUsd = Number(row.totalCostUsd ?? 0);
+
   return {
     totalInputTokens: Number(row.totalInputTokens ?? 0),
     totalOutputTokens: Number(row.totalOutputTokens ?? 0),
     totalTokens: Number(row.totalTokens ?? 0),
     totalImages: Number(row.totalImages ?? 0),
-    totalCostUsd: Number(row.totalCostUsd ?? 0),
+    totalCostUsd,
+    totalCostEur: totalCostUsd * getUsdToEurRate(),
     entriesCount: Number(row.entriesCount ?? 0),
   };
 }

@@ -14,7 +14,7 @@ function normalizePublicPath(value: string) {
 
 function getStorageRoot() {
   return path.resolve(
-    process.env.REAL_ESTATE_UPLOADS_PATH ??
+    /*turbopackIgnore: true*/ process.env.REAL_ESTATE_UPLOADS_PATH ??
       process.env.MEDIA_STORAGE_PATH ??
       DEFAULT_STORAGE_ROOT
   );
