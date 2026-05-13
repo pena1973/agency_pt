@@ -1,12 +1,14 @@
-import { desc, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   compareItems,
   favorites,
   inquiries,
   savedSearches,
+  sessions,
   users,
 } from "@/lib/db/schema";
+import { isAdminEmail } from "@/lib/auth/admin";
 import { normalizeCityName } from "@/lib/real-estate/city";
 import type { RegisteredUser, RegisteredUserSearchProfile } from "@/lib/real-estate/types";
 
@@ -166,4 +168,29 @@ export async function readRegisteredUsersFromDb(): Promise<RegisteredUser[]> {
           : undefined),
     };
   });
+}
+
+export async function deleteRegisteredUserFromDb(userId: string): Promise<void> {
+  const existingRows = await db
+    .select({ id: users.id, email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  const existingUser = existingRows[0];
+
+  if (!existingUser) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  if (isAdminEmail(existingUser.email)) {
+    throw new Error("CANNOT_DELETE_ADMIN");
+  }
+
+  await db.update(inquiries).set({ userId: null }).where(eq(inquiries.userId, userId));
+  await db.delete(sessions).where(eq(sessions.userId, userId));
+  await db.delete(favorites).where(eq(favorites.userId, userId));
+  await db.delete(compareItems).where(eq(compareItems.userId, userId));
+  await db.delete(savedSearches).where(eq(savedSearches.userId, userId));
+  await db.delete(users).where(eq(users.id, userId));
 }

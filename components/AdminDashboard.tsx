@@ -218,6 +218,12 @@ const adminTranslations = {
     propertyInquiry: "Pedido sobre imovel",
     generalInquiry: "Pedido geral de selecao",
     openUser: "Abrir utilizador",
+    deleteInquiry: "Eliminar pedido",
+    deleteUser: "Eliminar utilizador",
+    confirmDeleteInquiry: "Eliminar este pedido?",
+    confirmDeleteUser: "Eliminar este utilizador?",
+    inquiryDeleted: "Pedido eliminado.",
+    userDeleted: "Utilizador eliminado.",
     markReviewed: "Marcar como visto",
     returnToNew: "Voltar a novo",
     phone: "Telefone",
@@ -372,6 +378,12 @@ const adminTranslations = {
     propertyInquiry: "Property inquiry",
     generalInquiry: "General selection request",
     openUser: "Open user",
+    deleteInquiry: "Delete inquiry",
+    deleteUser: "Delete user",
+    confirmDeleteInquiry: "Delete this inquiry?",
+    confirmDeleteUser: "Delete this user?",
+    inquiryDeleted: "Inquiry deleted.",
+    userDeleted: "User deleted.",
     markReviewed: "Mark reviewed",
     returnToNew: "Return to new",
     phone: "Phone",
@@ -526,6 +538,12 @@ const adminTranslations = {
     propertyInquiry: "Обращение по объекту",
     generalInquiry: "Общий запрос на подбор",
     openUser: "Открыть пользователя",
+    deleteInquiry: "Удалить запрос",
+    deleteUser: "Удалить пользователя",
+    confirmDeleteInquiry: "Удалить этот запрос?",
+    confirmDeleteUser: "Удалить этого пользователя?",
+    inquiryDeleted: "Запрос удален.",
+    userDeleted: "Пользователь удален.",
     markReviewed: "Пометить просмотренным",
     returnToNew: "Вернуть в новые",
     phone: "Телефон",
@@ -680,6 +698,12 @@ const adminTranslations = {
     propertyInquiry: "Звернення щодо об'єкта",
     generalInquiry: "Загальний запит на підбір",
     openUser: "Відкрити користувача",
+    deleteInquiry: "Видалити запит",
+    deleteUser: "Видалити користувача",
+    confirmDeleteInquiry: "Видалити цей запит?",
+    confirmDeleteUser: "Видалити цього користувача?",
+    inquiryDeleted: "Запит видалено.",
+    userDeleted: "Користувача видалено.",
     markReviewed: "Позначити переглянутим",
     returnToNew: "Повернути в нові",
     phone: "Телефон",
@@ -1485,7 +1509,7 @@ export function AdminDashboard({
   const [activeTab, setActiveTab] = useState<AdminTab>("catalog");
   const [properties, setProperties] = useState<PropertyListing[]>(initialProperties);
   const [inquiries, setInquiries] = useState<CustomerInquiry[]>(initialInquiries);
-  const [users] = useState<RegisteredUser[]>(initialUsers);
+  const [users, setUsers] = useState<RegisteredUser[]>(initialUsers);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(
     initialUsers[0]?.id ?? null
   );
@@ -3686,6 +3710,65 @@ export function AdminDashboard({
     setStatusMessage("Статус обращения обновлен.");
   }
 
+  async function deleteInquiry(inquiryId: string) {
+    if (!window.confirm(adminT.confirmDeleteInquiry)) {
+      return;
+    }
+
+    const response = await fetch("/api/admin/inquiries", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: inquiryId }),
+    });
+
+    const payload = (await response.json()) as {
+      error?: string;
+      inquiries?: CustomerInquiry[];
+    };
+
+    if (!response.ok || !payload.inquiries) {
+      setStatusMessage(payload.error ?? "Не удалось удалить запрос.");
+      return;
+    }
+
+    setInquiries(payload.inquiries);
+    setStatusMessage(adminT.inquiryDeleted);
+  }
+
+  async function deleteSelectedUser() {
+    if (!selectedUser || !window.confirm(adminT.confirmDeleteUser)) {
+      return;
+    }
+
+    const response = await fetch("/api/admin/users", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: selectedUser.id }),
+    });
+
+    const payload = (await response.json()) as {
+      error?: string;
+      users?: RegisteredUser[];
+      inquiries?: CustomerInquiry[];
+    };
+
+    if (!response.ok || !payload.users) {
+      setStatusMessage(payload.error ?? "Не удалось удалить пользователя.");
+      return;
+    }
+
+    setUsers(payload.users);
+    if (payload.inquiries) {
+      setInquiries(payload.inquiries);
+    }
+    setSelectedUserId(payload.users[0]?.id ?? null);
+    setStatusMessage(adminT.userDeleted);
+  }
+
   function getPropertiesByIds(ids: string[]) {
     return ids
       .map((id) => properties.find((property) => property.id === id))
@@ -3706,30 +3789,6 @@ export function AdminDashboard({
       dateStyle: "medium",
       timeStyle: "short",
     }).format(new Date(isoDate));
-  }
-
-  function formatUserPropertyTypes(propertyTypes?: PropertyType[]) {
-    if (!propertyTypes || propertyTypes.length === 0) {
-      return adminT.notSpecified;
-    }
-
-    return propertyTypes
-      .map((propertyType) => localizedPropertyTypeLabels[propertyType] ?? propertyType)
-      .join(", ");
-  }
-
-  function formatUserSearchMode(
-    mode?: NonNullable<RegisteredUser["searchProfile"]>["mode"]
-  ) {
-    if (mode === "sale") {
-      return adminT.purchase;
-    }
-
-    if (mode === "rent") {
-      return adminT.rent;
-    }
-
-    return adminT.notSpecified;
   }
 
   return (
@@ -6094,6 +6153,15 @@ export function AdminDashboard({
                               ? adminT.markReviewed
                               : adminT.returnToNew}
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void deleteInquiry(inquiry.id);
+                            }}
+                            className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-50"
+                          >
+                            {adminT.deleteInquiry}
+                          </button>
                         </div>
                       </div>
 
@@ -6202,7 +6270,7 @@ export function AdminDashboard({
               </div>
             </aside>
 
-            <section className="grid gap-6 pr-1 2xl:h-full 2xl:min-h-0 2xl:overflow-y-auto">
+            <section className="grid content-start gap-6 pr-1 2xl:h-full 2xl:min-h-0 2xl:overflow-y-auto">
               {selectedUser ? (
                 <>
                   <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
@@ -6215,8 +6283,19 @@ export function AdminDashboard({
                           {adminT.siteUser}
                         </div>
                       </div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                        {adminT.lastActivity}: {formatAdminDate(selectedUser.lastActiveAt)}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                          {adminT.lastActivity}: {formatAdminDate(selectedUser.lastActiveAt)}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void deleteSelectedUser();
+                          }}
+                          className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100"
+                        >
+                          {adminT.deleteUser}
+                        </button>
                       </div>
                     </div>
 
@@ -6238,59 +6317,6 @@ export function AdminDashboard({
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="text-lg font-semibold text-slate-950">
-                      {adminT.userSearchTitle}
-                    </div>
-                    <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          {adminT.deal}
-                        </div>
-                        <div className="mt-2 text-sm leading-6 text-slate-700">
-                          {formatUserSearchMode(selectedUser.searchProfile?.mode)}
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          {adminT.cities}
-                        </div>
-                        <div className="mt-2 text-sm leading-6 text-slate-700">
-                          {selectedUser.searchProfile?.cities?.join(", ") ?? adminT.notSpecified}
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          {adminT.propertyType}
-                        </div>
-                        <div className="mt-2 text-sm leading-6 text-slate-700">
-                          {formatUserPropertyTypes(selectedUser.searchProfile?.propertyTypes)}
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          {adminT.budget}
-                        </div>
-                        <div className="mt-2 text-sm leading-6 text-slate-700">
-                          {selectedUser.searchProfile?.budgetLabel ?? adminT.notSpecified}
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                          {adminT.mustHave}
-                        </div>
-                        <div className="mt-2 text-sm leading-6 text-slate-700">
-                          {selectedUser.searchProfile?.mustHave?.join(", ") ?? adminT.notSpecified}
-                        </div>
-                      </div>
-                    </div>
-                    {selectedUser.searchProfile?.notes ? (
-                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-                        {selectedUser.searchProfile.notes}
-                      </div>
-                    ) : null}
                   </div>
 
                   <div className="grid gap-6 xl:grid-cols-2">

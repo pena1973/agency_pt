@@ -247,10 +247,10 @@ export class OpenAiRoomProvider {
       .resize(sourceWidth, sourceHeight, {
         fit: "fill",
       })
-      .png()
+      .jpeg({ quality: 92, mozjpeg: true })
       .toBuffer();
 
-    return `data:image/png;base64,${normalizedBuffer.toString("base64")}`;
+    return `data:image/jpeg;base64,${normalizedBuffer.toString("base64")}`;
   }
 
   private async createStructuralGuideImage(

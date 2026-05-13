@@ -169,6 +169,24 @@ export async function updateInquiryStatusInDb(
   return readInquiriesFromDb();
 }
 
+export async function deleteInquiryFromDb(
+  inquiryId: string
+): Promise<CustomerInquiry[]> {
+  const existingRows = await db
+    .select({ id: inquiries.id })
+    .from(inquiries)
+    .where(eq(inquiries.id, inquiryId))
+    .limit(1);
+
+  if (existingRows.length === 0) {
+    throw new Error("INQUIRY_NOT_FOUND");
+  }
+
+  await db.delete(inquiries).where(eq(inquiries.id, inquiryId));
+
+  return readInquiriesFromDb();
+}
+
 export async function hasInquiriesInDb(): Promise<boolean> {
   const rows = await db.select({ id: inquiries.id }).from(inquiries).limit(1);
   return rows.length > 0;

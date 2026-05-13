@@ -2,7 +2,6 @@ import { readInquiriesFromDb } from "@/lib/db/inquiries";
 import { readPropertyListingsFromDb } from "@/lib/db/properties";
 import { readRegisteredUsersFromDb } from "@/lib/db/registered-users";
 import { syncPropertyListingsToDb } from "@/lib/db/catalog-sync";
-import { registeredUsers as defaultRegisteredUsers } from "@/lib/real-estate/users";
 import type {
   CustomerInquiry,
   PropertyListing,
@@ -99,34 +98,5 @@ export async function readCustomerInquiries(): Promise<CustomerInquiry[]> {
 }
 
 export async function readRegisteredUsers(): Promise<RegisteredUser[]> {
-  const dbUsers = await readRegisteredUsersFromDb();
-
-  if (dbUsers.length > 0) {
-    const dbUserByEmail = new Map(
-      dbUsers.map((user) => [user.email.trim().toLowerCase(), user] as const)
-    );
-
-    const mergedUsers = defaultRegisteredUsers.map((mockUser) => {
-      const dbUser = dbUserByEmail.get(mockUser.email.trim().toLowerCase());
-
-      if (!dbUser) {
-        return mockUser;
-      }
-
-      return {
-        ...mockUser,
-        ...dbUser,
-        favoriteIds: dbUser.favoriteIds.length > 0 ? dbUser.favoriteIds : mockUser.favoriteIds,
-        compareIds: dbUser.compareIds.length > 0 ? dbUser.compareIds : mockUser.compareIds,
-        searchProfile: dbUser.searchProfile ?? mockUser.searchProfile,
-      };
-    });
-
-    const mergedUserIds = new Set(mergedUsers.map((user) => user.id));
-    const extraDbUsers = dbUsers.filter((user) => !mergedUserIds.has(user.id));
-
-    return [...mergedUsers, ...extraDbUsers];
-  }
-
-  return defaultRegisteredUsers;
+  return readRegisteredUsersFromDb();
 }
