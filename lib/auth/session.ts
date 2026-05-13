@@ -25,6 +25,10 @@ function getSessionLifetimeSeconds(rememberMe: boolean): number {
   return (rememberMe ? LONG_SESSION_DAYS : SHORT_SESSION_DAYS) * DAY_IN_SECONDS;
 }
 
+function shouldUseSecureSessionCookie() {
+  return process.env.AUTH_COOKIE_SECURE === "true";
+}
+
 function mapAuthenticatedUser(
   row: typeof users.$inferSelect
 ): AuthenticatedUser {
@@ -63,7 +67,7 @@ export async function createSession(
     path: "/",
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureSessionCookie(),
     maxAge: getSessionLifetimeSeconds(rememberMe),
   });
 

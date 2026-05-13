@@ -37,7 +37,8 @@ export async function POST(request: Request) {
       user: authResult.user,
       redirectTo: authResult.user.role === "admin" ? "/admin" : "/",
     });
-  } catch {
+  } catch (error) {
+    console.error("Login failed:", error);
     return NextResponse.json(
       { error: "Не удалось выполнить вход." },
       { status: 500 }
