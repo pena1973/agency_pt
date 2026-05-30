@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "prestart": "npm run db:init",
+    "build": "next build",    
+    "start:init": "npm run db:init && next start",
     "start": "next start",
     "lint": "eslint",
     "db:init": "node scripts/db/init.mjs",
