@@ -1,0 +1,25 @@
+name: Deploy real-estate to demo-server
+
+on:
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: deploy-real-estate-demo
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            /opt/demos/infra/scripts/deploy-project.sh real-estate
